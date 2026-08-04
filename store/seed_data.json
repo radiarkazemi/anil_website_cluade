@@ -1,0 +1,39 @@
+{
+  "note": "Exact catalog + market data used by the design prototype. Toman currency. fee_ratio is اجرت as a ratio. Prices are NOT stored — they derive from gold_price via: gold=weight_g*gp; fee=gold*fee_ratio; tax=fee*0.09; total=gold+fee+stone_value+tax.",
+  "gold_price": {
+    "price_18k_per_gram": 3850000,
+    "price_24k_per_gram": 5131050,
+    "coin_emami": 43850000,
+    "coin_half": 24100000,
+    "coin_quarter": 14200000,
+    "usd_toman": 62400,
+    "ounce_usd": 2412,
+    "mesghal_multiplier": 4.3318
+  },
+  "market_rows_order": [
+    "طلای ۱۸ عیار", "طلای ۲۴ عیار", "مثقال طلا", "سکه امامی",
+    "نیم سکه", "ربع سکه", "دلار", "انس جهانی"
+  ],
+  "categories": [
+    { "name": "انگشتر", "display_count": 48 },
+    { "name": "گردنبند و زنجیر", "display_count": 63 },
+    { "name": "دستبند و النگو", "display_count": 37 },
+    { "name": "گوشواره", "display_count": 52 },
+    { "name": "سکه و شمش", "display_count": 21 },
+    { "name": "ست کامل", "display_count": 19 }
+  ],
+  "products": [
+    { "id": 0,  "name": "انگشتر سولیتر آوا",       "category": "انگشتر",           "weight_g": 4.2,  "karat": 18, "fee_ratio": 0.22, "stone_value": 8500000, "tag": "پرفروش" },
+    { "id": 1,  "name": "زنجیر ونیزی رِسا",        "category": "گردنبند و زنجیر",  "weight_g": 6.8,  "karat": 18, "fee_ratio": 0.18, "stone_value": 0,       "tag": "" },
+    { "id": 2,  "name": "النگوی شش‌پر نازنین",     "category": "دستبند و النگو",   "weight_g": 14.5, "karat": 18, "fee_ratio": 0.16, "stone_value": 0,       "tag": "" },
+    { "id": 3,  "name": "گوشواره حلقه‌ای شبنم",    "category": "گوشواره",          "weight_g": 3.1,  "karat": 18, "fee_ratio": 0.24, "stone_value": 1200000, "tag": "جدید" },
+    { "id": 4,  "name": "سکه تمام بهار آزادی",     "category": "سکه و شمش",        "weight_g": 8.13, "karat": 24, "fee_ratio": 0.04, "stone_value": 0,       "tag": "" },
+    { "id": 5,  "name": "نیم‌ست پرنیان",           "category": "ست کامل",          "weight_g": 11.2, "karat": 18, "fee_ratio": 0.20, "stone_value": 4000000, "tag": "ویژه" },
+    { "id": 6,  "name": "دستبند زنجیربافت کیان",   "category": "دستبند و النگو",   "weight_g": 9.4,  "karat": 18, "fee_ratio": 0.19, "stone_value": 0,       "tag": "" },
+    { "id": 7,  "name": "آویز قلب مهتا",           "category": "گردنبند و زنجیر",  "weight_g": 2.6,  "karat": 18, "fee_ratio": 0.26, "stone_value": 900000,  "tag": "جدید" },
+    { "id": 8,  "name": "انگشتر مردانه رخش",       "category": "انگشتر",           "weight_g": 7.8,  "karat": 18, "fee_ratio": 0.17, "stone_value": 0,       "tag": "" },
+    { "id": 9,  "name": "سرویس کامل درسا",         "category": "ست کامل",          "weight_g": 22.5, "karat": 18, "fee_ratio": 0.21, "stone_value": 6500000, "tag": "ویژه" },
+    { "id": 10, "name": "گوشواره میخی رها",        "category": "گوشواره",          "weight_g": 1.9,  "karat": 18, "fee_ratio": 0.28, "stone_value": 600000,  "tag": "" },
+    { "id": 11, "name": "شمش ۱۰ گرمی آنیل",        "category": "سکه و شمش",        "weight_g": 10.0, "karat": 24, "fee_ratio": 0.02, "stone_value": 0,       "tag": "" }
+  ]
+}
