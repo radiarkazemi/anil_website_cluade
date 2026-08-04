@@ -31,6 +31,18 @@
   @keyframes anil-floaty { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-12px); } }
   @keyframes anil-slidein { from { transform:translateX(-100%); } to { transform:translateX(0); } }
   @keyframes anil-toast { from { opacity:0; transform:translate(-50%,16px); } to { opacity:1; transform:translate(-50%,0); } }
+  @media (max-width: 900px) {
+    header nav { display: none !important; }
+    section[style*="grid-template-columns:1.05fr"] { grid-template-columns: 1fr !important; padding: 36px 18px 28px !important; }
+    section[style*="grid-template-columns:1.05fr"] h1 { font-size: 36px !important; }
+    .anil-prod-grid, section [style*="grid-template-columns:repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+    footer > div[style*="grid-template-columns:1.4fr"] { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+  }
+  @media (max-width: 560px) {
+    header > div { padding: 12px 14px !important; gap: 10px !important; }
+    section { padding-left: 16px !important; padding-right: 16px !important; }
+    footer > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  }
 </style>
 </helmet>
 
@@ -613,7 +625,7 @@ class Component extends DCLogic {
 
   setupTimer() {
     clearInterval(this._t);
-    const sec = this.props.updateSpeed ?? 15;
+    const sec = (this.props && this.props.updateSpeed != null) ? this.props.updateSpeed : 15;
     this._t = setInterval(() => this.fetchGold(), Math.max(5, sec) * 1000);
   }
 
@@ -623,7 +635,9 @@ class Component extends DCLogic {
     this.setupTimer();
   }
   componentDidUpdate(prev) {
-    if (prev.props.updateSpeed !== this.props.updateSpeed) this.setupTimer();
+    const prevSpeed = prev && prev.props ? prev.props.updateSpeed : undefined;
+    const speed = this.props ? this.props.updateSpeed : undefined;
+    if (prevSpeed !== speed) this.setupTimer();
   }
   componentWillUnmount() { clearInterval(this._t); clearTimeout(this._toastT); }
 
