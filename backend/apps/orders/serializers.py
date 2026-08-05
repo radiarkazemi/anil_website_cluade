@@ -26,7 +26,18 @@ class OrderCreateSerializer(serializers.Serializer):
         error_messages={"blank": "آدرس ارسال الزامی است.", "required": "آدرس ارسال الزامی است."},
     )
     city = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
-    postal_code = serializers.CharField(max_length=10, required=False, allow_blank=True, default="")
+    postal_code = serializers.CharField(
+        max_length=10,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        default="",
+        error_messages={
+            "blank": "کد پستی اختیاری است؛ خالی بگذارید یا ۱۰ رقم وارد کنید.",
+            "null": "کد پستی اختیاری است.",
+            "max_length": "کد پستی حداکثر ۱۰ رقم است.",
+        },
+    )
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = OrderItemInputSerializer(many=True)
 
@@ -37,9 +48,13 @@ class OrderCreateSerializer(serializers.Serializer):
         return value
 
     def validate_postal_code(self, value):
-        # Optional — empty is fine; if provided, keep digits only
-        digits = re.sub(r"\D", "", value or "")
-        if digits and len(digits) not in (0, 10):
+        # Optional — empty / null is fine; if provided, keep digits only
+        if value is None:
+            return ""
+        digits = re.sub(r"\D", "", str(value))
+        if not digits:
+            return ""
+        if len(digits) != 10:
             raise serializers.ValidationError("کد پستی باید ۱۰ رقم باشد (یا خالی بگذارید).")
         return digits
 

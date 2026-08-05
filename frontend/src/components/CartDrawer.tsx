@@ -23,6 +23,15 @@ const FIELD_LABELS: Record<string, string> = {
   detail: 'خطا',
 };
 
+const GENERIC_BLANK = /این مقدار نباید خالی باشد/;
+
+function humanizeFieldKey(key: string): string {
+  if (FIELD_LABELS[key]) return FIELD_LABELS[key];
+  // Never surface snake_case / English API keys to the customer
+  if (/^[a-z][a-z0-9_]*$/.test(key)) return 'خطا';
+  return key;
+}
+
 function formatApiErrors(data: unknown): string {
   if (!data || typeof data !== 'object') return '';
   const d = data as Record<string, unknown>;
@@ -30,8 +39,8 @@ function formatApiErrors(data: unknown): string {
   if (typeof d.detail === 'string') parts.push(d.detail);
   for (const [k, v] of Object.entries(d)) {
     if (k === 'detail') continue;
-    const label = FIELD_LABELS[k] || k;
-    const msg = Array.isArray(v)
+    const label = humanizeFieldKey(k);
+    let msg = Array.isArray(v)
       ? v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('، ')
       : typeof v === 'string'
         ? v
@@ -39,7 +48,13 @@ function formatApiErrors(data: unknown): string {
           ? formatApiErrors(v)
           : JSON.stringify(v);
     if (!msg) continue;
-    // Drop English technical field keys from the message when possible
+    if (GENERIC_BLANK.test(msg)) {
+      msg = k === 'postal_code'
+        ? 'کد پستی اختیاری است؛ می‌توانید خالی بگذارید.'
+        : `${label} را وارد کنید.`;
+      parts.push(msg);
+      continue;
+    }
     parts.push(msg.includes(label) ? msg : `${label}: ${msg}`);
   }
   return parts.filter(Boolean).join(' — ');
@@ -118,14 +133,16 @@ export function CartDrawer() {
     setBusy(true);
     setError('');
     try {
+      const postal = form.postal_code.replace(/\D/g, '').trim();
       const { data: order } = await api.createOrder({
         full_name: form.full_name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
-        email: form.email.trim(),
-        city: form.city.trim(),
-        postal_code: form.postal_code.trim(),
-        note: form.note.trim(),
+        ...(form.email.trim() ? { email: form.email.trim() } : {}),
+        ...(form.city.trim() ? { city: form.city.trim() } : {}),
+        // Only send postal_code when the user typed something — empty is optional
+        ...(postal ? { postal_code: postal } : {}),
+        ...(form.note.trim() ? { note: form.note.trim() } : {}),
         items: cart.map((c) => ({ product_id: c.productId, qty: c.qty })),
       });
       clearCart();
