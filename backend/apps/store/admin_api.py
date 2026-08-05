@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Sum
+from django.db.models import Count, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import generics, parsers, serializers, status, viewsets
@@ -127,7 +127,7 @@ class DashboardView(APIView):
 
         top_products = list(
             OrderItem.objects.values("product_name")
-            .annotate(qty=Sum("qty"), revenue=Sum("line_total"))
+            .annotate(qty=Sum("qty"), revenue=Sum(F("unit_price") * F("qty")))
             .order_by("-qty")[:6]
         )
 
