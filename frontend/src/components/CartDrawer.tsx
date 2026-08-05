@@ -38,12 +38,9 @@ function formatApiErrors(data: unknown): string {
         : typeof v === 'object' && v
           ? formatApiErrors(v)
           : JSON.stringify(v);
-    // Prefer Persian messages that already stand alone
-    if (msg.includes('الزامی') || msg.includes('معتبر') || msg.includes('خالی')) {
-      parts.push(msg.startsWith(label) ? msg : msg);
-    } else {
-      parts.push(`${label}: ${msg}`);
-    }
+    if (!msg) continue;
+    // Drop English technical field keys from the message when possible
+    parts.push(msg.includes(label) ? msg : `${label}: ${msg}`);
   }
   return parts.filter(Boolean).join(' — ');
 }
@@ -222,9 +219,9 @@ export function CartDrawer() {
             <input className="input" placeholder="موبایل *" dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             <input className="input" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <input className="input" placeholder="شهر" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <input className="input" placeholder="کد پستی" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
+            <input className="input" placeholder="کد پستی (اختیاری)" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
             <textarea className="input" placeholder="آدرس کامل *" rows={3} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-            <textarea className="input" placeholder="یادداشت سفارش" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+            <textarea className="input" placeholder="یادداشت سفارش (اختیاری)" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             {error && <div className="goldbox-error">{error}</div>}
             <button type="button" className="gold-btn" disabled={busy} onClick={handleCheckout}>
               {busy ? 'در حال ثبت…' : 'ثبت و ادامه پرداخت'}
