@@ -30,8 +30,12 @@ python manage.py migrate
 python manage.py seed
 python manage.py seed_images
 python manage.py create_admin
-python manage.py runserver
+# WebSocket gold stream (Faraz) — use Daphne ASGI
+daphne -b 0.0.0.0 -p 8000 config.asgi:application
+# HTTP-only fallback: python manage.py runserver
 ```
+
+Gold stream: `ws://localhost:8000/ws/gold/` (Faraz مثقال ۱۷ → گرم ۱۸). Product prices use streamed گرم ۱۸.
 
 ## Option B — SQLite only (no Docker) ← use this if Docker is missing
 
@@ -46,7 +50,7 @@ python manage.py migrate
 python manage.py seed
 python manage.py seed_images
 python manage.py create_admin
-python manage.py runserver
+daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
 ## Admin panel login
