@@ -1,77 +1,83 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
-import { GoldDust } from '../components/GoldDust';
-import { GoldStage } from '../components/GoldStage';
-import { IntroCurtain } from '../components/IntroCurtain';
-import { useInView, usePointerParallax } from '../hooks/useMotion';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
+import type { MarketRow } from '../types';
+import { useRef, useState } from 'react';
 
-function Reveal({
-  children,
-  className = '',
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const [ref, visible] = useInView<HTMLDivElement>();
+function MarketPanel({ rows }: { rows: MarketRow[] }) {
+  const show = rows.filter((r) => ['g18', 'g24', 'sek', 'usd'].includes(r.key));
   return (
-    <div
-      ref={ref}
-      className={`reveal-block ${visible ? 'is-in' : ''} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
+    <section className="container" style={{ padding: '70px var(--px) 30px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div>
+          <div className="section-eyebrow">بازار زنده</div>
+          <h2 style={{ fontSize: 32, fontWeight: 800 }}>قیمت لحظه‌ای طلا و سکه</h2>
+        </div>
+      </div>
+      <div className="market-grid">
+        {show.map((c) => (
+          <div key={c.key} className="market-cell">
+            <div className="market-label">{c.label}</div>
+            <div className="market-value">{c.dollar ? `$${faPrice(c.v)}` : faPrice(c.v)}</div>
+            <div className="market-unit">{c.unit}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Ring() {
+  const [rx, setRx] = useState(-14);
+  const [ry, setRy] = useState(0);
+  const dragging = useRef(false);
+  const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 });
+
+  const onDown = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    const pt = 'touches' in e ? e.touches[0] : e;
+    start.current = { x: pt.clientX, y: pt.clientY, rx, ry };
+    const move = (ev: MouseEvent | TouchEvent) => {
+      const p = 'touches' in ev ? (ev as TouchEvent).touches[0] : (ev as MouseEvent);
+      setRy(start.current.ry + (p.clientX - start.current.x) * 0.6);
+      setRx(Math.max(-60, Math.min(60, start.current.rx - (p.clientY - start.current.y) * 0.5)));
+    };
+    const up = () => {
+      dragging.current = false;
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', up);
+  };
+
+  return (
+    <div className="hero-ring">
+      <div className="hero-ring-glow" />
+      <div
+        className="hero-ring-scene"
+        onMouseDown={onDown}
+        onTouchStart={onDown}
+        style={{ transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }}
+      >
+        <div className="hero-ring-band outer" />
+        <div className="hero-ring-band inner" />
+      </div>
+      <div className="hero-ring-hint">بکشید تا بچرخانید</div>
     </div>
   );
 }
 
-function CountUp({ to, duration = 1600 }: { to: number; duration?: number }) {
-  const [ref, visible] = useInView<HTMLSpanElement>();
-  const [n, setN] = useState(0);
-
-  useEffect(() => {
-    if (!visible) return;
-    const start = performance.now();
-    let raf = 0;
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setN(Math.round(to * eased));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [visible, to, duration]);
-
-  return <span ref={ref}>{faNum(n)}</span>;
-}
-
 export function Home() {
   const goldPrice = useStore((s) => s.goldPrice);
-  const [showIntro, setShowIntro] = useState(() => {
-    try {
-      return sessionStorage.getItem('anil-intro') !== '1';
-    } catch {
-      return true;
-    }
-  });
-  const [heroReady, setHeroReady] = useState(!showIntro);
-  const [heroRef, mouse] = usePointerParallax<HTMLElement>();
-
-  const onIntroDone = useCallback(() => {
-    try {
-      sessionStorage.setItem('anil-intro', '1');
-    } catch { /* ignore */ }
-    setShowIntro(false);
-    requestAnimationFrame(() => setHeroReady(true));
-  }, []);
-
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.categories().then((r) => r.data),
@@ -84,82 +90,43 @@ export function Home() {
   const categories = categoriesData ?? [];
   const products = productsData ?? [];
   const featured = products.slice(0, 8);
-  const gallery = products.filter((p) => p.primary_image).slice(0, 10);
-  const heroProduct = products.find((p) => p.primary_image) ?? products[0];
-  const heroImage = heroProduct?.primary_image || '/logo.jpg';
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
   return (
-    <div className={`home cinematic ${heroReady ? 'hero-live' : ''}`}>
-      {showIntro && <IntroCurtain onDone={onIntroDone} />}
-
-      {/* Immersive hero */}
-      <section className="cinematic-hero" ref={heroRef}>
-        <div className="cinematic-hero-bg" aria-hidden>
-          <img
-            src={heroImage}
-            alt=""
-            className="cinematic-hero-photo"
-            style={{
-              transform: `scale(1.12) translate(${mouse.x * -28}px, ${mouse.y * -18}px)`,
-            }}
-          />
-          <div className="cinematic-hero-veil" />
-          <div className="cinematic-hero-beam" />
-          <GoldDust active={heroReady} />
-        </div>
-
-        <div className="cinematic-hero-grid container">
-          <div className="cinematic-copy">
-            <div className={`stagger ${heroReady ? 'go' : ''}`}>
-              <p className="cinematic-kicker s1">گالری طلا آنیل</p>
-              <p className="cinematic-brand s2">
-                <span className="brand-shimmer">ANIL</span>
-              </p>
-              <h1 className="cinematic-title s3">
-                طلایی که
-                <br />
-                <em>نمی‌توانید</em> چشم از آن بردارید
-              </h1>
-              <p className="cinematic-lead s4">
-                تجربه‌ای زنده از زیبایی و قیمت لحظه‌ای — هر قطعه با نرخ روز بازار طلا می‌درخشد.
-              </p>
-              <div className="cinematic-actions s5">
-                <Link to="/products" className="gold-btn magnetic-btn">
-                  ورود به گالری
-                  <span className="btn-shine" aria-hidden />
-                </Link>
-                <a href="#featured" className="ghost-link">منتخب امروز</a>
-              </div>
-            </div>
-
-            {gp > 0 && (
-              <div className={`live-chip s6 ${heroReady ? 'go' : ''}`}>
-                <span className="live-dot" />
-                طلای ۱۸ · {faPrice(gp)} تومان
-              </div>
-            )}
+    <div className="home">
+      <section className="container home-hero">
+        <div className="hero-copy">
+          <div className="hero-badge">گالری طلا آنیل</div>
+          <h1 className="shimmer-text hero-h1">
+            طلا،
+            <br />
+            آن‌گونه که باید بدرخشد
+          </h1>
+          <p className="hero-lead">
+            مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.
+          </p>
+          <div className="hero-actions">
+            <Link to="/products" className="gold-btn">مشاهده‌ی محصولات</Link>
+            <a href="#market" className="outline-btn">قیمت لحظه‌ای طلا</a>
           </div>
-
-          <div className={`cinematic-stage ${heroReady ? 'go' : ''}`}>
-            <div
-              className="cinematic-stage-parallax"
-              style={{ transform: `translate3d(${mouse.x * 16}px, ${mouse.y * 10}px, 0)` }}
-            >
-              <GoldStage mouseX={mouse.x} mouseY={mouse.y} />
-            </div>
+          <div className="hero-stats">
+            {[
+              ['۱۲٬۰۰۰+', 'مشتری راضی'],
+              ['۲۰ سال', 'تجربه و اعتماد'],
+              ['۸۶۰+', 'قطعه‌ی منحصربه‌فرد'],
+            ].map(([n, l]) => (
+              <div key={l}>
+                <div className="hero-stat-n">{n}</div>
+                <div className="hero-stat-l">{l}</div>
+              </div>
+            ))}
           </div>
         </div>
-
-        <div className="scroll-cue" aria-hidden>
-          <span />
-          کشف کنید
-        </div>
+        <Ring />
       </section>
 
-      {/* Live rates */}
       {goldPrice?.market_rows && (
-        <div className="ticker ticker-cinematic" aria-label="نرخ زنده بازار">
+        <div className="ticker" aria-label="نرخ زنده بازار">
           <div className="ticker-track">
             {[0, 1].map((dup) => (
               <div key={dup} className="ticker-group">
@@ -177,136 +144,90 @@ export function Home() {
         </div>
       )}
 
-      {/* Floating image marquee */}
-      {gallery.length > 0 && (
-        <section className="image-river" aria-label="گالری تصاویر">
-          <div className="image-river-track">
-            {[0, 1].map((dup) => (
-              <div key={dup} className="image-river-group">
-                {gallery.map((p) => (
-                  <Link key={`${dup}-${p.id}`} to={`/products/${p.slug}`} className="river-shot">
-                    <img src={p.primary_image!} alt={p.name} loading="lazy" />
-                    <span>{p.name}</span>
-                  </Link>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <div id="market">
+        {goldPrice?.market_rows && <MarketPanel rows={goldPrice.market_rows} />}
+      </div>
 
-      {/* Impact numbers */}
-      <section className="section container">
-        <Reveal>
-          <div className="impact-row">
-            {[
-              { n: 12000, suffix: '+', label: 'مشتری راضی' },
-              { n: 20, suffix: '', label: 'سال اعتماد' },
-              { n: 860, suffix: '+', label: 'قطعه‌ی منحصربه‌فرد' },
-            ].map((s, i) => (
-              <div key={s.label} className="impact-item" style={{ transitionDelay: `${i * 120}ms` }}>
-                <div className="impact-num">
-                  <CountUp to={s.n} />
-                  {s.suffix}
-                </div>
-                <div className="impact-label">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      {/* Categories */}
-      <section className="section container">
-        <Reveal>
-          <header className="section-head">
-            <h2>دنیای آنیل</h2>
-            <p>هر دسته، روایتی از درخشش — لمس کنید و وارد شوید.</p>
-          </header>
-        </Reveal>
-        <div className="cat-orbit">
-          {categories.map((c, i) => (
-            <Reveal key={c.id} delay={i * 70}>
-              <Link to={`/products?category=${c.slug}`} className="cat-tile">
-                <span className="cat-tile-glow" aria-hidden />
-                <span className="cat-tile-name">{c.name}</span>
-                <span className="cat-tile-count">{faNum(c.display_count || c.product_count)} اثر</span>
-              </Link>
-            </Reveal>
+      <section className="container section-pad">
+        <h2 className="section-title">دسته‌بندی محصولات</h2>
+        <div className="cat-grid">
+          {categories.map((c) => (
+            <Link key={c.id} to={`/products?category=${c.slug}`} className="cat-card">
+              <div className="cat-icon">{faNum(c.display_count || c.product_count)}</div>
+              <div className="cat-title">{c.name}</div>
+              <div className="cat-sub">{faNum(c.display_count || c.product_count)} محصول</div>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* Featured */}
-      <section className="section container" id="featured">
-        <Reveal>
-          <header className="section-head row">
-            <div>
-              <h2>منتخب گالری</h2>
-              <p>قطعه‌هایی که همین حالا با نرخ زنده قیمت‌گذاری شده‌اند.</p>
-            </div>
-            <Link to="/products" className="text-link">همه محصولات</Link>
-          </header>
-        </Reveal>
+      <section className="container section-pad">
+        <div className="section-row">
+          <div>
+            <div className="section-eyebrow">منتخب گالری</div>
+            <h2 className="section-title tight">پرفروش‌ترین‌ها</h2>
+          </div>
+          <Link to="/products" className="text-link">مشاهده‌ی همه</Link>
+        </div>
         <div className="product-grid">
-          {featured.map((p, i) => (
-            <Reveal key={p.id} delay={i * 60}>
-              <ProductCard product={p} />
-            </Reveal>
+          {featured.map((p) => (
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      {/* Pricing spectacle */}
-      <section className="pricing-spectacle">
-        <div className="pricing-spectacle-bg" aria-hidden />
-        <Reveal className="container pricing-spectacle-inner">
-          <h2>قیمتی که با بازار نفس می‌کشد</h2>
-          <div className="formula">
-            <span className="formula-part">وزن</span>
-            <span className="formula-op">×</span>
-            <span className="formula-part accent">نرخ طلای ۱۸</span>
-            <span className="formula-op">+</span>
-            <span className="formula-part">اجرت</span>
-            <span className="formula-op">+</span>
-            <span className="formula-part">مالیات</span>
-            <span className="formula-op">=</span>
-            <span className="formula-part result">قیمت زنده</span>
-          </div>
-          {gp > 0 && (
-            <p className="pricing-now">
-              نرخ فعلی: <strong>{faPrice(gp)}</strong> تومان برای هر گرم
+      <section className="container pricing-wrap">
+        <div className="pricing-band-classic">
+          <div>
+            <div className="section-eyebrow">فناوری آنیل</div>
+            <h2 className="section-title tight">قیمت‌گذاری پویا و لحظه‌ای</h2>
+            <p className="pricing-copy">
+              قیمت هر قطعه به‌صورت زنده و بر پایه‌ی نرخ روز طلا محاسبه می‌شود.
             </p>
-          )}
-          <Link to="/products" className="gold-btn magnetic-btn" style={{ marginTop: 28 }}>
-            مشاهده قیمت‌ها
-            <span className="btn-shine" aria-hidden />
-          </Link>
-        </Reveal>
+          </div>
+          <div className="pricing-formula">
+            (وزن × <strong>{faPrice(gp)}</strong>)
+            <br />
+            + اجرت + مالیات
+            <br />
+            <span className="pricing-eq">= قیمت نهایی زنده</span>
+          </div>
+        </div>
       </section>
 
-      <section className="section container trust trust-cinematic">
-        <Reveal>
-          <p>
-            <strong>ضمانت اصالت</strong>
-            <span aria-hidden>·</span>
-            <strong>ارسال بیمه‌شده</strong>
-            <span aria-hidden>·</span>
-            <strong>بازخرید بر اساس نرخ روز</strong>
-            <span aria-hidden>·</span>
-            <strong>مشاوره تخصصی</strong>
-          </p>
-        </Reveal>
+      <section className="container section-pad trust-grid-wrap">
+        <div className="trust-grid">
+          {[
+            { title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی برای هر قطعه' },
+            { title: 'ارسال بیمه‌شده', desc: 'بسته‌بندی امن و بیمه‌ی کامل تا درب منزل' },
+            { title: 'بازخرید تضمینی', desc: 'امکان بازخرید بر اساس نرخ روز طلا' },
+            { title: 'مشاوره‌ی تخصصی', desc: 'همراهی کارشناسان آنیل در تمام مراحل' },
+          ].map((t) => (
+            <div key={t.title} className="trust-item">
+              <div className="trust-mark" />
+              <div>
+                <div className="trust-title">{t.title}</div>
+                <div className="trust-desc">{t.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <footer className="site-footer">
         <div className="container footer-grid">
           <div>
-            <div className="footer-brand">ANIL</div>
-            <p className="footer-tag">گالری طلا آنیل — جایی که درخشش، متوقف‌تان می‌کند.</p>
+            <div className="footer-brand-row">
+              <div className="logo-mark">A</div>
+              <div>
+                <div className="footer-brand">ANIL</div>
+                <div className="logo-sub">GOLD &amp; JEWELRY</div>
+              </div>
+            </div>
+            <p className="footer-tag">گالری طلا آنیل، جایی برای انتخاب زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
           </div>
           <div>
-            <h3>دسته‌ها</h3>
+            <h3>دسته‌بندی‌ها</h3>
             <ul>
               {categories.slice(0, 5).map((c) => (
                 <li key={c.id}>
@@ -316,7 +237,15 @@ export function Home() {
             </ul>
           </div>
           <div>
-            <h3>تماس</h3>
+            <h3>خدمات مشتریان</h3>
+            <ul>
+              <li>راهنمای خرید</li>
+              <li>شرایط بازخرید</li>
+              <li>ارسال و بیمه</li>
+            </ul>
+          </div>
+          <div>
+            <h3>تماس با ما</h3>
             <ul>
               <li>تهران، بازار بزرگ طلا</li>
               <li>۰۲۱ - ۱۲۳۴ ۵۶۷۸</li>
@@ -324,7 +253,10 @@ export function Home() {
             </ul>
           </div>
         </div>
-        <div className="container footer-copy">© گالری طلا آنیل ۱۴۰۵</div>
+        <div className="container footer-copy footer-copy-row">
+          <span>© گالری طلا آنیل ۱۴۰۵ — تمامی حقوق محفوظ است.</span>
+          <span>نماد اعتماد الکترونیکی · درگاه پرداخت امن</span>
+        </div>
       </footer>
     </div>
   );
