@@ -1,5 +1,8 @@
 """Seed default jewelry categories with images + content pages + site layout."""
 
+from __future__ import annotations
+
+import sys
 from pathlib import Path
 
 from django.core.files import File
@@ -44,10 +47,30 @@ BLOG_INTRO = """در بلاگ آنیل، نکات نگهداری طلا، رون
 """
 
 
+def _force_utf8_stdio() -> None:
+    """Avoid UnicodeEncodeError on Windows consoles (cp1256 / cp1252)."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 class Command(BaseCommand):
     help = "Seed Anil categories (9), content pages, and default site layout/hero"
 
+    def say(self, msg: str, *, style=None) -> None:
+        text = style(msg) if style else msg
+        try:
+            self.stdout.write(text)
+        except UnicodeEncodeError:
+            enc = getattr(self.stdout, "encoding", None) or "ascii"
+            safe = text.encode(enc, errors="replace").decode(enc, errors="replace")
+            self.stdout.write(safe)
+
     def handle(self, *args, **options):
+        _force_utf8_stdio()
+
         root = Path(__file__).resolve().parents[5]
         img_dir = root / "data" / "category-images"
         hero_src = img_dir / "hero-ring.png"
@@ -73,7 +96,8 @@ class Command(BaseCommand):
             if path.exists() and (created or not cat.image):
                 with path.open("rb") as fh:
                     cat.image.save(fname, File(fh), save=True)
-            self.stdout.write(f"  category {'+' if created else '~'} {name}")
+            mark = "+" if created else "~"
+            self.say(f"  category {mark} {name} ({slug})")
 
         # Deactivate old categories not in the new set (keep products linked)
         Category.objects.exclude(name__in=keep_names).update(is_active=False)
@@ -94,7 +118,7 @@ class Command(BaseCommand):
             with logo_src.open("rb") as fh:
                 site.brand_logo.save(logo_src.name, File(fh), save=False)
         site.save()
-        self.stdout.write(self.style.SUCCESS("Site settings ready"))
+        self.say("Site settings ready", style=self.style.SUCCESS)
 
         # Content pages
         ContentPage.objects.update_or_create(
@@ -133,4 +157,5 @@ class Command(BaseCommand):
                 "order": 3,
             },
         )
-        self.stdout.write(self.style.SUCCESS("Content pages ready"))
+        self.say("Content pages ready", style=self.style.SUCCESS)
+        self.say("Done.", style=self.style.SUCCESS)
