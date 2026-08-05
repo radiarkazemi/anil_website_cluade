@@ -1,8 +1,15 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import admin_api, views
 
 app_name = "store"
+
+router = DefaultRouter()
+router.register(r"admin/products", admin_api.AdminProductViewSet, basename="admin-products")
+router.register(r"admin/categories", admin_api.AdminCategoryViewSet, basename="admin-categories")
+router.register(r"admin/orders", admin_api.AdminOrderViewSet, basename="admin-orders")
+router.register(r"admin/users", admin_api.AdminUserViewSet, basename="admin-users")
 
 urlpatterns = [
     path("gold-price/", views.GoldPriceView.as_view(), name="gold-price"),
@@ -11,4 +18,14 @@ urlpatterns = [
     path("products/<str:slug>/", views.ProductDetailView.as_view(), name="product-detail"),
     path("wishlist/", views.WishlistListCreateView.as_view(), name="wishlist"),
     path("wishlist/<uuid:pk>/", views.WishlistDeleteView.as_view(), name="wishlist-delete"),
+    # Admin panel API
+    path("admin/dashboard/", admin_api.DashboardView.as_view(), name="admin-dashboard"),
+    path("admin/gold-price/", admin_api.AdminGoldPriceListCreateView.as_view(), name="admin-gold"),
+    path("admin/gold-price/refresh/", admin_api.AdminGoldRefreshView.as_view(), name="admin-gold-refresh"),
+    path(
+        "admin/products/<uuid:product_id>/images/",
+        admin_api.AdminProductImageUploadView.as_view(),
+        name="admin-product-images",
+    ),
+    path("", include(router.urls)),
 ]

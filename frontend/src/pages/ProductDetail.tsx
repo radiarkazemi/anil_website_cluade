@@ -49,6 +49,8 @@ export function ProductDetail() {
         }}>
           {product.images && product.images.length > 0 ? (
             <img src={product.images[0].image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : product.primary_image ? (
+            <img src={product.primary_image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span style={{ fontFamily: 'monospace', fontSize: 14, color: '#6f6553', border: '1px dashed rgba(212,175,55,.3)', padding: '8px 14px', borderRadius: 8 }}>{product.placeholder_label}</span>
           )}
