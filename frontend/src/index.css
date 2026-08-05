@@ -1,4 +1,4 @@
-/* Fonts loaded in index.html via CDN for reliability */
+/* Fonts: Estedad FD (self-hosted) + Cormorant for Latin brand — see fonts.css */
 
 :root,
 [data-theme='dark'] {
@@ -31,8 +31,8 @@
   --radius-pill: 999px;
   --max-w: 1280px;
   --px: 32px;
-  --font-ui: 'Vazirmatn', Tahoma, 'Segoe UI', sans-serif;
-  --font-display: 'Amiri', 'Vazirmatn', serif;
+  --font-ui: 'Estedad', Tahoma, 'Segoe UI', sans-serif;
+  --font-display: 'Estedad', Tahoma, sans-serif;
   --font-brand: 'Cormorant Garamond', Georgia, serif;
 }
 
@@ -86,7 +86,8 @@ input, textarea, select { font-family: inherit; }
 h1, h2, .display {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
 @keyframes shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }

@@ -2,7 +2,11 @@
 
 ## Option A — Docker (recommended)
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+> If you see `bash: docker: command not found`, Docker is **not installed**.
+> Install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/),
+> restart Git Bash, then retry. Until then use **Option B (SQLite)** — the shop works fine without Docker.
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and ensure it is running
 2. From project root (`D:\anil_website_cluade`):
 
 ```bash
@@ -29,10 +33,21 @@ python manage.py create_admin
 python manage.py runserver
 ```
 
-## Option B — SQLite only (no Docker)
+## Option B — SQLite only (no Docker) ← use this if Docker is missing
 
 Leave `DATABASE_URL` empty / unset. Django falls back to `db.sqlite3`.
 MongoDB analytics become optional (features degrade gracefully if Mongo is down).
+
+```bash
+cd backend
+source .venv/Scripts/activate
+# do NOT set DATABASE_URL
+python manage.py migrate
+python manage.py seed
+python manage.py seed_images
+python manage.py create_admin
+python manage.py runserver
+```
 
 ## Admin panel login
 

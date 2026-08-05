@@ -16,6 +16,7 @@ import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminGold } from './pages/admin/AdminGold';
 import { AdminUsers } from './pages/admin/AdminUsers';
+import './fonts.css';
 import './index.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
