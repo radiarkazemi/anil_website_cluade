@@ -12,3 +12,6 @@ requests>=2.32
 psycopg2-binary>=2.9
 pymongo>=4.8
 django-extensions>=3.2
+channels>=4.1
+daphne>=4.1
+# optional multi-worker WS: channels-redis>=4.2

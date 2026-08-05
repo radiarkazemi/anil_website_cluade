@@ -32,10 +32,11 @@ class Command(BaseCommand):
         GoldPrice.objects.create(
             price_18k_per_gram=gp["price_18k_per_gram"],
             price_24k_per_gram=gp["price_24k_per_gram"],
+            mesghal_17=gp.get("mesghal_17") or gp.get("mesghal") or 0,
             coin_emami=gp["coin_emami"],
             coin_half=gp["coin_half"],
             coin_quarter=gp["coin_quarter"],
-            usd_toman=gp["usd_toman"],
+            usd_toman=0,
             ounce_usd=gp["ounce_usd"],
             source="seed",
             created_at=timezone.now(),

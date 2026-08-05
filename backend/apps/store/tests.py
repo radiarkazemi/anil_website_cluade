@@ -32,9 +32,34 @@ class ApiSmokeTests(TestCase):
         self.assertEqual(r.status_code, 200)
 
     def test_gold_price(self):
-        r = self.client.get("/api/v1/gold-price/")
+        r = self.client.get("/api/v1/gold-price/?auto=0")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()["price_18k_per_gram"], 3_850_000)
+        body = r.json()
+        self.assertEqual(body["price_18k_per_gram"], 3_850_000)
+        keys = {row["key"] for row in body["market_rows"]}
+        self.assertNotIn("usd", keys)
+        self.assertIn("ons", keys)
+        self.assertIn("mes", keys)
+
+    def test_faraz_formula(self):
+        from apps.store.services.faraz import gram18_to_gram24, map_faraz_to_payload, mesghal17_to_gram18
+
+        mesghal = 80_300_000
+        g18 = mesghal17_to_gram18(mesghal)
+        self.assertEqual(g18, 18_538_527)
+        self.assertEqual(gram18_to_gram24(g18), 24_693_318)
+        payload = map_faraz_to_payload(
+            {
+                "abshodeNaghdi": {"price": mesghal},
+                "sekkeNewEstjt": {"price": 185_000_000},
+                "nimSekkeEstjt": {"price": 94_000_000},
+                "robSekkeEstjt": {"price": 52_500_000},
+                "FOREXCOM_XAUUSD": {"price": 4226.56},
+            }
+        )
+        self.assertEqual(payload["usd_toman"], 0)
+        self.assertEqual(payload["price_18k_per_gram"], g18)
+        self.assertEqual(payload["coin_emami"], 185_000_000)
 
     def test_products(self):
         r = self.client.get("/api/v1/products/")

@@ -11,12 +11,16 @@ class GoldPrice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     price_18k_per_gram = models.BigIntegerField(help_text="طلای ۱۸ عیار — تومان بر گرم")
     price_24k_per_gram = models.BigIntegerField(default=0)
+    mesghal_17 = models.BigIntegerField(
+        default=0,
+        help_text="مثقال ۱۷ (آبشده نقدی فراز) — تومان",
+    )
     coin_emami = models.BigIntegerField(default=0)
     coin_half = models.BigIntegerField(default=0)
     coin_quarter = models.BigIntegerField(default=0)
-    usd_toman = models.BigIntegerField(default=0)
+    usd_toman = models.BigIntegerField(default=0, help_text="Deprecated — always 0")
     ounce_usd = models.FloatField(default=0)
-    source = models.CharField(max_length=40, default="manual", help_text="manual | api | admin")
+    source = models.CharField(max_length=40, default="manual", help_text="manual | faraz | api | admin")
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
@@ -34,7 +38,11 @@ class GoldPrice(models.Model):
 
     @property
     def mesghal(self):
-        return round(self.price_18k_per_gram * 4.3318)
+        """مثقال ۱۷ — stored from Faraz when available, else reverse of گرم ۱۸ formula."""
+        if self.mesghal_17:
+            return int(self.mesghal_17)
+        # Inverse: گرم۱۸ = (مثقال × 750 / 705) / 4.608
+        return int(round(self.price_18k_per_gram * 4.608 * 705 / 750))
 
 
 class Category(models.Model):

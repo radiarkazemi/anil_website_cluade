@@ -77,22 +77,25 @@ class GoldPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = GoldPrice
         fields = [
-            "id", "price_18k_per_gram", "price_24k_per_gram", "mesghal",
+            "id", "price_18k_per_gram", "price_24k_per_gram", "mesghal", "mesghal_17",
             "coin_emami", "coin_half", "coin_quarter",
             "usd_toman", "ounce_usd", "source", "created_at", "market_rows",
         ]
 
     def get_market_rows(self, obj):
-        return [
-            {"key": "g18", "label": "طلای ۱۸ عیار", "v": obj.price_18k_per_gram, "unit": "هر گرم · تومان", "dollar": False},
-            {"key": "g24", "label": "طلای ۲۴ عیار", "v": obj.price_24k_per_gram, "unit": "هر گرم · تومان", "dollar": False},
-            {"key": "mes", "label": "مثقال طلا", "v": obj.mesghal, "unit": "تومان", "dollar": False},
-            {"key": "sek", "label": "سکه امامی", "v": obj.coin_emami, "unit": "تومان", "dollar": False},
-            {"key": "nim", "label": "نیم سکه", "v": obj.coin_half, "unit": "تومان", "dollar": False},
-            {"key": "rob", "label": "ربع سکه", "v": obj.coin_quarter, "unit": "تومان", "dollar": False},
-            {"key": "usd", "label": "دلار", "v": obj.usd_toman, "unit": "تومان", "dollar": False},
-            {"key": "ons", "label": "انس جهانی", "v": obj.ounce_usd, "unit": "دلار", "dollar": True},
-        ]
+        from apps.store.services.price_cache import market_rows_from_payload
+
+        return market_rows_from_payload(
+            {
+                "price_18k_per_gram": obj.price_18k_per_gram,
+                "price_24k_per_gram": obj.price_24k_per_gram,
+                "mesghal_17": obj.mesghal,
+                "coin_emami": obj.coin_emami,
+                "coin_half": obj.coin_half,
+                "coin_quarter": obj.coin_quarter,
+                "ounce_usd": obj.ounce_usd,
+            }
+        )
 
 
 class WishlistSerializer(serializers.ModelSerializer):

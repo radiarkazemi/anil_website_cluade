@@ -22,10 +22,10 @@ export function AdminGold() {
   const [form, setForm] = useState({
     price_18k_per_gram: current?.price_18k_per_gram || 3850000,
     price_24k_per_gram: current?.price_24k_per_gram || 5131050,
+    mesghal_17: current?.mesghal || current?.mesghal_17 || 0,
     coin_emami: current?.coin_emami || 43850000,
     coin_half: current?.coin_half || 24100000,
     coin_quarter: current?.coin_quarter || 14200000,
-    usd_toman: current?.usd_toman || 62400,
     ounce_usd: current?.ounce_usd || 2412,
   });
 
@@ -72,10 +72,10 @@ export function AdminGold() {
           {([
             ['price_18k_per_gram', 'طلای ۱۸ عیار'],
             ['price_24k_per_gram', 'طلای ۲۴ عیار'],
+            ['mesghal_17', 'مثقال ۱۷'],
             ['coin_emami', 'سکه امامی'],
             ['coin_half', 'نیم سکه'],
             ['coin_quarter', 'ربع سکه'],
-            ['usd_toman', 'دلار'],
             ['ounce_usd', 'انس جهانی'],
           ] as const).map(([k, label]) => (
             <div key={k}>
@@ -90,13 +90,14 @@ export function AdminGold() {
       <div className="admin-card">
         <h3 style={{ marginBottom: 14 }}>تاریخچه نرخ‌ها</h3>
         <table className="admin-table">
-          <thead><tr><th>۱۸ عیار</th><th>سکه</th><th>دلار</th><th>منبع</th><th>زمان</th></tr></thead>
+          <thead><tr><th>۱۸ عیار</th><th>مثقال ۱۷</th><th>سکه</th><th>انس</th><th>منبع</th><th>زمان</th></tr></thead>
           <tbody>
             {(data || []).slice(0, 20).map((g: any) => (
               <tr key={g.id}>
                 <td style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{faPrice(g.price_18k_per_gram)}</td>
+                <td>{faPrice(g.mesghal || g.mesghal_17)}</td>
                 <td>{faPrice(g.coin_emami)}</td>
-                <td>{faPrice(g.usd_toman)}</td>
+                <td>{g.ounce_usd ? `$${faPrice(g.ounce_usd)}` : '—'}</td>
                 <td>{g.source}</td>
                 <td>{new Date(g.created_at).toLocaleString('fa-IR')}</td>
               </tr>

@@ -18,7 +18,7 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
               <span className="live-dot" />
               به‌روزرسانی زنده
             </div>
-            <h2>نرخ طلا، سکه و ارز</h2>
+            <h2>نرخ طلا و سکه</h2>
           </div>
           <p className="rates-note">قیمت محصولات گالری بر اساس طلای ۱۸ عیار محاسبه می‌شود.</p>
         </div>

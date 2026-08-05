@@ -1,12 +1,13 @@
 export interface GoldPrice {
-  id: string;
+  id?: string;
   price_18k_per_gram: number;
   price_24k_per_gram: number;
   mesghal: number;
+  mesghal_17?: number;
   coin_emami: number;
   coin_half: number;
   coin_quarter: number;
-  usd_toman: number;
+  usd_toman?: number;
   ounce_usd: number;
   source: string;
   created_at: string;

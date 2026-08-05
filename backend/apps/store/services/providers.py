@@ -1,14 +1,11 @@
 """
 Live gold/coin price providers for Anil Gold.
 
-Primary source stack (same family as Faraz Abshode / gold_abshd):
-  1) Goldbridge HTTP API  — GET /prices  (optional Bearer key)
-  2) Direct sekefarshad.ir list.php     — same upstream goldbridge polls
-  3) Generic GOLD_PROVIDER_URL JSON
-  4) Last snapshot / controlled jitter (dev fallback)
-
-Price units from sekefarshad/goldbridge are Rial by default; we convert
-to Toman. Mesghal-17 quotes are converted to گرم ۱۸ with / 4.3318.
+Order:
+  1) Faraz.io public market API  — مثقال ۱۷ / سکه / انس (preferred)
+  2) Goldbridge HTTP API
+  3) Direct sekefarshad.ir list.php
+  4) Generic GOLD_PROVIDER_URL JSON
 """
 
 from __future__ import annotations
@@ -21,9 +18,16 @@ from typing import Any
 
 import requests
 
+from apps.store.services.faraz import (
+    fetch_from_faraz,
+    gram18_to_gram24,
+    mesghal17_to_gram18,
+)
+
 logger = logging.getLogger(__name__)
 
-MESGHAL17_TO_GRAM18 = 4.3318
+# Legacy sekefarshad conversion (kept for fallback providers only)
+MESGHAL17_TO_GRAM18_LEGACY = 4.3318
 SOURCE_LIST_URL = os.environ.get(
     "GOLD_SOURCE_LIST_URL",
     "https://sekefarshad.ir/server/api/prices/list.php",
@@ -89,12 +93,7 @@ def _rial_to_toman(value: float | int | None) -> int:
     return int(round(n))
 
 
-def _mesghal_to_gram18(mesghal_toman: int | float) -> int:
-    return int(round(float(mesghal_toman) / MESGHAL17_TO_GRAM18))
-
-
 def _pick_quote(entry: dict) -> int:
-    """Prefer customer-buy (higher), else base."""
     buy = entry.get("buy")
     if buy is not None:
         return _rial_to_toman(buy)
@@ -118,13 +117,14 @@ def _is_mesghal_quote(entry: dict) -> bool:
     return False
 
 
-def _gram18_from_entry(entry: dict) -> int:
+def _gram18_from_entry(entry: dict) -> tuple[int, int]:
+    """Return (gram18, mesghal17)."""
     quote = _pick_quote(entry)
     if not quote:
-        return 0
+        return 0, 0
     if _is_mesghal_quote(entry):
-        return _mesghal_to_gram18(quote)
-    return quote
+        return mesghal17_to_gram18(quote), quote
+    return quote, 0
 
 
 def map_catalog_to_payload(entries: list[dict]) -> dict[str, Any] | None:
@@ -153,7 +153,7 @@ def map_catalog_to_payload(entries: list[dict]) -> dict[str, Any] | None:
         ]
         primary = (preferred or candidates or cleaned)[0]
 
-    g18 = _gram18_from_entry(primary)
+    g18, mesghal = _gram18_from_entry(primary)
     if g18 <= 0:
         return None
 
@@ -168,13 +168,12 @@ def map_catalog_to_payload(entries: list[dict]) -> dict[str, Any] | None:
 
     coin_emami = find_coin("سکه تمام", "سکه امامی", "امامی")
     coin_half = find_coin("نیم سکه", "نیم")
-    # Prefer plain ربع سکه over ربع403 etc.
     coin_quarter = find_coin("ربع سکه") or find_coin("ربع")
-    g24 = int(round(g18 * 24 / 18))
 
     return {
         "price_18k_per_gram": g18,
-        "price_24k_per_gram": g24,
+        "price_24k_per_gram": gram18_to_gram24(g18),
+        "mesghal_17": mesghal or 0,
         "coin_emami": coin_emami,
         "coin_half": coin_half,
         "coin_quarter": coin_quarter,
@@ -232,7 +231,7 @@ def fetch_from_goldbridge() -> tuple[dict[str, Any] | None, str]:
 
 
 def fetch_from_sekefarshad() -> tuple[dict[str, Any] | None, str]:
-    """Direct upstream used by goldbridge / Faraz Abshode stack."""
+    """Legacy upstream used by goldbridge — kept as fallback."""
     uid = os.environ.get("GOLD_SOURCE_UID", "").strip()
     utoken = os.environ.get("GOLD_SOURCE_UTOKEN", "").strip()
     data_body: dict[str, str] = {"all": "true"}
@@ -274,22 +273,24 @@ def fetch_from_generic_provider() -> tuple[dict[str, Any] | None, str]:
         resp = requests.get(provider, timeout=12)
         resp.raise_for_status()
         data = resp.json()
+        g18 = _to_int(
+            data.get("price_18k_per_gram") or data.get("price_18k") or data.get("gold_18k")
+        )
         payload = {
-            "price_18k_per_gram": _to_int(
-                data.get("price_18k_per_gram") or data.get("price_18k") or data.get("gold_18k")
-            ),
+            "price_18k_per_gram": g18,
             "price_24k_per_gram": _to_int(
                 data.get("price_24k_per_gram") or data.get("price_24k") or data.get("gold_24k") or 0
             ),
+            "mesghal_17": _to_int(data.get("mesghal_17") or data.get("mesghal") or 0),
             "coin_emami": _to_int(data.get("coin_emami") or data.get("coin_today") or 0),
             "coin_half": _to_int(data.get("coin_half") or 0),
             "coin_quarter": _to_int(data.get("coin_quarter") or 0),
-            "usd_toman": _to_int(data.get("usd_toman") or data.get("usd") or 0),
+            "usd_toman": 0,
             "ounce_usd": float(data.get("ounce_usd") or data.get("ounce") or 0),
         }
         if payload["price_18k_per_gram"] > 0:
             if not payload["price_24k_per_gram"]:
-                payload["price_24k_per_gram"] = int(round(payload["price_18k_per_gram"] * 24 / 18))
+                payload["price_24k_per_gram"] = gram18_to_gram24(payload["price_18k_per_gram"])
             return payload, "api"
     except Exception as exc:
         logger.warning("generic provider fetch failed: %s", exc)
@@ -297,10 +298,15 @@ def fetch_from_generic_provider() -> tuple[dict[str, Any] | None, str]:
 
 
 def fetch_live_market() -> tuple[dict[str, Any] | None, str]:
-    """Try providers in order. Returns (payload_without_meta, source_name)."""
-    for fetcher in (fetch_from_goldbridge, fetch_from_sekefarshad, fetch_from_generic_provider):
+    """Try providers in order. Returns (payload, source_name)."""
+    for fetcher in (
+        fetch_from_faraz,
+        fetch_from_goldbridge,
+        fetch_from_sekefarshad,
+        fetch_from_generic_provider,
+    ):
         payload, source = fetcher()
         if payload and payload.get("price_18k_per_gram"):
-            payload = {k: v for k, v in payload.items() if k != "meta"}
+            payload = {k: v for k, v in payload.items() if k not in ("meta", "raw")}
             return payload, source
     return None, ""

@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
 
 # ─── Apps ────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Third-party
+    "channels",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -45,7 +47,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # Local apps
     "apps.accounts",
-    "apps.store",
+    "apps.store.apps.StoreConfig",
     "apps.orders",
     "apps.analytics",
 ]
@@ -80,6 +82,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+# In-memory channel layer is enough for single-process daphne/runserver.
+# Set REDIS_URL to use Redis in multi-worker production.
+_redis_url = os.environ.get("REDIS_URL", "").strip()
+if _redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [_redis_url]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+    }
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = "accounts.User"

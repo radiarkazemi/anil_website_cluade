@@ -11,26 +11,33 @@ from .serializers import (
     ProductListSerializer,
     WishlistSerializer,
 )
+from .services import price_cache
 from .services.gold import fetch_online_payload, maybe_auto_refresh, refresh_gold_price
 
 
 class GoldPriceView(APIView):
-    """Latest stored snapshot. Auto-refreshes from live source when stale."""
+    """Latest quote — prefers live in-memory Faraz cache, else DB snapshot."""
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        cached = price_cache.get_latest()
+        if cached and cached.get("price_18k_per_gram"):
+            return Response(cached)
+
         auto = request.query_params.get("auto", "1") not in ("0", "false", "no")
         gold = maybe_auto_refresh() if auto else GoldPrice.current()
         if not gold:
             return Response({"detail": "نرخ طلا موجود نیست."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(GoldPriceSerializer(gold).data)
+        data = GoldPriceSerializer(gold).data
+        price_cache.set_latest(data)
+        return Response(data)
 
 
 class GoldPriceLiveView(APIView):
     """
-    Fetch live market from Faraz/sekefarshad/goldbridge stack and persist a snapshot.
-    Public read of the resulting rates (rate-limit via GOLD_STALE_SECONDS on auto path).
+    Fetch live Faraz market (مثقال ۱۷ → گرم ۱۸) and optionally persist a snapshot.
+    Prefer WebSocket /ws/gold/ for continuous streaming.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -39,7 +46,6 @@ class GoldPriceLiveView(APIView):
         persist = request.query_params.get("persist", "1") not in ("0", "false", "no")
         payload, source = fetch_online_payload()
         if not payload:
-            # Fall back to last stored row
             gold = GoldPrice.current()
             if not gold:
                 return Response(
@@ -57,14 +63,9 @@ class GoldPriceLiveView(APIView):
             data["live"] = True
             return Response(data)
 
-        # Preview without writing
-        preview = {
-            **payload,
-            "source": source,
-            "mesghal": round(payload["price_18k_per_gram"] * 4.3318),
-            "live": True,
-            "persisted": False,
-        }
+        preview = price_cache.public_quote(payload, source=source or "faraz")
+        preview["live"] = True
+        preview["persisted"] = False
         return Response(preview)
 
     def post(self, request):
