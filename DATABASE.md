@@ -51,6 +51,6 @@ python manage.py runserver
 
 ## Admin panel login
 
-- URL: http://localhost:5173/login
-- Then open: http://localhost:5173/panel
+- URL: http://localhost:5180/login
+- Then open: http://localhost:5180/panel
 - Default: phone `09120000000` / password `anil-admin-2026`

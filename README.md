@@ -86,7 +86,7 @@ Analytics (MongoDB):
 | Service  | Port | URL |
 |----------|------|-----|
 | Backend (Django API) | **8000** | http://127.0.0.1:8000/api/v1/ |
-| Frontend (Vite React) | **5173** | http://localhost:5173/ |
+| Frontend (Vite React) | **5180** | http://localhost:5180/ |
 
 ### Terminal 1 — Backend `:8000`
 
@@ -100,21 +100,21 @@ python manage.py create_admin
 python manage.py runserver 8000
 ```
 
-### Terminal 2 — Frontend `:5173`
+### Terminal 2 — Frontend `:5180`
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173  (proxies /api and /media → backend :8000)
+# → http://localhost:5180  (proxies /api and /media → backend :8000)
 ```
 
 Open the **frontend** URL to see the shop (fonts, theme, catalog). Do not open only the backend port for the UI.
 
 ### Admin panel (custom)
 
-- Login: http://localhost:5173/login — phone `09120000000` / password `anil-admin-2026`
-- Panel: http://localhost:5173/panel
+- Login: http://localhost:5180/login — phone `09120000000` / password `anil-admin-2026`
+- Panel: http://localhost:5180/panel
 
 ## Deploy
 
