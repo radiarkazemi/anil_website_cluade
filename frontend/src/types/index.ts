@@ -1,0 +1,141 @@
+export interface GoldPrice {
+  id: string;
+  price_18k_per_gram: number;
+  price_24k_per_gram: number;
+  mesghal: number;
+  coin_emami: number;
+  coin_half: number;
+  coin_quarter: number;
+  usd_toman: number;
+  ounce_usd: number;
+  source: string;
+  created_at: string;
+  market_rows: MarketRow[];
+}
+
+export interface MarketRow {
+  key: string;
+  label: string;
+  v: number;
+  unit: string;
+  dollar: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string | null;
+  order: number;
+  display_count: number;
+  product_count: number;
+}
+
+export interface ProductImage {
+  id: string;
+  image: string;
+  alt: string;
+  order: number;
+  is_primary: boolean;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  category_name: string;
+  category_slug: string;
+  weight_g: string;
+  karat: number;
+  fee_ratio: string;
+  stone_value: number;
+  tag: string;
+  description?: string;
+  placeholder_label: string;
+  price: number;
+  primary_image: string | null;
+  in_stock: boolean;
+  is_featured: boolean;
+  images?: ProductImage[];
+  breakdown?: PriceBreakdown;
+  sku?: string;
+  stock?: number;
+  meta_title?: string;
+  meta_description?: string;
+  created_at?: string;
+}
+
+export interface PriceBreakdown {
+  gold: number;
+  fee: number;
+  stone: number;
+  tax: number;
+  total: number;
+}
+
+export interface OrderItem {
+  id: string;
+  product: string;
+  product_name: string;
+  weight_g: string;
+  fee_ratio: string;
+  stone_value: number;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+}
+
+export interface Order {
+  id: string;
+  order_number: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  status: string;
+  gold_price_snapshot: number;
+  subtotal: number;
+  shipping_cost: number;
+  discount: number;
+  total: number;
+  note: string;
+  tracking_code: string;
+  created_at: string;
+  items: OrderItem[];
+}
+
+export interface User {
+  id: string;
+  phone: string;
+  email: string;
+  full_name: string;
+  role: string;
+  national_code: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  avatar: string | null;
+  email_verified: boolean;
+  phone_verified: boolean;
+  created_at: string;
+}
+
+export interface AuthTokens {
+  access: string;
+  refresh: string;
+}
+
+export interface CartItem {
+  productId: string;
+  qty: number;
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}

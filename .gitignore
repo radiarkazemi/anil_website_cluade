@@ -1,14 +1,23 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.venv/
+venv/
 *.sqlite3
 db.sqlite3
 .env
-media/
-staticfiles/
-*.egg-info/
+
+# Django
+backend/media/
+backend/staticfiles/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
 .DS_Store
+*.log
 .idea/
 .vscode/
-*.log
-staticfiles/
