@@ -33,7 +33,7 @@ export function Header() {
   const brandName = site?.brand_name || 'Anil';
   const brandTag = site?.brand_tagline || 'درخششی ابدی';
   const cartLabel = site?.cart_label || 'گلد باکس';
-  const logoSrc = site?.brand_logo_url || '/logo.jpg';
+  const logoSrc = site?.brand_logo_url || '/logo.png';
   const banner = site?.top_banner;
 
   return (

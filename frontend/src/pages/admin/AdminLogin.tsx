@@ -46,7 +46,9 @@ export function AdminLogin() {
     <div className="admin-login-page">
       <form className="admin-login-card" onSubmit={handleLogin}>
         <div className="admin-login-brand">
-          <div className="logo-mark">A</div>
+          <div className="logo-mark admin-logo-mark">
+            <img src="/logo-mark.png" alt="Anil" />
+          </div>
           <div>
             <div className="admin-brand-name">ANIL OPS</div>
             <div className="admin-brand-sub">ورود مدیریت</div>

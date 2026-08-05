@@ -51,7 +51,9 @@ class Command(BaseCommand):
         root = Path(__file__).resolve().parents[5]
         img_dir = root / "data" / "category-images"
         hero_src = img_dir / "hero-ring.png"
-        logo_src = root / "frontend" / "public" / "logo.jpg"
+        logo_src = root / "frontend" / "public" / "logo.png"
+        if not logo_src.exists():
+            logo_src = root / "frontend" / "public" / "logo.jpg"
 
         # Categories
         keep_names = {n for n, _, _ in CATS}
@@ -88,9 +90,9 @@ class Command(BaseCommand):
         if hero_src.exists() and not site.hero_image:
             with hero_src.open("rb") as fh:
                 site.hero_image.save("hero-ring.png", File(fh), save=False)
-        if logo_src.exists() and not site.brand_logo:
+        if logo_src.exists():
             with logo_src.open("rb") as fh:
-                site.brand_logo.save("logo.jpg", File(fh), save=False)
+                site.brand_logo.save(logo_src.name, File(fh), save=False)
         site.save()
         self.stdout.write(self.style.SUCCESS("Site settings ready"))
 

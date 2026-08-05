@@ -306,7 +306,7 @@ export function Home() {
         <div className="container footer-grid">
           <div>
             <div className="footer-brand-row">
-              <img className="logo-img footer-logo" src={site?.brand_logo_url || '/logo.jpg'} alt="" />
+              <img className="logo-img footer-logo" src={site?.brand_logo_url || '/logo.png'} alt="" />
               <div>
                 <div className="footer-brand">{site?.brand_name || 'Anil'}</div>
                 <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>

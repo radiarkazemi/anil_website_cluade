@@ -115,7 +115,9 @@ export function AdminLayout() {
     <div className={`admin-shell advanced ${collapsed ? 'collapsed' : ''}`}>
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <div className="logo-mark">A</div>
+          <div className="logo-mark admin-logo-mark">
+            <img src="/logo-mark.png" alt="Anil" />
+          </div>
           {!collapsed && (
             <div>
               <div className="admin-brand-name">ANIL OPS</div>
