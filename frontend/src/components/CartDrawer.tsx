@@ -10,6 +10,44 @@ import type { Product } from '../types';
 
 type Step = 'cart' | 'checkout' | 'pay';
 
+const FIELD_LABELS: Record<string, string> = {
+  full_name: 'نام',
+  phone: 'موبایل',
+  email: 'ایمیل',
+  address: 'آدرس',
+  city: 'شهر',
+  postal_code: 'کد پستی',
+  note: 'یادداشت',
+  items: 'اقلام سفارش',
+  non_field_errors: 'خطا',
+  detail: 'خطا',
+};
+
+function formatApiErrors(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  const d = data as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof d.detail === 'string') parts.push(d.detail);
+  for (const [k, v] of Object.entries(d)) {
+    if (k === 'detail') continue;
+    const label = FIELD_LABELS[k] || k;
+    const msg = Array.isArray(v)
+      ? v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('، ')
+      : typeof v === 'string'
+        ? v
+        : typeof v === 'object' && v
+          ? formatApiErrors(v)
+          : JSON.stringify(v);
+    // Prefer Persian messages that already stand alone
+    if (msg.includes('الزامی') || msg.includes('معتبر') || msg.includes('خالی')) {
+      parts.push(msg.startsWith(label) ? msg : msg);
+    } else {
+      parts.push(`${label}: ${msg}`);
+    }
+  }
+  return parts.filter(Boolean).join(' — ');
+}
+
 export function CartDrawer() {
   const cartOpen = useUI((s) => s.cartOpen);
   const closeCart = useUI((s) => s.closeCart);
@@ -84,10 +122,13 @@ export function CartDrawer() {
     setError('');
     try {
       const { data: order } = await api.createOrder({
-        ...form,
         full_name: form.full_name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
+        email: form.email.trim(),
+        city: form.city.trim(),
+        postal_code: form.postal_code.trim(),
+        note: form.note.trim(),
         items: cart.map((c) => ({ product_id: c.productId, qty: c.qty })),
       });
       clearCart();
@@ -95,17 +136,8 @@ export function CartDrawer() {
       setStep('pay');
       toast(`سفارش ${order.order_number} ثبت شد`);
     } catch (e: any) {
-      const d = e.response?.data;
-      const parts: string[] = [];
-      if (typeof d?.detail === 'string') parts.push(d.detail);
-      if (d && typeof d === 'object') {
-        for (const [k, v] of Object.entries(d)) {
-          if (k === 'detail') continue;
-          const msg = Array.isArray(v) ? v.join('، ') : typeof v === 'string' ? v : JSON.stringify(v);
-          parts.push(`${k}: ${msg}`);
-        }
-      }
-      setError(parts.join(' | ') || (e.response?.status === 429
+      const formatted = formatApiErrors(e.response?.data);
+      setError(formatted || (e.response?.status === 429
         ? 'تعداد درخواست زیاد است — چند ثانیه صبر کنید.'
         : 'ثبت سفارش ناموفق بود.'));
     } finally {

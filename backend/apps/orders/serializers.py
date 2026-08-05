@@ -13,12 +13,20 @@ class OrderItemInputSerializer(serializers.Serializer):
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    full_name = serializers.CharField(max_length=150)
-    phone = serializers.CharField(max_length=20)
+    full_name = serializers.CharField(
+        max_length=150,
+        error_messages={"blank": "نام و نام خانوادگی الزامی است.", "required": "نام و نام خانوادگی الزامی است."},
+    )
+    phone = serializers.CharField(
+        max_length=20,
+        error_messages={"blank": "شماره موبایل الزامی است.", "required": "شماره موبایل الزامی است."},
+    )
     email = serializers.EmailField(required=False, allow_blank=True, default="")
-    address = serializers.CharField()
-    city = serializers.CharField(max_length=80, required=False, default="")
-    postal_code = serializers.CharField(max_length=10, required=False, default="")
+    address = serializers.CharField(
+        error_messages={"blank": "آدرس ارسال الزامی است.", "required": "آدرس ارسال الزامی است."},
+    )
+    city = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    postal_code = serializers.CharField(max_length=10, required=False, allow_blank=True, default="")
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = OrderItemInputSerializer(many=True)
 
@@ -27,6 +35,13 @@ class OrderCreateSerializer(serializers.Serializer):
         if len(digits) < 10 or len(digits) > 15:
             raise serializers.ValidationError("شماره تماس معتبر نیست.")
         return value
+
+    def validate_postal_code(self, value):
+        # Optional — empty is fine; if provided, keep digits only
+        digits = re.sub(r"\D", "", value or "")
+        if digits and len(digits) not in (0, 10):
+            raise serializers.ValidationError("کد پستی باید ۱۰ رقم باشد (یا خالی بگذارید).")
+        return digits
 
     def validate_items(self, value):
         if not value:
