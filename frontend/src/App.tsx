@@ -10,6 +10,7 @@ import { ProductDetail } from './pages/ProductDetail';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminCategories } from './pages/admin/AdminCategories';
@@ -37,6 +38,7 @@ function AppInner() {
         <Route path="/products/:slug" element={<ProductDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/panel/login" element={<AdminLogin />} />
         <Route path="/panel" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="products" element={<AdminProducts />} />

@@ -31,11 +31,10 @@ const COMMANDS = [
 ];
 
 export function AdminLayout() {
-  const tokens = useStore((s) => s.tokens);
-  const user = useStore((s) => s.user);
-  const setUser = useStore((s) => s.setUser);
-  const logout = useStore((s) => s.logout);
-  const setTokens = useStore((s) => s.setTokens);
+  const tokens = useStore((s) => s.adminTokens);
+  const user = useStore((s) => s.adminUser);
+  const setUser = useStore((s) => s.setAdminUser);
+  const logout = useStore((s) => s.adminLogout);
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
   const [loading, setLoading] = useState(!user);
@@ -55,8 +54,11 @@ export function AdminLayout() {
   useEffect(() => {
     if (!tokens) return;
     if (user) { setLoading(false); return; }
-    api.profile().then((r) => { setUser(r.data); setLoading(false); }).catch(() => setLoading(false));
-  }, [tokens, user, setUser]);
+    api.profile('admin').then((r) => { setUser(r.data); setLoading(false); }).catch(() => {
+      logout();
+      setLoading(false);
+    });
+  }, [tokens, user, setUser, logout]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -80,7 +82,7 @@ export function AdminLayout() {
 
   const pageTitle = NAV.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))?.label || 'پنل';
 
-  if (!tokens) return <Navigate to="/login" replace />;
+  if (!tokens) return <Navigate to="/panel/login" replace />;
   if (loading) {
     return <div className="admin-boot">در حال بارگذاری پنل پیشرفته…</div>;
   }
@@ -92,7 +94,13 @@ export function AdminLayout() {
       <div className="admin-boot">
         <h2 style={{ marginBottom: 12 }}>دسترسی محدود</h2>
         <p style={{ color: 'var(--text-dim)', marginBottom: 20 }}>این بخش فقط برای مدیران فروشگاه است.</p>
-        <a href="/" className="gold-btn">بازگشت به فروشگاه</a>
+        <button
+          type="button"
+          className="gold-btn"
+          onClick={() => { logout(); navigate('/panel/login'); }}
+        >
+          ورود با حساب مدیر
+        </button>
       </div>
     );
   }
@@ -151,13 +159,13 @@ export function AdminLayout() {
             type="button"
             className="admin-nav-item danger"
             onClick={() => {
-              if (tokens?.refresh) api.logout(tokens.refresh).catch(() => {});
+              if (tokens?.refresh) api.logout(tokens.refresh, 'admin').catch(() => {});
               logout();
-              setTokens(null);
+              navigate('/panel/login', { replace: true });
             }}
           >
             <span className="admin-nav-icon">⎋</span>
-            {!collapsed && <span>خروج</span>}
+            {!collapsed && <span>خروج از پنل</span>}
           </button>
         </div>
       </aside>

@@ -1,13 +1,10 @@
 from rest_framework.permissions import BasePermission
 
+from .serializers import user_can_access_panel
+
 
 class IsAdminRole(BasePermission):
-    """Allow only staff / admin-role users."""
+    """Allow only staff / admin-role users (ops panel)."""
 
     def has_permission(self, request, view):
-        user = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and (getattr(user, "is_admin", False) or user.is_staff or user.is_superuser)
-        )
+        return user_can_access_panel(request.user)

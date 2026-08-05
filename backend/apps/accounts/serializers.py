@@ -1,9 +1,22 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
+
+
+def user_can_access_panel(user) -> bool:
+    """Staff / admin / superuser may enter the ops panel."""
+    if user is None:
+        return False
+    return bool(
+        getattr(user, "is_admin", False)
+        or getattr(user, "is_staff", False)
+        or getattr(user, "is_superuser", False)
+        or getattr(user, "role", None) in (User.Role.ADMIN, User.Role.STAFF)
+    )
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -15,7 +28,44 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["role"] = user.role
         token["full_name"] = user.full_name
         token["phone"] = user.phone
+        token["panel"] = user_can_access_panel(user)
         return token
+
+
+class ClientTokenObtainPairSerializer(CustomTokenObtainPairSerializer):
+    """Storefront login — customers only."""
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        if user_can_access_panel(user):
+            raise AuthenticationFailed(
+                "این حساب مربوط به پنل مدیریت است. از صفحه ورود مدیریت استفاده کنید."
+            )
+        data["user"] = {
+            "id": str(user.id),
+            "phone": user.phone,
+            "full_name": user.full_name,
+            "role": user.role,
+        }
+        return data
+
+
+class AdminTokenObtainPairSerializer(CustomTokenObtainPairSerializer):
+    """Ops panel login — staff / admin only."""
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        if not user_can_access_panel(user):
+            raise AuthenticationFailed("دسترسی به پنل مدیریت برای این حساب مجاز نیست.")
+        data["user"] = {
+            "id": str(user.id),
+            "phone": user.phone,
+            "full_name": user.full_name,
+            "role": user.role,
+        }
+        return data
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -44,6 +94,9 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User(**validated_data)
+        user.role = User.Role.CUSTOMER
+        user.is_staff = False
+        user.is_superuser = False
         user.set_password(password)
         user.save()
         return user

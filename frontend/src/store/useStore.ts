@@ -2,6 +2,37 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, GoldPrice, User } from '../types';
 
+export type AuthTokens = { access: string; refresh: string };
+
+const CLIENT_TOKEN_KEY = 'anil_client_tokens';
+const ADMIN_TOKEN_KEY = 'anil_admin_tokens';
+
+function readTokens(key: string): AuthTokens | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as AuthTokens) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeTokens(key: string, t: AuthTokens | null) {
+  if (t) localStorage.setItem(key, JSON.stringify(t));
+  else localStorage.removeItem(key);
+}
+
+// Migrate legacy single-token key once
+function migrateLegacyTokens() {
+  const legacy = localStorage.getItem('anil_tokens');
+  if (!legacy) return;
+  if (!localStorage.getItem(CLIENT_TOKEN_KEY) && !localStorage.getItem(ADMIN_TOKEN_KEY)) {
+    localStorage.setItem(CLIENT_TOKEN_KEY, legacy);
+  }
+  localStorage.removeItem('anil_tokens');
+}
+
+if (typeof window !== 'undefined') migrateLegacyTokens();
+
 interface AppState {
   goldPrice: GoldPrice | null;
   setGoldPrice: (gp: GoldPrice) => void;
@@ -13,11 +44,19 @@ interface AppState {
   clearCart: () => void;
   cartCount: () => number;
 
+  /** Storefront customer session */
   user: User | null;
   setUser: (u: User | null) => void;
-  tokens: { access: string; refresh: string } | null;
-  setTokens: (t: { access: string; refresh: string } | null) => void;
+  tokens: AuthTokens | null;
+  setTokens: (t: AuthTokens | null) => void;
   logout: () => void;
+
+  /** Ops panel session (independent from customer) */
+  adminUser: User | null;
+  setAdminUser: (u: User | null) => void;
+  adminTokens: AuthTokens | null;
+  setAdminTokens: (t: AuthTokens | null) => void;
+  adminLogout: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -46,17 +85,51 @@ export const useStore = create<AppState>()(
 
       user: null,
       setUser: (u) => set({ user: u }),
-      tokens: null,
+      tokens: readTokens(CLIENT_TOKEN_KEY),
       setTokens: (t) => {
+        writeTokens(CLIENT_TOKEN_KEY, t);
         set({ tokens: t });
-        if (t) localStorage.setItem('anil_tokens', JSON.stringify(t));
-        else localStorage.removeItem('anil_tokens');
       },
-      logout: () => set({ user: null, tokens: null }),
+      logout: () => {
+        writeTokens(CLIENT_TOKEN_KEY, null);
+        set({ user: null, tokens: null });
+      },
+
+      adminUser: null,
+      setAdminUser: (u) => set({ adminUser: u }),
+      adminTokens: readTokens(ADMIN_TOKEN_KEY),
+      setAdminTokens: (t) => {
+        writeTokens(ADMIN_TOKEN_KEY, t);
+        set({ adminTokens: t });
+      },
+      adminLogout: () => {
+        writeTokens(ADMIN_TOKEN_KEY, null);
+        set({ adminUser: null, adminTokens: null });
+      },
     }),
     {
       name: 'anil-store',
-      partialize: (s) => ({ cart: s.cart, tokens: s.tokens }),
+      partialize: (s) => ({
+        cart: s.cart,
+        tokens: s.tokens,
+        adminTokens: s.adminTokens,
+      }),
     }
   )
 );
+
+export function getSessionTokens(session: 'client' | 'admin'): AuthTokens | null {
+  return session === 'admin' ? readTokens(ADMIN_TOKEN_KEY) : readTokens(CLIENT_TOKEN_KEY);
+}
+
+export function setSessionTokens(session: 'client' | 'admin', t: AuthTokens | null) {
+  if (session === 'admin') {
+    writeTokens(ADMIN_TOKEN_KEY, t);
+    useStore.getState().setAdminTokens(t);
+  } else {
+    writeTokens(CLIENT_TOKEN_KEY, t);
+    useStore.getState().setTokens(t);
+  }
+}
+
+export { CLIENT_TOKEN_KEY, ADMIN_TOKEN_KEY };

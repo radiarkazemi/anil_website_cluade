@@ -49,12 +49,20 @@ export const api = {
   myOrders: () => client.get<PaginatedResponse<Order>>('/orders/mine/'),
 
   login: (phone: string, password: string) =>
-    client.post<{ access: string; refresh: string }>('/auth/login/', { phone, password }),
+    client.post<{ access: string; refresh: string; user?: User }>('/auth/login/', { phone, password }, {
+      authSession: 'client',
+    }),
+  adminLogin: (phone: string, password: string) =>
+    client.post<{ access: string; refresh: string; user?: User }>('/auth/admin/login/', { phone, password }, {
+      authSession: 'admin',
+    }),
   register: (data: Record<string, string>) =>
-    client.post<{ user: User; tokens: AuthTokens }>('/auth/register/', data),
-  profile: () => client.get<User>('/auth/profile/'),
+    client.post<{ user: User; tokens: AuthTokens }>('/auth/register/', data, { authSession: 'client' }),
+  profile: (session: 'client' | 'admin' = 'client') =>
+    client.get<User>('/auth/profile/', { authSession: session }),
   updateProfile: (data: Partial<User>) => client.patch<User>('/auth/profile/', data),
-  logout: (refresh: string) => client.post('/auth/logout/', { refresh }),
+  logout: (refresh: string, session: 'client' | 'admin' = 'client') =>
+    client.post('/auth/logout/', { refresh }, { authSession: session }),
 
   priceHistory: (limit = 50) => client.get('/analytics/price-history/', { params: { limit } }),
   logProductView: (product_id: string) => client.post('/analytics/product-view/', { product_id }),

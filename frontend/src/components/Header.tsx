@@ -8,10 +8,13 @@ export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
   const cartCount = useStore((s) => s.cartCount());
   const user = useStore((s) => s.user);
+  const adminUser = useStore((s) => s.adminUser);
+  const adminTokens = useStore((s) => s.adminTokens);
   const openCart = useUI((s) => s.openCart);
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
-  const isAdmin = user && (user.role === 'admin' || user.role === 'staff');
+  const hasAdminSession =
+    !!adminTokens && !!adminUser && (adminUser.role === 'admin' || adminUser.role === 'staff');
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
   return (
@@ -32,7 +35,7 @@ export function Header() {
           <nav className="main-nav">
             <NavLink to="/" end>خانه</NavLink>
             <NavLink to="/products">محصولات</NavLink>
-            {isAdmin && <NavLink to="/panel">پنل مدیریت</NavLink>}
+            {hasAdminSession && <NavLink to="/panel">پنل مدیریت</NavLink>}
           </nav>
 
           <div className="header-actions">
@@ -55,11 +58,17 @@ export function Header() {
             </button>
 
             {user ? (
-              <Link to={isAdmin ? '/panel' : '/'} className="text-btn">
+              <Link to="/" className="text-btn">
                 {user.full_name || 'حساب من'}
               </Link>
             ) : (
               <Link to="/login" className="text-btn ghost-border">ورود</Link>
+            )}
+
+            {!hasAdminSession && (
+              <Link to="/panel/login" className="text-btn" title="ورود مدیران">
+                پنل
+              </Link>
             )}
 
             <button className="icon-btn cart-btn" onClick={openCart} type="button" aria-label="سبد خرید">

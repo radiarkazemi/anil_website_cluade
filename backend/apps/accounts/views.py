@@ -6,7 +6,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .serializers import (
+    AdminTokenObtainPairSerializer,
     ChangePasswordSerializer,
+    ClientTokenObtainPairSerializer,
     CustomTokenObtainPairSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -16,7 +18,15 @@ User = get_user_model()
 
 
 class LoginView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+    """Storefront / customer login."""
+
+    serializer_class = ClientTokenObtainPairSerializer
+
+
+class AdminLoginView(TokenObtainPairView):
+    """Ops panel login (staff / admin only)."""
+
+    serializer_class = AdminTokenObtainPairSerializer
 
 
 class RefreshView(TokenRefreshView):
@@ -33,11 +43,16 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+        access["role"] = user.role
+        access["full_name"] = user.full_name
+        access["phone"] = user.phone
+        access["panel"] = False
         return Response(
             {
                 "user": UserSerializer(user).data,
                 "tokens": {
-                    "access": str(refresh.access_token),
+                    "access": str(access),
                     "refresh": str(refresh),
                 },
             },
@@ -74,3 +89,16 @@ class LogoutView(APIView):
         except Exception:
             pass
         return Response({"detail": "خروج موفق."}, status=status.HTTP_200_OK)
+
+
+# Keep alias for any import of the old shared serializer name
+__all__ = [
+    "LoginView",
+    "AdminLoginView",
+    "RefreshView",
+    "RegisterView",
+    "ProfileView",
+    "ChangePasswordView",
+    "LogoutView",
+    "CustomTokenObtainPairSerializer",
+]
