@@ -496,14 +496,13 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
   min-height: 420px;
 }
 .hero-3d .hero-ring-hint { z-index: 6; }
-.hero-3d-fallback {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim);
-  font-size: 14px;
+.hero-3d-glow {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(232,201,118,.55), rgba(212,175,55,.12) 45%, transparent 70%);
+}
+[data-theme='light'] .hero-3d-glow {
+  background: radial-gradient(circle, rgba(212,175,55,.4), rgba(212,175,55,.08) 50%, transparent 72%);
 }
 .hero-ring-band {
   position: absolute;
