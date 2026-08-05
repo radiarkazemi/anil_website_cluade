@@ -54,3 +54,5 @@ python manage.py runserver
 - URL: http://localhost:5180/login
 - Then open: http://localhost:5180/panel
 - Default: phone `09120000000` / password `anil-admin-2026`
+
+Advanced panel features: command palette (`Ctrl+K`), live KPIs, order drawer, analytics, role management.
