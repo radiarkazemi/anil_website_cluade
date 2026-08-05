@@ -81,40 +81,94 @@ Analytics (MongoDB):
   GET  /api/v1/analytics/popular/          Popular products
 ```
 
-## Quick Start (two terminals — different ports)
+## Quick Start — new Windows machine (`D:\anil_website_cluade`)
 
-| Service  | Port | URL |
-|----------|------|-----|
-| Backend (Django API) | **8000** | http://127.0.0.1:8000/api/v1/ |
-| Frontend (Vite React) | **5180** | http://localhost:5180/ |
+Use **Git Bash**. SQLite works without Docker (recommended for a quick local setup).
 
-### Terminal 1 — Backend `:8000`
+### 0) Clone / update
 
 ```bash
-cd backend
-source .venv/Scripts/activate   # Windows Git Bash; use .venv/bin/activate on Linux/macOS
+# First time on this PC:
+cd /d/
+git clone https://github.com/radiarkazemi/anil_website_cluade.git
+cd anil_website_cluade
+git checkout cursor/anil-gold-product-site-9af9
+
+# If the folder already exists:
+cd /d/anil_website_cluade
+git fetch origin
+git checkout cursor/anil-gold-product-site-9af9
+git pull origin cursor/anil-gold-product-site-9af9
+```
+
+### 1) Backend `:8000` (ASGI + live gold WebSocket)
+
+```bash
+cd /d/anil_website_cluade/backend
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+# Optional: copy .env.example → .env  (leave DATABASE_URL unset for SQLite)
 python manage.py migrate
 python manage.py seed
 python manage.py seed_images
 python manage.py create_admin
-python manage.py runserver 8000
+daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
-### Terminal 2 — Frontend `:5180`
+> Use **Daphne** (not `runserver`) so `/ws/gold/` works for live Faraz prices.
+
+### 2) Frontend `:5180`
 
 ```bash
-cd frontend
+cd /d/anil_website_cluade/frontend
 npm install
 npm run dev
-# → http://localhost:5180  (proxies /api and /media → backend :8000)
+# → http://localhost:5180
 ```
 
-Open the **frontend** URL to see the shop (fonts, theme, catalog). Do not open only the backend port for the UI.
+| Service | URL |
+|---------|-----|
+| Shop | http://localhost:5180/ |
+| Customer login | http://localhost:5180/login |
+| **Admin login** | http://localhost:5180/panel/login |
+| Admin panel | http://localhost:5180/panel |
 
-### Admin panel (custom)
+Default admin: phone `09120000000` / password `anil-admin-2026`  
+(Customer and admin logins are separate.)
 
-- Login: http://localhost:5180/login — phone `09120000000` / password `anil-admin-2026`
-- Panel: http://localhost:5180/panel
+Need Postgres/Mongo? See `DATABASE.md`.
+
+## API Endpoints
+
+```
+Auth:
+  POST /api/v1/auth/register/          Customer register + JWT
+  POST /api/v1/auth/login/             Customer login (rejects staff/admin)
+  POST /api/v1/auth/admin/login/       Ops panel login (staff/admin only)
+  POST /api/v1/auth/token/refresh/     Refresh access token
+  POST /api/v1/auth/logout/            Blacklist refresh token
+  GET/PATCH /api/v1/auth/profile/      User profile
+
+Store:
+  GET  /api/v1/gold-price/             Current gold + market rates
+  WS   /ws/gold/                       Live Faraz price stream
+  GET  /api/v1/categories/             Category list
+  GET  /api/v1/products/               Paginated, filterable, sortable
+  GET  /api/v1/products/<slug>/        Product detail + breakdown
+  GET  /api/v1/wishlist/               User wishlist
+  POST /api/v1/wishlist/               Add to wishlist
+
+Orders:
+  POST /api/v1/orders/                 Create order (server-side pricing)
+  GET  /api/v1/orders/mine/            User's orders
+  GET  /api/v1/orders/<number>/        Order detail
+
+Analytics (MongoDB):
+  GET  /api/v1/analytics/price-history/    Gold price time-series
+  POST /api/v1/analytics/product-view/     Log a product view
+  GET  /api/v1/analytics/popular/          Popular products
+```
 
 ## Deploy
 
@@ -139,19 +193,16 @@ cd frontend && npm run build
 
 ## Gold Price Updates
 
-Live prices use the **Faraz Abshode / goldbridge** stack (same upstream as
-[`gold_abshd`](https://github.com/radiarkazemi/gold_abshd) → `sekefarshad.ir`).
+Live rates from **Faraz.io** (`abshodeNaghdi` → مثقال ۱۷ → گرم ۱۸ via `/ws/gold/`).
 
 ```bash
-# Force a live snapshot into the DB
 cd backend && python manage.py refresh_gold
 
-# HTTP API
-GET  /api/v1/gold-price/          # latest snapshot (auto-refreshes if stale)
+GET  /api/v1/gold-price/          # latest (memory cache / DB)
 GET  /api/v1/gold-price/live/     # fetch live + persist
 POST /api/v1/gold-price/live/     # force live refresh
-POST /api/v1/admin/gold-price/refresh/   # admin panel button
+POST /api/v1/admin/gold-price/refresh/
+WS   /ws/gold/                    # streamed quotes (Daphne)
 ```
 
-Configure in `backend/.env` (see `.env.example`): `GOLD_SOURCE_*`, optional
-`GOLD_BRIDGE_URL`, or `GOLD_PROVIDER_URL`.
+See `backend/.env.example` for `FARAZ_BASE_URL`, `GOLD_POLL_SECONDS`, etc.
