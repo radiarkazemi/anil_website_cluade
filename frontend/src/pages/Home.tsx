@@ -7,24 +7,32 @@ import { faNum, faPrice } from '../utils/format';
 import type { MarketRow } from '../types';
 import { useRef, useState } from 'react';
 
-function MarketPanel({ rows }: { rows: MarketRow[] }) {
-  const show = rows.filter((r) => ['g18', 'g24', 'sek', 'usd'].includes(r.key));
+/** Live rates board — replaces the low-contrast marquee strip. */
+function RatesBoard({ rows }: { rows: MarketRow[] }) {
   return (
-    <section className="container" style={{ padding: '70px var(--px) 30px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
-        <div>
-          <div className="section-eyebrow">بازار زنده</div>
-          <h2 style={{ fontSize: 32, fontWeight: 800 }}>قیمت لحظه‌ای طلا و سکه</h2>
-        </div>
-      </div>
-      <div className="market-grid">
-        {show.map((c) => (
-          <div key={c.key} className="market-cell">
-            <div className="market-label">{c.label}</div>
-            <div className="market-value">{c.dollar ? `$${faPrice(c.v)}` : faPrice(c.v)}</div>
-            <div className="market-unit">{c.unit}</div>
+    <section id="market" className="rates-board" aria-label="نرخ زنده بازار">
+      <div className="container rates-board-inner">
+        <div className="rates-board-head">
+          <div>
+            <div className="rates-live">
+              <span className="live-dot" />
+              به‌روزرسانی زنده
+            </div>
+            <h2>نرخ طلا، سکه و ارز</h2>
           </div>
-        ))}
+          <p className="rates-note">قیمت محصولات گالری بر اساس طلای ۱۸ عیار محاسبه می‌شود.</p>
+        </div>
+        <div className="rates-grid">
+          {rows.map((r) => (
+            <div key={r.key} className={`rate-chip${r.key === 'g18' ? ' featured' : ''}`}>
+              <div className="rate-chip-label">{r.label}</div>
+              <div className="rate-chip-value">
+                {r.dollar ? `$${faPrice(r.v)}` : faPrice(r.v)}
+              </div>
+              <div className="rate-chip-unit">{r.unit}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -125,28 +133,7 @@ export function Home() {
         <Ring />
       </section>
 
-      {goldPrice?.market_rows && (
-        <div className="ticker" aria-label="نرخ زنده بازار">
-          <div className="ticker-track">
-            {[0, 1].map((dup) => (
-              <div key={dup} className="ticker-group">
-                {goldPrice.market_rows.map((r) => (
-                  <div key={`${dup}-${r.key}`} className="ticker-item">
-                    <span className="ticker-label">{r.label}</span>
-                    <span className="ticker-value">
-                      {r.dollar ? `$${faPrice(r.v)}` : faPrice(r.v)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div id="market">
-        {goldPrice?.market_rows && <MarketPanel rows={goldPrice.market_rows} />}
-      </div>
+      {goldPrice?.market_rows && <RatesBoard rows={goldPrice.market_rows} />}
 
       <section className="container section-pad">
         <h2 className="section-title">دسته‌بندی محصولات</h2>
