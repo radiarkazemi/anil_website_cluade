@@ -62,6 +62,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.store.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -143,8 +144,12 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "120/minute",
-        "user": "300/minute",
+        "anon": os.environ.get("THROTTLE_ANON", "180/minute"),
+        "user": os.environ.get("THROTTLE_USER", "600/minute"),
+        "burst_anon": "30/minute",
+        "order_create": "12/minute",
+        "payment_start": "20/minute",
+        "auth": "10/minute",
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -153,6 +158,33 @@ REST_FRAMEWORK = {
         ["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []
     ),
 }
+
+# ─── Cache (LocMem by default; set REDIS_URL / CACHE_URL for production) ─────
+_cache_url = os.environ.get("CACHE_URL", "").strip() or os.environ.get("REDIS_URL", "").strip()
+if _cache_url and _cache_url.startswith("redis"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _cache_url,
+            "KEY_PREFIX": "anil",
+            "TIMEOUT": 60,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "anil-gold",
+            "TIMEOUT": 45,
+        }
+    }
+
+# ─── Payments (Iran gateways) ────────────────────────────────────────────────
+PAYMENT_SANDBOX = os.environ.get("PAYMENT_SANDBOX", "True").lower() in ("1", "true", "yes")
+PAYMENT_CALLBACK_BASE = os.environ.get("PAYMENT_CALLBACK_BASE", "http://localhost:8000")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5180")
+ZARINPAL_MERCHANT_ID = os.environ.get("ZARINPAL_MERCHANT_ID", "")
+IDPAY_API_KEY = os.environ.get("IDPAY_API_KEY", "")
 
 # ─── SimpleJWT ───────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
@@ -216,9 +248,28 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ─── Security (production) ───────────────────────────────────────────────────
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_BROWSER_XSS_FILTER = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = "DENY"
+    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True").lower() in ("1", "true", "yes")
+    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", 31536000))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Never allow CORS_ALLOW_ALL in production
+    CORS_ALLOW_ALL_ORIGINS = False
+else:
+    # Soft warning path — keep local DX, but never ship DEBUG=True
+    pass
+
+# Fail fast if production secret is still the insecure default
+if not DEBUG and "insecure" in SECRET_KEY:
+    raise RuntimeError("SECRET_KEY must be set to a strong value when DEBUG=False")

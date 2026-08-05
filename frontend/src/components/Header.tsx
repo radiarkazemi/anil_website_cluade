@@ -91,7 +91,7 @@ export function Header() {
             </button>
 
             {user ? (
-              <Link to="/" className="text-btn">
+              <Link to="/account" className="text-btn">
                 {user.full_name || 'حساب من'}
               </Link>
             ) : (

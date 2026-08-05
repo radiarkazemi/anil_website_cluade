@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
@@ -7,6 +8,8 @@ import { useToast } from '../store/toastStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import type { Product } from '../types';
 
+type Step = 'cart' | 'checkout' | 'pay';
+
 export function CartDrawer() {
   const cartOpen = useUI((s) => s.cartOpen);
   const closeCart = useUI((s) => s.closeCart);
@@ -14,6 +17,7 @@ export function CartDrawer() {
   const updateQty = useStore((s) => s.updateQty);
   const removeFromCart = useStore((s) => s.removeFromCart);
   const clearCart = useStore((s) => s.clearCart);
+  const user = useStore((s) => s.user);
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const toast = useToast((s) => s.show);
 
@@ -22,11 +26,32 @@ export function CartDrawer() {
     queryFn: () => api.products({ page_size: '200' }).then((r) => r.data.results),
     staleTime: 60000,
   });
-  const products = data ?? [];
+  const { data: gatewaysData } = useQuery({
+    queryKey: ['payment-gateways'],
+    queryFn: () => api.paymentGateways().then((r) => r.data),
+    staleTime: 120000,
+  });
 
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const products = data ?? [];
+  const gateways = gatewaysData?.gateways ?? [
+    { code: 'zarinpal', label: 'زرین‌پال' },
+    { code: 'idpay', label: 'آیدی‌پی' },
+  ];
+
+  const [step, setStep] = useState<Step>('cart');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
+  const [gateway, setGateway] = useState('zarinpal');
+  const [form, setForm] = useState({
+    full_name: user?.full_name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    address: user?.address || '',
+    city: user?.city || '',
+    postal_code: user?.postal_code || '',
+    note: '',
+  });
 
   const cartItems = cart.map((c) => {
     const p = products.find((x) => x.id === c.productId);
@@ -38,90 +63,168 @@ export function CartDrawer() {
   const subtotal = cartItems.reduce((s, c) => s + c.price * c.qty, 0);
   const totalQty = cart.reduce((s, c) => s + c.qty, 0);
 
+  const resetAndClose = () => {
+    setStep('cart');
+    setError('');
+    setOrderNumber('');
+    closeCart();
+  };
+
   const handleCheckout = async () => {
-    const name = (document.getElementById('co-name') as HTMLInputElement)?.value || '';
-    const phone = (document.getElementById('co-phone') as HTMLInputElement)?.value || '';
-    const address = (document.getElementById('co-address') as HTMLTextAreaElement)?.value || '';
-    if (!name.trim() || !phone.trim()) { setError('نام و شماره تماس الزامی است.'); return; }
-    setBusy(true); setError('');
+    if (!form.full_name.trim() || !form.phone.trim() || !form.address.trim()) {
+      setError('نام، موبایل و آدرس الزامی است.');
+      return;
+    }
+    setBusy(true);
+    setError('');
     try {
       const { data: order } = await api.createOrder({
-        full_name: name.trim(), phone: phone.trim(), address: address.trim(),
+        ...form,
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
         items: cart.map((c) => ({ product_id: c.productId, qty: c.qty })),
       });
-      clearCart(); setCheckoutOpen(false); closeCart();
-      toast(`سفارش ${order.order_number} ثبت شد — ${faPrice(order.total)} تومان`);
+      clearCart();
+      setOrderNumber(order.order_number);
+      setStep('pay');
+      toast(`سفارش ${order.order_number} ثبت شد`);
     } catch (e: any) {
       setError(e.response?.data?.detail || e.response?.data?.items?.[0] || 'ثبت سفارش ناموفق بود.');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePay = async () => {
+    if (!orderNumber) return;
+    setBusy(true);
+    setError('');
+    try {
+      const { data: pay } = await api.payOrder(orderNumber, { gateway, phone: form.phone.trim() });
+      if (pay.sandbox && (pay.authority?.startsWith('SANDBOX') || pay.authority?.startsWith('ID-'))) {
+        await api.sandboxConfirmPayment(orderNumber);
+        toast('پرداخت آزمایشی با موفقیت تأیید شد');
+        resetAndClose();
+        return;
+      }
+      if (pay.payment_url) {
+        window.location.href = pay.payment_url;
+        return;
+      }
+      setError('لینک پرداخت دریافت نشد.');
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'خطا در اتصال به درگاه');
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!cartOpen) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-      <div onClick={closeCart} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(3px)' }} />
-      <div style={{
-        position: 'absolute', top: 0, bottom: 0, left: 0, width: 420, maxWidth: '92vw',
-        background: '#0c0a07', borderLeft: '1px solid rgba(212,175,55,.2)',
-        boxShadow: '20px 0 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column',
-        animation: 'slidein .28s ease',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>گلد باکس</div>
-          <button onClick={closeCart} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8bfb0', background: 'transparent', fontSize: 16 }}>✕</button>
-        </div>
+    <div className="goldbox-overlay">
+      <div className="goldbox-backdrop" onClick={resetAndClose} />
+      <aside className="goldbox-panel" role="dialog" aria-label="گلد باکس">
+        <header className="goldbox-head">
+          <div>
+            <div className="goldbox-title">گلد باکس</div>
+            <div className="goldbox-sub">
+              {step === 'cart' && `${faNum(totalQty)} قلم`}
+              {step === 'checkout' && 'اطلاعات ارسال'}
+              {step === 'pay' && 'پرداخت امن'}
+            </div>
+          </div>
+          <button type="button" className="goldbox-close" onClick={resetAndClose}>✕</button>
+        </header>
 
-        {checkoutOpen ? (
-          <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>ثبت سفارش</div>
-            <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>جمع: <span style={{ color: 'var(--gold-light)', fontWeight: 800, fontSize: 16 }}>{faPrice(subtotal)}</span> تومان</div>
-            <input id="co-name" placeholder="نام و نام خانوادگی" className="input" />
-            <input id="co-phone" placeholder="شماره تماس" className="input" dir="ltr" />
-            <textarea id="co-address" placeholder="آدرس ارسال" className="input" style={{ height: 'auto', padding: 12, minHeight: 80 }} />
-            {error && <div style={{ color: 'var(--down)', fontSize: 13 }}>{error}</div>}
-            <button onClick={handleCheckout} className="gold-btn" disabled={busy} style={{ marginTop: 4 }}>{busy ? 'در حال ثبت…' : 'ثبت نهایی سفارش'}</button>
-            <button onClick={() => setCheckoutOpen(false)} className="outline-btn" style={{ padding: '12px 24px' }}>بازگشت</button>
+        {step === 'pay' ? (
+          <div className="goldbox-body">
+            <div className="goldbox-success">
+              <div className="goldbox-success-title">سفارش ثبت شد</div>
+              <div className="goldbox-order-no">{orderNumber}</div>
+              <p>درگاه پرداخت ایرانی را انتخاب کنید.</p>
+            </div>
+            <div className="goldbox-gateways">
+              {gateways.map((g) => (
+                <label key={g.code} className={`goldbox-gw${gateway === g.code ? ' on' : ''}`}>
+                  <input
+                    type="radio"
+                    name="gw"
+                    checked={gateway === g.code}
+                    onChange={() => setGateway(g.code)}
+                  />
+                  {g.label}
+                </label>
+              ))}
+            </div>
+            {error && <div className="goldbox-error">{error}</div>}
+            <button type="button" className="gold-btn" disabled={busy} onClick={handlePay}>
+              {busy ? '…' : 'پرداخت آنلاین'}
+            </button>
+            <Link to="/account" className="outline-btn" style={{ textAlign: 'center' }} onClick={resetAndClose}>
+              مشاهده در حساب من
+            </Link>
+          </div>
+        ) : step === 'checkout' ? (
+          <div className="goldbox-body">
+            <div className="goldbox-sum">جمع قابل پرداخت: <strong>{faPrice(subtotal)}</strong> تومان</div>
+            <input className="input" placeholder="نام و نام خانوادگی *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+            <input className="input" placeholder="موبایل *" dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input className="input" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <input className="input" placeholder="شهر" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            <input className="input" placeholder="کد پستی" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
+            <textarea className="input" placeholder="آدرس کامل *" rows={3} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            <textarea className="input" placeholder="یادداشت سفارش" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+            {error && <div className="goldbox-error">{error}</div>}
+            <button type="button" className="gold-btn" disabled={busy} onClick={handleCheckout}>
+              {busy ? 'در حال ثبت…' : 'ثبت و ادامه پرداخت'}
+            </button>
+            <button type="button" className="outline-btn" onClick={() => setStep('cart')}>بازگشت به گلد باکس</button>
           </div>
         ) : cartItems.length > 0 ? (
           <>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="goldbox-list">
               {cartItems.map((c) => (
-                <div key={c.productId} style={{ display: 'flex', gap: 14, padding: 14, borderRadius: 14, background: 'rgba(255,255,255,.03)', border: '1px solid var(--border)' }}>
-                  <div style={{ flex: '0 0 68px', width: 68, height: 68, borderRadius: 10, background: 'repeating-linear-gradient(135deg,#171410 0 10px,#1e1a13 10px 20px)', border: '1px solid rgba(212,175,55,.2)' }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{c.product.name}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-dim)', marginBottom: 8 }}>{c.product.category_name} · {faNum(Number(c.product.weight_g))} گرم</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(212,175,55,.25)', borderRadius: 9, overflow: 'hidden' }}>
-                        <button onClick={() => updateQty(c.productId, c.qty - 1)} style={{ border: 'none', width: 28, height: 30, background: 'transparent', color: 'var(--gold-light)', fontSize: 16 }}>−</button>
-                        <div style={{ width: 30, textAlign: 'center', fontSize: 13.5, fontWeight: 700 }}>{faNum(c.qty)}</div>
-                        <button onClick={() => updateQty(c.productId, c.qty + 1)} style={{ border: 'none', width: 28, height: 30, background: 'transparent', color: 'var(--gold-light)', fontSize: 16 }}>+</button>
+                <div key={c.productId} className="goldbox-item">
+                  <div className="goldbox-thumb">
+                    {(c.product.primary_image || c.product.images?.[0]?.image) ? (
+                      <img src={c.product.primary_image || c.product.images![0].image} alt="" />
+                    ) : null}
+                  </div>
+                  <div className="goldbox-item-body">
+                    <div className="goldbox-item-name">{c.product.name}</div>
+                    <div className="goldbox-item-meta">{c.product.category_name} · {faNum(Number(c.product.weight_g))} گرم</div>
+                    <div className="goldbox-item-row">
+                      <div className="pd-qty compact">
+                        <button type="button" onClick={() => updateQty(c.productId, c.qty - 1)}>−</button>
+                        <div>{faNum(c.qty)}</div>
+                        <button type="button" onClick={() => updateQty(c.productId, c.qty + 1)}>+</button>
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--gold-light)' }}>{faPrice(c.price * c.qty)}</div>
+                      <div className="goldbox-item-price">{faPrice(c.price * c.qty)}</div>
                     </div>
                   </div>
-                  <button onClick={() => removeFromCart(c.productId)} style={{ border: 'none', background: 'transparent', color: '#7c7263', fontSize: 14, alignSelf: 'flex-start', cursor: 'pointer' }}>✕</button>
+                  <button type="button" className="goldbox-remove" onClick={() => removeFromCart(c.productId)}>✕</button>
                 </div>
               ))}
             </div>
-            <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>جمع کل ({faNum(totalQty)} قلم)</span>
-                <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold-light)' }}>{faPrice(subtotal)} <span style={{ fontSize: 12, color: '#7c7263', fontWeight: 500 }}>تومان</span></span>
+            <footer className="goldbox-foot">
+              <div className="goldbox-total-row">
+                <span>جمع کل ({faNum(totalQty)} قلم)</span>
+                <strong>{faPrice(subtotal)} <small>تومان</small></strong>
               </div>
-              <div style={{ fontSize: 11.5, color: '#7c7263', marginBottom: 16 }}>قیمت‌ها بر پایه‌ی نرخ لحظه‌ای طلا محاسبه شده.</div>
-              <button onClick={() => setCheckoutOpen(true)} className="gold-btn" style={{ width: '100%' }}>ادامه‌ی فرآیند پرداخت</button>
-            </div>
+              <p className="goldbox-note">قیمت بر اساس نرخ لحظه‌ای طلا · پرداخت از طریق درگاه‌های ایرانی</p>
+              <button type="button" className="gold-btn" onClick={() => setStep('checkout')}>ادامه خرید و پرداخت</button>
+            </footer>
           </>
         ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 46 }}>🛍</div>
-            <div style={{ color: '#c8bfb0', fontSize: 16, fontWeight: 600 }}>گلد باکس شما خالی است</div>
-            <button onClick={closeCart} className="gold-btn" style={{ marginTop: 8, padding: '13px 26px', fontSize: 14 }}>مشاهده‌ی محصولات</button>
+          <div className="goldbox-empty">
+            <div className="goldbox-empty-title">گلد باکس خالی است</div>
+            <p>زیورآلات مورد علاقه‌تان را اضافه کنید.</p>
+            <button type="button" className="gold-btn" onClick={resetAndClose}>مشاهده محصولات</button>
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

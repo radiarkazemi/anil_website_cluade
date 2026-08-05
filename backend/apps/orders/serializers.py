@@ -104,6 +104,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "id", "order_number", "full_name", "phone", "email",
             "address", "city", "postal_code", "status",
             "gold_price_snapshot", "subtotal", "shipping_cost", "discount", "total",
-            "note", "tracking_code", "paid_at", "shipped_at", "delivered_at",
+            "note", "tracking_code",
+            "payment_gateway", "payment_authority", "payment_ref_id",
+            "paid_at", "shipped_at", "delivered_at",
             "created_at", "items",
         ]

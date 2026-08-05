@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
-import { BarSeries, PageHeader, SparkArea } from './adminShared';
+import { BarSeries, KpiCard, PageHeader, SparkArea } from './adminShared';
 
 export function AdminAnalytics() {
   const { data: dash, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.adminDashboard().then((r) => r.data),
+    refetchInterval: 45000,
   });
   const { data: history } = useQuery({
     queryKey: ['price-history'],
@@ -19,16 +20,29 @@ export function AdminAnalytics() {
   const series = dash.revenue_series || [];
   const goldSeries = (dash.gold_history || []).map((g) => g.price_18k_per_gram);
   const histRows = Array.isArray(history) ? history : history?.results || history?.data || [];
+  const conv = dash.conversion || { orders_total: 0, paid_rate: 0, cancel_rate: 0 };
+  const stock = dash.stock_health || { out_of_stock: 0, low_stock: 0, healthy: 0 };
 
   return (
     <div>
       <PageHeader
-        title="تحلیل و هوش فروش"
-        subtitle="نمای ترکیبی از فروش، نرخ طلا و اقلام پرفروش"
-        actions={<Link to="/panel" className="outline-btn">بازگشت به داشبورد</Link>}
+        title="مرکز تحلیل پیشرفته"
+        subtitle="فروش، پرداخت، موجودی، نرخ طلا و سلامت عملیات — به‌روزرسانی خودکار"
+        actions={<Link to="/panel" className="outline-btn">داشبورد</Link>}
       />
 
-      <div className="admin-grid-2">
+      <div className="stat-grid analytics-kpi">
+        <KpiCard label="درآمد کل" value={faPrice(dash.revenue_total)} tone="gold" hint="بدون سفارش‌های لغو شده" />
+        <KpiCard label="درآمد پرداخت‌شده" value={faPrice(dash.revenue_paid || 0)} tone="up" />
+        <KpiCard label="در انتظار پرداخت" value={faPrice(dash.pending_payment_value || 0)} tone="down" />
+        <KpiCard label="میانگین سبد" value={faPrice(dash.avg_order_value || 0)} />
+        <KpiCard label="نرخ پرداخت موفق" value={`${faNum(conv.paid_rate)}٪`} tone="up" />
+        <KpiCard label="نرخ لغو" value={`${faNum(conv.cancel_rate)}٪`} tone="down" />
+        <KpiCard label="سفارش امروز" value={faNum(dash.orders_today)} />
+        <KpiCard label="طلای ۱۸" value={faPrice(dash.gold_price_18k)} tone="gold" />
+      </div>
+
+      <div className="admin-grid-2" style={{ marginTop: 18 }}>
         <div className="admin-card chart-card">
           <div className="admin-card-head">
             <div>
@@ -43,7 +57,7 @@ export function AdminAnalytics() {
           <div className="admin-card-head">
             <div>
               <h3>نوسان طلای ۱۸</h3>
-              <p>بر اساس نرخ‌های ثبت‌شده در پنل</p>
+              <p>نرخ‌های ثبت‌شده</p>
             </div>
             <div className="chart-total">{faPrice(dash.gold_price_18k)}</div>
           </div>
@@ -53,12 +67,49 @@ export function AdminAnalytics() {
 
       <div className="admin-grid-2" style={{ marginTop: 18 }}>
         <div className="admin-card">
-          <div className="admin-card-head"><h3>تعداد سفارش در روز</h3></div>
+          <div className="admin-card-head"><h3>تعداد سفارش روزانه</h3></div>
           <BarSeries items={series.map((s) => ({ label: s.label, value: s.orders }))} />
         </div>
         <div className="admin-card">
-          <div className="admin-card-head"><h3>وضعیت پایپ‌لاین</h3></div>
+          <div className="admin-card-head"><h3>پایپ‌لاین وضعیت</h3></div>
           <BarSeries items={(dash.orders_by_status || []).map((s) => ({ label: s.label, value: s.count }))} />
+        </div>
+      </div>
+
+      <div className="admin-grid-2" style={{ marginTop: 18 }}>
+        <div className="admin-card">
+          <div className="admin-card-head"><h3>سلامت موجودی</h3></div>
+          <div className="stock-health">
+            <div><b>{faNum(stock.healthy)}</b><span>سالم</span></div>
+            <div className="warn"><b>{faNum(stock.low_stock)}</b><span>کم‌موجود</span></div>
+            <div className="bad"><b>{faNum(stock.out_of_stock)}</b><span>ناموجود</span></div>
+          </div>
+          <BarSeries
+            items={[
+              { label: 'سالم', value: stock.healthy },
+              { label: 'کم', value: stock.low_stock },
+              { label: 'صفر', value: stock.out_of_stock },
+            ]}
+          />
+        </div>
+        <div className="admin-card">
+          <div className="admin-card-head"><h3>ترکیب درگاه‌های پرداخت</h3></div>
+          {(dash.payment_gateway_mix || []).length === 0 ? (
+            <div className="empty-cell">هنوز پرداخت درگاهی ثبت نشده (sandbox را از گلد باکس تست کنید).</div>
+          ) : (
+            <div className="top-products">
+              {(dash.payment_gateway_mix || []).map((g) => (
+                <div key={g.payment_gateway} className="top-product">
+                  <span className="rank">{g.payment_gateway}</span>
+                  <div>
+                    <div className="top-name">{faNum(g.c)} تراکنش</div>
+                    <div className="kpi-hint">درگاه</div>
+                  </div>
+                  <div className="money">{faPrice(g.revenue || 0)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -81,7 +132,7 @@ export function AdminAnalytics() {
 
       {Array.isArray(histRows) && histRows.length > 0 && (
         <div className="admin-card" style={{ marginTop: 18 }}>
-          <div className="admin-card-head"><h3>تاریخچه نرخ (Mongo / Analytics)</h3></div>
+          <div className="admin-card-head"><h3>تاریخچه نرخ (Analytics)</h3></div>
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>

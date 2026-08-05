@@ -39,6 +39,16 @@ class Order(models.Model):
     total = models.BigIntegerField(default=0)
     note = models.TextField(blank=True)
     tracking_code = models.CharField(max_length=50, blank=True)
+    # Iranian payment gateways
+    payment_gateway = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="zarinpal | idpay | …",
+    )
+    payment_authority = models.CharField(max_length=80, blank=True, db_index=True)
+    payment_ref_id = models.CharField(max_length=80, blank=True)
+    payment_raw = models.JSONField(default=dict, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     shipped_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
@@ -49,6 +59,10 @@ class Order(models.Model):
         ordering = ["-created_at"]
         verbose_name = "سفارش"
         verbose_name_plural = "سفارش‌ها"
+        indexes = [
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["phone", "-created_at"]),
+        ]
 
     def __str__(self):
         return f"سفارش {self.order_number} — {self.full_name}"

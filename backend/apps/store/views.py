@@ -25,9 +25,15 @@ class GoldPriceView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        from django.core.cache import cache
+
         cached = price_cache.get_latest()
         if cached and cached.get("price_18k_per_gram"):
             return Response(cached)
+
+        http_cached = cache.get("gold_price_http")
+        if http_cached:
+            return Response(http_cached)
 
         auto = request.query_params.get("auto", "1") not in ("0", "false", "no")
         gold = maybe_auto_refresh() if auto else GoldPrice.current()
@@ -35,6 +41,7 @@ class GoldPriceView(APIView):
             return Response({"detail": "نرخ طلا موجود نیست."}, status=status.HTTP_404_NOT_FOUND)
         data = GoldPriceSerializer(gold).data
         price_cache.set_latest(data)
+        cache.set("gold_price_http", data, 8)
         return Response(data)
 
 
@@ -92,6 +99,17 @@ class CategoryListView(generics.ListAPIView):
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        from django.core.cache import cache
+
+        key = "categories_public_v1"
+        cached = cache.get(key)
+        if cached is not None:
+            return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        cache.set(key, response.data, 60)
+        return response
 
 
 class ProductListView(generics.ListAPIView):

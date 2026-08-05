@@ -24,6 +24,16 @@ export interface DashboardStats {
   gold_history?: { price_18k_per_gram: number; created_at: string; source: string }[];
   recent_orders: Order[];
   low_stock: Product[];
+  orders_paid?: number;
+  orders_processing?: number;
+  orders_shipped?: number;
+  orders_delivered?: number;
+  orders_cancelled?: number;
+  revenue_paid?: number;
+  pending_payment_value?: number;
+  payment_gateway_mix?: { payment_gateway: string; c: number; revenue: number }[];
+  conversion?: { orders_total: number; paid_rate: number; cancel_rate: number };
+  stock_health?: { out_of_stock: number; low_stock: number; healthy: number };
 }
 
 export const api = {
@@ -51,7 +61,25 @@ export const api = {
     note?: string;
     items: { product_id: string; qty: number }[];
   }) => client.post<Order>('/orders/', data),
-  myOrders: () => client.get<PaginatedResponse<Order>>('/orders/mine/'),
+  myOrders: () => client.get<PaginatedResponse<Order> | Order[]>('/orders/mine/'),
+  trackOrder: (data: { order_number: string; phone: string }) =>
+    client.post<Order>('/orders/track/', data, { authSession: 'client' }),
+  paymentGateways: () =>
+    client.get<{ gateways: { code: string; label: string; sandbox?: boolean }[]; sandbox: boolean }>(
+      '/payments/gateways/',
+    ),
+  payOrder: (orderNumber: string, data: { gateway: string; phone?: string }) =>
+    client.post<{
+      order_number: string;
+      gateway: string;
+      authority: string;
+      payment_url: string;
+      sandbox: boolean;
+      message?: string;
+      amount: number;
+    }>(`/orders/${orderNumber}/pay/`, data),
+  sandboxConfirmPayment: (orderNumber: string) =>
+    client.post<{ ok: boolean; order?: Order }>(`/orders/${orderNumber}/pay/sandbox-confirm/`, {}),
 
   login: (phone: string, password: string) =>
     client.post<{ access: string; refresh: string; user?: User }>('/auth/login/', { phone, password }, {

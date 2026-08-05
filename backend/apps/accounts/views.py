@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, throttling
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -17,26 +17,33 @@ from .serializers import (
 User = get_user_model()
 
 
+class AuthThrottle(throttling.AnonRateThrottle):
+    scope = "auth"
+
+
 class LoginView(TokenObtainPairView):
     """Storefront / customer login."""
 
     serializer_class = ClientTokenObtainPairSerializer
+    throttle_classes = [AuthThrottle]
 
 
 class AdminLoginView(TokenObtainPairView):
     """Ops panel login (staff / admin only)."""
 
     serializer_class = AdminTokenObtainPairSerializer
+    throttle_classes = [AuthThrottle]
 
 
 class RefreshView(TokenRefreshView):
-    pass
+    throttle_classes = [AuthThrottle]
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AuthThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

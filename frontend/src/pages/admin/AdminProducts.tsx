@@ -8,7 +8,8 @@ import { PageHeader } from './adminShared';
 
 const empty = {
   name: '', slug: '', category: '', weight_g: '4', karat: 18, fee_ratio: '0.20',
-  stone_value: 0, tag: '', description: '', stock: 5, is_active: true, is_featured: false,
+  stone_value: 0, tag: '', description: '', placeholder_label: '', sku: '',
+  stock: 5, is_active: true, is_featured: false, meta_title: '', meta_description: '',
 };
 
 export function AdminProducts() {
@@ -123,39 +124,88 @@ export function AdminProducts() {
       {form && (
         <div className="admin-card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 14 }}>{form.id ? 'ویرایش محصول' : 'محصول جدید'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <input className="input" placeholder="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input className="input" placeholder="اسلاگ" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-            <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              {(categories || []).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <input className="input" placeholder="وزن (گرم)" value={form.weight_g} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
-            <input className="input" placeholder="اجرت (مثلا 0.22)" value={form.fee_ratio} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
-            <input className="input" placeholder="سنگ" value={form.stone_value} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
-            <input className="input" placeholder="موجودی" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-            <select className="input" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
-              <option value="">بدون برچسب</option>
-              <option value="پرفروش">پرفروش</option>
-              <option value="جدید">جدید</option>
-              <option value="ویژه">ویژه</option>
-            </select>
-            <textarea
-              className="input"
-              style={{ gridColumn: '1 / -1' }}
-              placeholder="توضیحات"
-              value={form.description || ''}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={!!form.is_featured}
-                onChange={(e) => setForm({ ...form, is_featured: e.target.checked })}
-              />
-              ویژه / پرفروش صفحه اصلی
+          <div className="form-grid product-form-grid">
+            <label>
+              <span>نام محصول *</span>
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </label>
+            <label>
+              <span>اسلاگ</span>
+              <input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+            </label>
+            <label>
+              <span>دسته‌بندی *</span>
+              <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                {(categories || []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>کد کالا (SKU)</span>
+              <input className="input" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+            </label>
+            <label>
+              <span>وزن (گرم) *</span>
+              <input className="input" value={form.weight_g} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
+            </label>
+            <label>
+              <span>عیار</span>
+              <select className="input" value={form.karat ?? 18} onChange={(e) => setForm({ ...form, karat: Number(e.target.value) })}>
+                <option value={18}>۱۸ عیار</option>
+                <option value={21}>۲۱ عیار</option>
+                <option value={22}>۲۲ عیار</option>
+                <option value={24}>۲۴ عیار</option>
+              </select>
+            </label>
+            <label>
+              <span>اجرت (نسبت، مثلاً 0.22)</span>
+              <input className="input" value={form.fee_ratio} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
+            </label>
+            <label>
+              <span>ارزش سنگ / نگین (تومان)</span>
+              <input className="input" value={form.stone_value} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
+            </label>
+            <label>
+              <span>موجودی</span>
+              <input className="input" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+            </label>
+            <label>
+              <span>برچسب</span>
+              <select className="input" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
+                <option value="">بدون برچسب</option>
+                <option value="پرفروش">پرفروش</option>
+                <option value="جدید">جدید</option>
+                <option value="ویژه">ویژه</option>
+              </select>
+            </label>
+            <label>
+              <span>برچسب جایگزین تصویر</span>
+              <input className="input" value={form.placeholder_label || ''} onChange={(e) => setForm({ ...form, placeholder_label: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>توضیحات کامل</span>
+              <textarea className="input" rows={4} value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </label>
+            <label>
+              <span>عنوان سئو (meta title)</span>
+              <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} />
+            </label>
+            <label>
+              <span>توضیح سئو (meta description)</span>
+              <input className="input" value={form.meta_description || ''} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>تصویر اصلی</span>
+              <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="layout-toggle">
+              <input type="checkbox" checked={!!form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
+              ویژه / صفحه اصلی
+            </label>
+            <label className="layout-toggle">
+              <input type="checkbox" checked={form.is_active !== false} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+              فعال در فروشگاه
             </label>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
@@ -228,14 +278,18 @@ export function AdminProducts() {
                             slug: p.slug,
                             category: p.category || categories?.find((c) => c.name === p.category_name)?.id,
                             weight_g: p.weight_g,
-                            karat: p.karat,
+                            karat: p.karat ?? 18,
                             fee_ratio: p.fee_ratio,
                             stone_value: p.stone_value,
                             tag: p.tag || '',
                             description: p.description || '',
+                            placeholder_label: p.placeholder_label || '',
+                            sku: p.sku || '',
                             stock: p.stock ?? 1,
                             is_active: p.is_active ?? true,
                             is_featured: p.is_featured,
+                            meta_title: p.meta_title || '',
+                            meta_description: p.meta_description || '',
                           })
                         }
                       >

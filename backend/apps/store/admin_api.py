@@ -190,6 +190,47 @@ class DashboardView(APIView):
                     many=True,
                     context={"request": request},
                 ).data,
+                # Advanced ops intelligence
+                "orders_paid": Order.objects.filter(status=Order.Status.PAID).count(),
+                "orders_processing": Order.objects.filter(status=Order.Status.PROCESSING).count(),
+                "orders_shipped": Order.objects.filter(status=Order.Status.SHIPPED).count(),
+                "orders_delivered": Order.objects.filter(status=Order.Status.DELIVERED).count(),
+                "orders_cancelled": Order.objects.filter(status=Order.Status.CANCELLED).count(),
+                "revenue_paid": Order.objects.filter(status=Order.Status.PAID).aggregate(s=Sum("total"))["s"] or 0,
+                "pending_payment_value": Order.objects.filter(status=Order.Status.PENDING).aggregate(s=Sum("total"))["s"] or 0,
+                "payment_gateway_mix": list(
+                    Order.objects.exclude(payment_gateway="")
+                    .values("payment_gateway")
+                    .annotate(c=Count("id"), revenue=Sum("total"))
+                    .order_by("-c")
+                ),
+                "conversion": {
+                    "orders_total": Order.objects.count(),
+                    "paid_rate": round(
+                        100
+                        * Order.objects.filter(
+                            status__in=[
+                                Order.Status.PAID,
+                                Order.Status.PROCESSING,
+                                Order.Status.SHIPPED,
+                                Order.Status.DELIVERED,
+                            ]
+                        ).count()
+                        / max(Order.objects.count(), 1),
+                        1,
+                    ),
+                    "cancel_rate": round(
+                        100
+                        * Order.objects.filter(status=Order.Status.CANCELLED).count()
+                        / max(Order.objects.count(), 1),
+                        1,
+                    ),
+                },
+                "stock_health": {
+                    "out_of_stock": Product.objects.filter(stock=0, is_active=True).count(),
+                    "low_stock": Product.objects.filter(stock__lte=2, stock__gt=0, is_active=True).count(),
+                    "healthy": Product.objects.filter(stock__gt=2, is_active=True).count(),
+                },
             }
         )
 

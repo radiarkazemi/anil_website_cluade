@@ -145,6 +145,12 @@ export interface Order {
   total: number;
   note: string;
   tracking_code: string;
+  payment_gateway?: string;
+  payment_authority?: string;
+  payment_ref_id?: string;
+  paid_at?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
   created_at: string;
   items: OrderItem[];
 }
