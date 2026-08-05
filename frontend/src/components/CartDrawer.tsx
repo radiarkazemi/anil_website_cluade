@@ -71,8 +71,13 @@ export function CartDrawer() {
   };
 
   const handleCheckout = async () => {
+    if (busy) return;
     if (!form.full_name.trim() || !form.phone.trim() || !form.address.trim()) {
       setError('نام، موبایل و آدرس الزامی است.');
+      return;
+    }
+    if (!cart.length) {
+      setError('گلد باکس خالی است.');
       return;
     }
     setBusy(true);
@@ -90,7 +95,19 @@ export function CartDrawer() {
       setStep('pay');
       toast(`سفارش ${order.order_number} ثبت شد`);
     } catch (e: any) {
-      setError(e.response?.data?.detail || e.response?.data?.items?.[0] || 'ثبت سفارش ناموفق بود.');
+      const d = e.response?.data;
+      const parts: string[] = [];
+      if (typeof d?.detail === 'string') parts.push(d.detail);
+      if (d && typeof d === 'object') {
+        for (const [k, v] of Object.entries(d)) {
+          if (k === 'detail') continue;
+          const msg = Array.isArray(v) ? v.join('، ') : typeof v === 'string' ? v : JSON.stringify(v);
+          parts.push(`${k}: ${msg}`);
+        }
+      }
+      setError(parts.join(' | ') || (e.response?.status === 429
+        ? 'تعداد درخواست زیاد است — چند ثانیه صبر کنید.'
+        : 'ثبت سفارش ناموفق بود.'));
     } finally {
       setBusy(false);
     }

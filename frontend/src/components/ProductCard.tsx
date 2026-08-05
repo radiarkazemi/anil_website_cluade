@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import type { Product } from '../types';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
+import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 
 export function ProductCard({ product }: { product: Product }) {
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const addToCart = useStore((s) => s.addToCart);
+  const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
 
   const w = Number(product.weight_g);
@@ -40,7 +42,8 @@ export function ProductCard({ product }: { product: Product }) {
             aria-label="افزودن به سبد"
             onClick={() => {
               addToCart(product.id);
-              toast(`«${product.name}» به سبد افزوده شد`);
+              toast(`«${product.name}» به گلد باکس افزوده شد`);
+              openCart();
             }}
           >
             +

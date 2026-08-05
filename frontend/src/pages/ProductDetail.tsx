@@ -5,12 +5,14 @@ import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
+import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const addToCart = useStore((s) => s.addToCart);
+  const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
@@ -150,6 +152,7 @@ export function ProductDetail() {
               onClick={() => {
                 addToCart(product.id, qty);
                 toast(`«${product.name}» به گلد باکس افزوده شد`);
+                openCart();
               }}
             >
               {inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
