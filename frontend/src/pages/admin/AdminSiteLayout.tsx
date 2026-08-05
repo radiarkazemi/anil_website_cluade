@@ -135,11 +135,11 @@ export function AdminSiteLayout() {
               <span>نوع هیرو</span>
               <select
                 className="input"
-                value={form.hero_mode || '3d'}
+                value={form.hero_mode || 'image'}
                 onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
               >
-                <option value="3d">حلقه طلای ۳بعدی واقعی (WebGL)</option>
-                <option value="image">تصویر ۲بعدی آپلودشده</option>
+                <option value="image">تصویر واقعی جواهر (سریع — پیشنهادی)</option>
+                <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
               </select>
             </label>
             <label>
@@ -163,7 +163,7 @@ export function AdminSiteLayout() {
               <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
             </label>
             <label className="full">
-              <span>تصویر جایگزین (فقط وقتی نوع = تصویر ۲بعدی)</span>
+              <span>تصویر هیرو (همیشه در لود اولیه نمایش داده می‌شود)</span>
               {(form.hero_image_url || heroFile) && (
                 <img
                   className="layout-preview-hero"

@@ -179,9 +179,9 @@ class SiteSettings(models.Model):
     hero_image = models.ImageField(upload_to="site/", blank=True, null=True)
     hero_mode = models.CharField(
         max_length=12,
-        choices=[("3d", "مدل سه‌بعدی WebGL"), ("image", "تصویر ۲بعدی")],
-        default="3d",
-        help_text="هیرو: حلقه طلای ۳بعدی واقعی یا تصویر آپلودشده",
+        choices=[("image", "تصویر واقعی (پیش‌فرض)"), ("3d", "مدل ۳بعدی — فقط با کلیک کاربر")],
+        default="image",
+        help_text="هیرو همیشه با تصویر واقعی لود می‌شود؛ ۳بعدی فقط بعد از کلیک کاربر بارگذاری می‌شود",
     )
     hero_cta_primary = models.CharField(max_length=80, default="مشاهده‌ی محصولات")
     hero_cta_secondary = models.CharField(max_length=80, default="قیمت لحظه‌ای طلا")

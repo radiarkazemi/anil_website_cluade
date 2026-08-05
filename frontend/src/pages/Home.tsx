@@ -7,9 +7,10 @@ import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
 import type { MarketRow, SiteSettings } from '../types';
 
-const HeroRing3D = lazy(() =>
-  import('../components/HeroRing3D').then((m) => ({ default: m.HeroRing3D })),
-);
+/** Heavy WebGL — only imported after the user opts in (never during first paint). */
+const loadHeroRing3D = () =>
+  import('../components/HeroRing3D').then((m) => ({ default: m.HeroRing3D }));
+const HeroRing3D = lazy(loadHeroRing3D);
 
 function RatesBoard({ rows }: { rows: MarketRow[] }) {
   return (
@@ -41,7 +42,7 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
   );
 }
 
-/** Real jewelry photo — slow orbit + drag-to-spin (admin-replaceable). */
+/** Ready-to-go jewelry photo — lightweight, used for first paint / loading. */
 function HeroJewel({ src }: { src: string }) {
   const [rx, setRx] = useState(-8);
   const [ry, setRy] = useState(12);
@@ -54,9 +55,7 @@ function HeroJewel({ src }: { src: string }) {
     const tick = (now: number) => {
       const dt = Math.min(48, now - last);
       last = now;
-      if (auto.current) {
-        setRy((v) => v + dt * 0.018);
-      }
+      if (auto.current) setRy((v) => v + dt * 0.018);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -103,17 +102,69 @@ function HeroJewel({ src }: { src: string }) {
         onTouchStart={onDown}
         style={{ transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }}
       >
-        <img className="hero-jewel-img" src={src} alt="زیورآلات آنیل" draggable={false} />
+        <img
+          className="hero-jewel-img"
+          src={src}
+          alt="زیورآلات آنیل"
+          draggable={false}
+          decoding="async"
+          fetchPriority="high"
+        />
       </div>
       <div className="hero-ring-hint">بکشید تا بچرخانید</div>
     </div>
   );
 }
 
+/**
+ * Hero visual strategy:
+ * - Always paint the real jewelry photo first (fast, good-looking).
+ * - Never mount WebGL during website load.
+ * - If admin enables 3D, user can opt-in with a button after the page is ready.
+ */
+function HeroVisual({ site }: { site?: SiteSettings }) {
+  const heroSrc = site?.hero_image_url || '/hero/ring.png';
+  const allow3d = site?.hero_mode === '3d';
+  const [wants3d, setWants3d] = useState(false);
+
+  if (allow3d && wants3d) {
+    return (
+      <div className="hero-visual-wrap">
+        <Suspense
+          fallback={(
+            <div className="hero-ring">
+              <HeroJewel src={heroSrc} />
+              <div className="hero-3d-loading-badge">در حال آماده‌سازی مدل ۳بعدی…</div>
+            </div>
+          )}
+        >
+          <HeroRing3D />
+        </Suspense>
+        <button type="button" className="hero-3d-toggle outline-btn" onClick={() => setWants3d(false)}>
+          بازگشت به تصویر
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hero-visual-wrap">
+      <HeroJewel src={heroSrc} />
+      {allow3d && (
+        <button
+          type="button"
+          className="hero-3d-toggle gold-btn"
+          onClick={() => setWants3d(true)}
+        >
+          نمایش مدل ۳بعدی
+        </button>
+      )}
+    </div>
+  );
+}
+
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
-  const heroSrc = site?.hero_image_url || '/hero/ring.png';
-  const mode = site?.hero_mode || '3d';
 
   return (
     <section className="container home-hero">
@@ -136,13 +187,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
         </div>
       </div>
-      {mode === 'image' ? (
-        <HeroJewel src={heroSrc} />
-      ) : (
-        <Suspense fallback={<div className="hero-ring hero-3d"><div className="hero-3d-fallback">بارگذاری ۳D…</div></div>}>
-          <HeroRing3D />
-        </Suspense>
-      )}
+      <HeroVisual site={site} />
     </section>
   );
 }
