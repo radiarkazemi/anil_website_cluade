@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, F, Sum
+from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import generics, parsers, serializers, status, viewsets
@@ -125,11 +125,26 @@ class DashboardView(APIView):
             for key, label in Order.Status.choices
         ]
 
-        top_products = list(
-            OrderItem.objects.values("product_name")
-            .annotate(qty=Sum("qty"), revenue=Sum(F("unit_price") * F("qty")))
-            .order_by("-qty")[:6]
-        )
+        top_products = [
+            {
+                "product_name": row["product_name"],
+                "qty": int(row["sold_qty"] or 0),
+                "revenue": int(row["revenue"] or 0),
+            }
+            for row in (
+                OrderItem.objects.values("product_name")
+                .annotate(
+                    sold_qty=Sum("qty"),
+                    revenue=Sum(
+                        ExpressionWrapper(
+                            F("unit_price") * F("qty"),
+                            output_field=IntegerField(),
+                        )
+                    ),
+                )
+                .order_by("-sold_qty")[:6]
+            )
+        ]
 
         gold_history = list(
             GoldPrice.objects.order_by("-created_at")[:14].values(
