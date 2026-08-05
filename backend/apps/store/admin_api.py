@@ -294,3 +294,74 @@ class AdminProductImageUploadView(APIView):
         if not deleted:
             return Response({"detail": "تصویر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminSiteSettingsView(APIView):
+    """GET/PATCH homepage layout — Elementor-lite for Anil."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def get(self, request):
+        from apps.store.models import SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        obj = SiteSettings.load()
+        return Response(SiteSettingsSerializer(obj, context={"request": request}).data)
+
+    def patch(self, request):
+        from apps.store.models import SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        obj = SiteSettings.load()
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        # JSON field may arrive as string from multipart
+        if isinstance(data.get("section_order"), str):
+            import json
+
+            try:
+                data["section_order"] = json.loads(data["section_order"])
+            except Exception:
+                pass
+        for flag in ("show_rates", "show_categories", "show_featured", "show_trust"):
+            if flag in data:
+                val = data.get(flag)
+                data[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        ser = SiteSettingsSerializer(obj, data=data, partial=True, context={"request": request})
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class AdminContentPageViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    lookup_field = "id"
+    search_fields = ["title", "slug", "excerpt"]
+    filterset_fields = ["page_type", "is_published", "show_in_nav"]
+
+    def get_queryset(self):
+        from apps.store.models import ContentPage
+
+        return ContentPage.objects.all()
+
+    def get_serializer_class(self):
+        from apps.store.serializers import ContentPageSerializer
+
+        return ContentPageSerializer
+
+
+class AdminCategoryImageUploadView(APIView):
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def post(self, request, category_id):
+        try:
+            cat = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            return Response({"detail": "دسته یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+        image = request.FILES.get("image")
+        if not image:
+            return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+        cat.image = image
+        cat.save(update_fields=["image"])
+        return Response(CategorySerializer(cat, context={"request": request}).data)

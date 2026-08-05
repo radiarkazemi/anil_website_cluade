@@ -28,9 +28,49 @@ export interface Category {
   slug: string;
   description: string;
   image: string | null;
+  image_url?: string | null;
   order: number;
   display_count: number;
   product_count: number;
+  is_active?: boolean;
+}
+
+export interface SiteSettings {
+  brand_name: string;
+  brand_tagline: string;
+  brand_logo: string | null;
+  brand_logo_url: string | null;
+  cart_label: string;
+  hero_badge: string;
+  hero_title: string;
+  hero_subtitle: string;
+  hero_image: string | null;
+  hero_image_url: string | null;
+  hero_cta_primary: string;
+  hero_cta_secondary: string;
+  show_rates: boolean;
+  show_categories: boolean;
+  show_featured: boolean;
+  show_trust: boolean;
+  section_order: string[];
+  top_banner: string;
+  updated_at?: string;
+}
+
+export interface ContentPage {
+  id: string;
+  title: string;
+  slug: string;
+  page_type: 'page' | 'blog';
+  excerpt: string;
+  body?: string;
+  cover?: string | null;
+  cover_url?: string | null;
+  is_published?: boolean;
+  show_in_nav: boolean;
+  order: number;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface ProductImage {

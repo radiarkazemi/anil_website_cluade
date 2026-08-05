@@ -161,3 +161,80 @@ class Wishlist(models.Model):
         unique_together = ("user", "product")
         verbose_name = "علاقه‌مندی"
         verbose_name_plural = "علاقه‌مندی‌ها"
+
+
+class SiteSettings(models.Model):
+    """Singleton homepage/brand layout — editable from the ops panel."""
+
+    brand_name = models.CharField(max_length=80, default="Anil")
+    brand_tagline = models.CharField(max_length=120, default="درخششی ابدی")
+    brand_logo = models.ImageField(upload_to="site/", blank=True, null=True)
+    cart_label = models.CharField(max_length=40, default="گلد باکس")
+
+    hero_badge = models.CharField(max_length=80, default="گالری طلا آنیل")
+    hero_title = models.CharField(max_length=200, default="طلا،\nآن‌گونه که باید بدرخشد")
+    hero_subtitle = models.TextField(
+        default="مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا."
+    )
+    hero_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    hero_cta_primary = models.CharField(max_length=80, default="مشاهده‌ی محصولات")
+    hero_cta_secondary = models.CharField(max_length=80, default="قیمت لحظه‌ای طلا")
+
+    show_rates = models.BooleanField(default=True)
+    show_categories = models.BooleanField(default=True)
+    show_featured = models.BooleanField(default=True)
+    show_trust = models.BooleanField(default=True)
+    section_order = models.JSONField(default=list, blank=True)
+
+    top_banner = models.CharField(
+        max_length=300,
+        default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "تنظیمات چیدمان"
+        verbose_name_plural = "تنظیمات چیدمان"
+
+    def __str__(self):
+        return "چیدمان فروشگاه"
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        if not obj.section_order:
+            obj.section_order = ["hero", "rates", "categories", "featured", "trust"]
+            obj.save(update_fields=["section_order"])
+        return obj
+
+
+class ContentPage(models.Model):
+    class PageType(models.TextChoices):
+        PAGE = "page", "صفحه"
+        BLOG = "blog", "بلاگ"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True, allow_unicode=True)
+    page_type = models.CharField(max_length=10, choices=PageType.choices, default=PageType.PAGE)
+    excerpt = models.CharField(max_length=300, blank=True)
+    body = models.TextField(help_text="متن صفحه — هر خط یک پاراگراف")
+    cover = models.ImageField(upload_to="pages/", blank=True, null=True)
+    is_published = models.BooleanField(default=True, db_index=True)
+    show_in_nav = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+        verbose_name = "صفحه محتوا"
+        verbose_name_plural = "صفحات محتوا"
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title, allow_unicode=True)
+        super().save(*args, **kwargs)

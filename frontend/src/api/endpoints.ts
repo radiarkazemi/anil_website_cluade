@@ -1,5 +1,7 @@
 import client from './client';
-import type { AuthTokens, Category, GoldPrice, Order, PaginatedResponse, Product, User } from '../types';
+import type {
+  AuthTokens, Category, ContentPage, GoldPrice, Order, PaginatedResponse, Product, SiteSettings, User,
+} from '../types';
 
 export interface DashboardStats {
   products_total: number;
@@ -33,6 +35,9 @@ export const api = {
     ),
   refreshGoldLive: () => client.post<GoldPrice & { live?: boolean }>('/gold-price/live/'),
   categories: () => client.get<Category[]>('/categories/'),
+  siteSettings: () => client.get<SiteSettings>('/site-settings/'),
+  pages: (params?: Record<string, string>) => client.get<ContentPage[]>('/pages/', { params }),
+  page: (slug: string) => client.get<ContentPage>(`/pages/${slug}/`),
   products: (params?: Record<string, string>) => client.get<PaginatedResponse<Product>>('/products/', { params }),
   product: (slug: string) => client.get<Product>(`/products/${slug}/`),
 
@@ -87,6 +92,23 @@ export const api = {
   adminCreateCategory: (data: Partial<Category>) => client.post<Category>('/admin/categories/', data),
   adminUpdateCategory: (id: string, data: Partial<Category>) => client.patch<Category>(`/admin/categories/${id}/`, data),
   adminDeleteCategory: (id: string) => client.delete(`/admin/categories/${id}/`),
+  adminUploadCategoryImage: (categoryId: string, file: File) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return client.post<Category>(`/admin/categories/${categoryId}/image/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  adminSiteSettings: () => client.get<SiteSettings>('/admin/site-settings/'),
+  adminUpdateSiteSettings: (data: FormData | Record<string, unknown>) =>
+    client.patch<SiteSettings>('/admin/site-settings/', data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    }),
+  adminPages: (params?: Record<string, string>) =>
+    client.get<PaginatedResponse<ContentPage> | ContentPage[]>('/admin/pages/', { params }),
+  adminCreatePage: (data: Partial<ContentPage>) => client.post<ContentPage>('/admin/pages/', data),
+  adminUpdatePage: (id: string, data: Partial<ContentPage>) => client.patch<ContentPage>(`/admin/pages/${id}/`, data),
+  adminDeletePage: (id: string) => client.delete(`/admin/pages/${id}/`),
   adminOrders: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<Order>>('/admin/orders/', { params }),
   adminUpdateOrder: (orderNumber: string, data: Partial<Order>) =>

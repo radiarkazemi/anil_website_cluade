@@ -3,12 +3,15 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, GoldPrice, Product, Wishlist
+from .models import Category, ContentPage, GoldPrice, Product, SiteSettings, Wishlist
 from .serializers import (
     CategorySerializer,
+    ContentPageListSerializer,
+    ContentPageSerializer,
     GoldPriceSerializer,
     ProductDetailSerializer,
     ProductListSerializer,
+    SiteSettingsSerializer,
     WishlistSerializer,
 )
 from .services import price_cache
@@ -141,3 +144,39 @@ class WishlistDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         return Wishlist.objects.filter(user=self.request.user)
+
+
+class SiteSettingsView(APIView):
+    """Public storefront layout/brand settings."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        settings_obj = SiteSettings.load()
+        return Response(SiteSettingsSerializer(settings_obj, context={"request": request}).data)
+
+
+class ContentPageListView(generics.ListAPIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ContentPageListSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = ContentPage.objects.filter(is_published=True)
+        ptype = self.request.query_params.get("type")
+        if ptype in ("page", "blog"):
+            qs = qs.filter(page_type=ptype)
+        nav = self.request.query_params.get("nav")
+        if nav in ("1", "true", "yes"):
+            qs = qs.filter(show_in_nav=True)
+        return qs
+
+
+class ContentPageDetailView(generics.RetrieveAPIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ContentPageSerializer
+    lookup_field = "slug"
+    queryset = ContentPage.objects.filter(is_published=True)

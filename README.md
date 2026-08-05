@@ -37,8 +37,8 @@ Production-grade e-commerce platform for a Persian gold & jewelry shop with **li
 ## Authentication
 
 - **JWT** via `djangorestframework-simplejwt`
-- Access token (30min) + refresh token (7 days) with rotation & blacklist
-- Custom claims: `role`, `full_name`, `phone`
+- Separate sessions: **customer** (`/login`) vs **admin/staff** (`/panel/login`)
+- Custom claims: `role`, `full_name`, `phone`, `panel`
 - Phone-based login (custom user model, no username)
 
 ## Pricing Formula
@@ -51,35 +51,6 @@ final_price  = gold_value + making_fee + stone_value + tax
 ```
 
 Computed on both server (authoritative, for orders) and client (live display).
-
-## API Endpoints
-
-```
-Auth:
-  POST /api/v1/auth/register/          Register + auto-login (returns JWT)
-  POST /api/v1/auth/login/             Phone + password → JWT pair
-  POST /api/v1/auth/token/refresh/     Refresh access token
-  POST /api/v1/auth/logout/            Blacklist refresh token
-  GET/PATCH /api/v1/auth/profile/      User profile
-
-Store:
-  GET  /api/v1/gold-price/             Current gold + market rates
-  GET  /api/v1/categories/             Category list
-  GET  /api/v1/products/               Paginated, filterable, sortable
-  GET  /api/v1/products/<slug>/        Product detail + breakdown
-  GET  /api/v1/wishlist/               User wishlist
-  POST /api/v1/wishlist/               Add to wishlist
-
-Orders:
-  POST /api/v1/orders/                 Create order (server-side pricing)
-  GET  /api/v1/orders/mine/            User's orders
-  GET  /api/v1/orders/<number>/        Order detail
-
-Analytics (MongoDB):
-  GET  /api/v1/analytics/price-history/    Gold price time-series
-  POST /api/v1/analytics/product-view/     Log a product view
-  GET  /api/v1/analytics/popular/          Popular products
-```
 
 ## Quick Start — new Windows machine (`D:\anil_website_cluade`)
 
@@ -112,10 +83,13 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed
 python manage.py seed_images
+python manage.py seed_layout
 python manage.py create_admin
 daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
+> `seed_layout` loads the 9 jewelry categories with images, homepage layout (hero/logo), and pages **راهنمای خرید** + **بلاگ**.
+>
 > Use **Daphne** (not `runserver`) so `/ws/gold/` works for live Faraz prices.
 
 ### 2) Frontend `:5180`

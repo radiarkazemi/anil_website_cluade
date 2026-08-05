@@ -4,10 +4,9 @@ import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
-import type { MarketRow } from '../types';
-import { useRef, useState } from 'react';
+import type { MarketRow, SiteSettings } from '../types';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-/** Live rates board — replaces the low-contrast marquee strip. */
 function RatesBoard({ rows }: { rows: MarketRow[] }) {
   return (
     <section id="market" className="rates-board" aria-label="نرخ زنده بازار">
@@ -38,24 +37,47 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
   );
 }
 
-function Ring() {
-  const [rx, setRx] = useState(-14);
-  const [ry, setRy] = useState(0);
-  const dragging = useRef(false);
-  const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 });
+/** Real jewelry photo — slow orbit + drag-to-spin (admin-replaceable). */
+function HeroJewel({ src }: { src: string }) {
+  const [rx, setRx] = useState(-8);
+  const [ry, setRy] = useState(12);
+  const auto = useRef(true);
+  const resumeTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(48, now - last);
+      last = now;
+      if (auto.current) {
+        setRy((v) => v + dt * 0.018);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const pauseAuto = () => {
+    auto.current = false;
+    if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
+    resumeTimer.current = window.setTimeout(() => {
+      auto.current = true;
+    }, 2200);
+  };
 
   const onDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
-    dragging.current = true;
+    pauseAuto();
     const pt = 'touches' in e ? e.touches[0] : e;
-    start.current = { x: pt.clientX, y: pt.clientY, rx, ry };
+    const start = { x: pt.clientX, y: pt.clientY, rx, ry };
     const move = (ev: MouseEvent | TouchEvent) => {
       const p = 'touches' in ev ? (ev as TouchEvent).touches[0] : (ev as MouseEvent);
-      setRy(start.current.ry + (p.clientX - start.current.x) * 0.6);
-      setRx(Math.max(-60, Math.min(60, start.current.rx - (p.clientY - start.current.y) * 0.5)));
+      setRy(start.ry + (p.clientX - start.x) * 0.55);
+      setRx(Math.max(-42, Math.min(42, start.rx - (p.clientY - start.y) * 0.4)));
     };
     const up = () => {
-      dragging.current = false;
       window.removeEventListener('mousemove', move);
       window.removeEventListener('mouseup', up);
       window.removeEventListener('touchmove', move);
@@ -70,22 +92,57 @@ function Ring() {
   return (
     <div className="hero-ring">
       <div className="hero-ring-glow" />
+      <div className="hero-orbit-ring" aria-hidden />
       <div
-        className="hero-ring-scene"
+        className="hero-ring-scene hero-jewel-scene"
         onMouseDown={onDown}
         onTouchStart={onDown}
         style={{ transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }}
       >
-        <div className="hero-ring-band outer" />
-        <div className="hero-ring-band inner" />
+        <img className="hero-jewel-img" src={src} alt="زیورآلات آنیل" draggable={false} />
       </div>
       <div className="hero-ring-hint">بکشید تا بچرخانید</div>
     </div>
   );
 }
 
+function HeroSection({ site }: { site?: SiteSettings }) {
+  const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
+  const heroSrc = site?.hero_image_url || '/hero/ring.png';
+
+  return (
+    <section className="container home-hero">
+      <div className="hero-copy">
+        <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
+        <h1 className="shimmer-text hero-h1">
+          {title.map((line, i) => (
+            <span key={i}>
+              {i > 0 && <br />}
+              {line}
+            </span>
+          ))}
+        </h1>
+        <p className="hero-lead">
+          {site?.hero_subtitle
+            || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
+        </p>
+        <div className="hero-actions">
+          <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
+          <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
+        </div>
+      </div>
+      <HeroJewel src={heroSrc} />
+    </section>
+  );
+}
+
 export function Home() {
   const goldPrice = useStore((s) => s.goldPrice);
+  const { data: site } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: () => api.siteSettings().then((r) => r.data),
+    staleTime: 60_000,
+  });
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.categories().then((r) => r.data),
@@ -100,55 +157,37 @@ export function Home() {
   const featured = products.slice(0, 8);
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
-  return (
-    <div className="home">
-      <section className="container home-hero">
-        <div className="hero-copy">
-          <div className="hero-badge">گالری طلا آنیل</div>
-          <h1 className="shimmer-text hero-h1">
-            طلا،
-            <br />
-            آن‌گونه که باید بدرخشد
-          </h1>
-          <p className="hero-lead">
-            مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.
-          </p>
-          <div className="hero-actions">
-            <Link to="/products" className="gold-btn">مشاهده‌ی محصولات</Link>
-            <a href="#market" className="outline-btn">قیمت لحظه‌ای طلا</a>
-          </div>
-          <div className="hero-stats">
-            {[
-              ['۱۲٬۰۰۰+', 'مشتری راضی'],
-              ['۲۰ سال', 'تجربه و اعتماد'],
-              ['۸۶۰+', 'قطعه‌ی منحصربه‌فرد'],
-            ].map(([n, l]) => (
-              <div key={l}>
-                <div className="hero-stat-n">{n}</div>
-                <div className="hero-stat-l">{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <Ring />
-      </section>
+  const order = site?.section_order?.length
+    ? site.section_order
+    : ['hero', 'rates', 'categories', 'featured', 'trust'];
 
-      {goldPrice?.market_rows && <RatesBoard rows={goldPrice.market_rows} />}
-
-      <section className="container section-pad">
+  const sections: Record<string, ReactNode> = {
+    hero: <HeroSection key="hero" site={site} />,
+    rates: site?.show_rates !== false && goldPrice?.market_rows
+      ? <RatesBoard key="rates" rows={goldPrice.market_rows} />
+      : null,
+    categories: site?.show_categories !== false ? (
+      <section key="categories" className="container section-pad">
         <h2 className="section-title">دسته‌بندی محصولات</h2>
         <div className="cat-grid">
           {categories.map((c) => (
             <Link key={c.id} to={`/products?category=${c.slug}`} className="cat-card">
-              <div className="cat-icon">{faNum(c.display_count || c.product_count)}</div>
+              <div className="cat-media">
+                {c.image_url ? (
+                  <img src={c.image_url} alt={c.name} loading="lazy" />
+                ) : (
+                  <div className="cat-icon">{faNum(c.display_count || c.product_count)}</div>
+                )}
+              </div>
               <div className="cat-title">{c.name}</div>
               <div className="cat-sub">{faNum(c.display_count || c.product_count)} محصول</div>
             </Link>
           ))}
         </div>
       </section>
-
-      <section className="container section-pad">
+    ) : null,
+    featured: site?.show_featured !== false ? (
+      <section key="featured" className="container section-pad">
         <div className="section-row">
           <div>
             <div className="section-eyebrow">منتخب گالری</div>
@@ -162,27 +201,27 @@ export function Home() {
           ))}
         </div>
       </section>
-
-      <section className="container pricing-wrap">
-        <div className="pricing-band-classic">
-          <div>
-            <div className="section-eyebrow">فناوری آنیل</div>
-            <h2 className="section-title tight">قیمت‌گذاری پویا و لحظه‌ای</h2>
-            <p className="pricing-copy">
-              قیمت هر قطعه به‌صورت زنده و بر پایه‌ی نرخ روز طلا محاسبه می‌شود.
-            </p>
-          </div>
-          <div className="pricing-formula">
-            (وزن × <strong>{faPrice(gp)}</strong>)
-            <br />
-            + اجرت + مالیات
-            <br />
-            <span className="pricing-eq">= قیمت نهایی زنده</span>
+    ) : null,
+    trust: site?.show_trust !== false ? (
+      <section key="trust" className="container section-pad trust-grid-wrap">
+        <div className="pricing-wrap" style={{ marginBottom: 28 }}>
+          <div className="pricing-band-classic">
+            <div>
+              <div className="section-eyebrow">فناوری آنیل</div>
+              <h2 className="section-title tight">قیمت‌گذاری پویا و لحظه‌ای</h2>
+              <p className="pricing-copy">
+                قیمت هر قطعه به‌صورت زنده و بر پایه‌ی نرخ روز طلا محاسبه می‌شود.
+              </p>
+            </div>
+            <div className="pricing-formula">
+              (وزن × <strong>{faPrice(gp)}</strong>)
+              <br />
+              + اجرت + مالیات
+              <br />
+              <span className="pricing-eq">= قیمت نهایی زنده</span>
+            </div>
           </div>
         </div>
-      </section>
-
-      <section className="container section-pad trust-grid-wrap">
         <div className="trust-grid">
           {[
             { title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی برای هر قطعه' },
@@ -200,15 +239,21 @@ export function Home() {
           ))}
         </div>
       </section>
+    ) : null,
+  };
+
+  return (
+    <div className="home">
+      {order.map((key) => sections[key]).filter(Boolean)}
 
       <footer className="site-footer">
         <div className="container footer-grid">
           <div>
             <div className="footer-brand-row">
-              <div className="logo-mark">A</div>
+              <img className="logo-img footer-logo" src={site?.brand_logo_url || '/logo.jpg'} alt="" />
               <div>
-                <div className="footer-brand">ANIL</div>
-                <div className="logo-sub">GOLD &amp; JEWELRY</div>
+                <div className="footer-brand">{site?.brand_name || 'Anil'}</div>
+                <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>
               </div>
             </div>
             <p className="footer-tag">گالری طلا آنیل، جایی برای انتخاب زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
@@ -226,9 +271,9 @@ export function Home() {
           <div>
             <h3>خدمات مشتریان</h3>
             <ul>
-              <li>راهنمای خرید</li>
-              <li>شرایط بازخرید</li>
-              <li>ارسال و بیمه</li>
+              <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
+              <li><Link to="/blog">بلاگ</Link></li>
+              <li><Link to="/products">محصولات</Link></li>
             </ul>
           </div>
           <div>

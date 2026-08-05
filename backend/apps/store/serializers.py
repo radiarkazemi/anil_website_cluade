@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import Category, GoldPrice, Product, ProductImage, Wishlist
+from .models import Category, ContentPage, GoldPrice, Product, ProductImage, SiteSettings, Wishlist
+
+
+def _abs_url(request, file_field):
+    if not file_field:
+        return None
+    url = file_field.url
+    return request.build_absolute_uri(url) if request else url
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -61,13 +68,72 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ["id", "name", "slug", "description", "image", "order", "display_count", "product_count"]
+        fields = [
+            "id", "name", "slug", "description", "image", "image_url",
+            "order", "display_count", "product_count", "is_active",
+        ]
 
     def get_product_count(self, obj):
         return obj.products.filter(is_active=True).count()
+
+    def get_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.image)
+
+
+class SiteSettingsSerializer(serializers.ModelSerializer):
+    brand_logo_url = serializers.SerializerMethodField()
+    hero_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SiteSettings
+        fields = [
+            "brand_name", "brand_tagline", "brand_logo", "brand_logo_url", "cart_label",
+            "hero_badge", "hero_title", "hero_subtitle", "hero_image", "hero_image_url",
+            "hero_cta_primary", "hero_cta_secondary",
+            "show_rates", "show_categories", "show_featured", "show_trust",
+            "section_order", "top_banner", "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+    def get_brand_logo_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.brand_logo)
+
+    def get_hero_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.hero_image)
+
+
+class ContentPageSerializer(serializers.ModelSerializer):
+    cover_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContentPage
+        fields = [
+            "id", "title", "slug", "page_type", "excerpt", "body",
+            "cover", "cover_url", "is_published", "show_in_nav", "order",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_cover_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.cover)
+
+
+class ContentPageListSerializer(serializers.ModelSerializer):
+    cover_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContentPage
+        fields = [
+            "id", "title", "slug", "page_type", "excerpt", "cover_url",
+            "show_in_nav", "order", "created_at",
+        ]
+
+    def get_cover_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.cover)
 
 
 class GoldPriceSerializer(serializers.ModelSerializer):

@@ -1,4 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useTheme } from '../store/themeStore';
@@ -17,24 +19,55 @@ export function Header() {
     !!adminTokens && !!adminUser && (adminUser.role === 'admin' || adminUser.role === 'staff');
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
+  const { data: site } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: () => api.siteSettings().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const { data: navPages = [] } = useQuery({
+    queryKey: ['nav-pages'],
+    queryFn: () => api.pages({ nav: '1' }).then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  const brandName = site?.brand_name || 'Anil';
+  const brandTag = site?.brand_tagline || 'درخششی ابدی';
+  const cartLabel = site?.cart_label || 'گلد باکس';
+  const logoSrc = site?.brand_logo_url || '/logo.jpg';
+  const banner = site?.top_banner;
+
   return (
     <>
-      <div className="top-banner">
-        ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی
-      </div>
+      {banner && <div className="top-banner">{banner}</div>}
       <header className="site-header">
         <div className="container header-inner">
           <Link to="/" className="logo">
-            <span className="logo-mark">A</span>
+            <img className="logo-img" src={logoSrc} alt={brandName} />
             <span className="logo-text">
-              <span className="logo-name">ANIL</span>
-              <span className="logo-sub">GOLD &amp; JEWELRY</span>
+              <span className="logo-name">{brandName}</span>
+              <span className="logo-sub">{brandTag}</span>
             </span>
           </Link>
 
           <nav className="main-nav">
             <NavLink to="/" end>خانه</NavLink>
             <NavLink to="/products">محصولات</NavLink>
+            {navPages.length > 0 ? (
+              navPages.map((p) => {
+                const to = p.slug === 'بلاگ'
+                  ? '/blog'
+                  : p.page_type === 'blog'
+                    ? `/blog/${p.slug}`
+                    : `/p/${p.slug}`;
+                const label = p.title === 'بلاگ آنیل' ? 'بلاگ' : p.title;
+                return <NavLink key={p.id} to={to}>{label}</NavLink>;
+              })
+            ) : (
+              <>
+                <NavLink to="/p/راهنمای-خرید">راهنمای خرید</NavLink>
+                <NavLink to="/blog">بلاگ</NavLink>
+              </>
+            )}
             {hasAdminSession && <NavLink to="/panel">پنل مدیریت</NavLink>}
           </nav>
 
@@ -71,8 +104,8 @@ export function Header() {
               </Link>
             )}
 
-            <button className="icon-btn cart-btn" onClick={openCart} type="button" aria-label="سبد خرید">
-              سبد
+            <button className="icon-btn cart-btn" onClick={openCart} type="button" aria-label={cartLabel}>
+              {cartLabel}
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </button>
           </div>

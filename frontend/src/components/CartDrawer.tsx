@@ -68,7 +68,7 @@ export function CartDrawer() {
         animation: 'slidein .28s ease',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>سبد خرید</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>گلد باکس</div>
           <button onClick={closeCart} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c8bfb0', background: 'transparent', fontSize: 16 }}>✕</button>
         </div>
 
@@ -117,7 +117,7 @@ export function CartDrawer() {
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 40, textAlign: 'center' }}>
             <div style={{ fontSize: 46 }}>🛍</div>
-            <div style={{ color: '#c8bfb0', fontSize: 16, fontWeight: 600 }}>سبد خرید شما خالی است</div>
+            <div style={{ color: '#c8bfb0', fontSize: 16, fontWeight: 600 }}>گلد باکس شما خالی است</div>
             <button onClick={closeCart} className="gold-btn" style={{ marginTop: 8, padding: '13px 26px', fontSize: 14 }}>مشاهده‌ی محصولات</button>
           </div>
         )}

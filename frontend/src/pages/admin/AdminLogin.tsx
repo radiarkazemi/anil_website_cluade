@@ -11,7 +11,6 @@ export function AdminLogin() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const adminTokens = useStore((s) => s.adminTokens);
-  const adminUser = useStore((s) => s.adminUser);
   const setAdminTokens = useStore((s) => s.setAdminTokens);
   const setAdminUser = useStore((s) => s.setAdminUser);
   const toast = useToast((s) => s.show);
