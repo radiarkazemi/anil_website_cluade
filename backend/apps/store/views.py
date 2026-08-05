@@ -11,16 +11,74 @@ from .serializers import (
     ProductListSerializer,
     WishlistSerializer,
 )
+from .services.gold import fetch_online_payload, maybe_auto_refresh, refresh_gold_price
 
 
 class GoldPriceView(APIView):
+    """Latest stored snapshot. Auto-refreshes from live source when stale."""
+
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        gold = GoldPrice.current()
+        auto = request.query_params.get("auto", "1") not in ("0", "false", "no")
+        gold = maybe_auto_refresh() if auto else GoldPrice.current()
         if not gold:
             return Response({"detail": "نرخ طلا موجود نیست."}, status=status.HTTP_404_NOT_FOUND)
         return Response(GoldPriceSerializer(gold).data)
+
+
+class GoldPriceLiveView(APIView):
+    """
+    Fetch live market from Faraz/sekefarshad/goldbridge stack and persist a snapshot.
+    Public read of the resulting rates (rate-limit via GOLD_STALE_SECONDS on auto path).
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        persist = request.query_params.get("persist", "1") not in ("0", "false", "no")
+        payload, source = fetch_online_payload()
+        if not payload:
+            # Fall back to last stored row
+            gold = GoldPrice.current()
+            if not gold:
+                return Response(
+                    {"detail": "منبع آنلاین قیمت در دسترس نیست.", "source": None},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            data = GoldPriceSerializer(gold).data
+            data["live"] = False
+            data["live_error"] = "upstream_unavailable"
+            return Response(data, status=status.HTTP_200_OK)
+
+        if persist:
+            row = refresh_gold_price(force_live=True, allow_jitter=False)
+            data = GoldPriceSerializer(row).data
+            data["live"] = True
+            return Response(data)
+
+        # Preview without writing
+        preview = {
+            **payload,
+            "source": source,
+            "mesghal": round(payload["price_18k_per_gram"] * 4.3318),
+            "live": True,
+            "persisted": False,
+        }
+        return Response(preview)
+
+    def post(self, request):
+        """Force a live refresh and store a new snapshot (same as admin refresh)."""
+        try:
+            row = refresh_gold_price(force_live=True, allow_jitter=False)
+        except Exception as exc:
+            return Response(
+                {"detail": str(exc), "source": None},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        data = GoldPriceSerializer(row).data
+        data["live"] = True
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class CategoryListView(generics.ListAPIView):

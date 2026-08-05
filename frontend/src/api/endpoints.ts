@@ -26,6 +26,12 @@ export interface DashboardStats {
 
 export const api = {
   goldPrice: () => client.get<GoldPrice>('/gold-price/'),
+  goldPriceLive: (persist = true) =>
+    client.get<GoldPrice & { live?: boolean; live_error?: string }>(
+      '/gold-price/live/',
+      { params: { persist: persist ? '1' : '0' } },
+    ),
+  refreshGoldLive: () => client.post<GoldPrice & { live?: boolean }>('/gold-price/live/'),
   categories: () => client.get<Category[]>('/categories/'),
   products: (params?: Record<string, string>) => client.get<PaginatedResponse<Product>>('/products/', { params }),
   product: (slug: string) => client.get<Product>(`/products/${slug}/`),

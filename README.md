@@ -139,6 +139,19 @@ cd frontend && npm run build
 
 ## Gold Price Updates
 
-- Edit in Admin → نرخ‌های طلا
-- Or schedule: `python manage.py refresh_gold`
-- Or set `GOLD_PROVIDER_URL` for a live API
+Live prices use the **Faraz Abshode / goldbridge** stack (same upstream as
+[`gold_abshd`](https://github.com/radiarkazemi/gold_abshd) → `sekefarshad.ir`).
+
+```bash
+# Force a live snapshot into the DB
+cd backend && python manage.py refresh_gold
+
+# HTTP API
+GET  /api/v1/gold-price/          # latest snapshot (auto-refreshes if stale)
+GET  /api/v1/gold-price/live/     # fetch live + persist
+POST /api/v1/gold-price/live/     # force live refresh
+POST /api/v1/admin/gold-price/refresh/   # admin panel button
+```
+
+Configure in `backend/.env` (see `.env.example`): `GOLD_SOURCE_*`, optional
+`GOLD_BRIDGE_URL`, or `GOLD_PROVIDER_URL`.

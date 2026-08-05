@@ -13,6 +13,7 @@ router.register(r"admin/users", admin_api.AdminUserViewSet, basename="admin-user
 
 urlpatterns = [
     path("gold-price/", views.GoldPriceView.as_view(), name="gold-price"),
+    path("gold-price/live/", views.GoldPriceLiveView.as_view(), name="gold-price-live"),
     path("categories/", views.CategoryListView.as_view(), name="categories"),
     path("products/", views.ProductListView.as_view(), name="products"),
     path("products/<str:slug>/", views.ProductDetailView.as_view(), name="product-detail"),

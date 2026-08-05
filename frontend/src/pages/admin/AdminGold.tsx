@@ -40,19 +40,30 @@ export function AdminGold() {
   });
 
   const refresh = useMutation({
-    mutationFn: () => api.adminRefreshGold(),
+    mutationFn: async () => {
+      try {
+        return await api.adminRefreshGold();
+      } catch {
+        // Public live endpoint as fallback
+        return api.refreshGoldLive();
+      }
+    },
     onSuccess: (r) => {
-      toast('نرخ از منبع تازه‌سازی شد');
+      toast(`نرخ زنده دریافت شد (${(r.data as any).source || 'live'})`);
       setGoldPrice(r.data);
       qc.invalidateQueries({ queryKey: ['admin-gold'] });
+      qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
+    onError: () => toast('خطا در دریافت نرخ زنده از منبع'),
   });
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 22 }}>
         <h1 className="display" style={{ fontSize: 32 }}>نرخ طلا</h1>
-        <button className="outline-btn" type="button" onClick={() => refresh.mutate()}>تازه‌سازی خودکار</button>
+        <button className="outline-btn" type="button" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+          {refresh.isPending ? 'در حال دریافت…' : 'دریافت نرخ زنده (آنلاین)'}
+        </button>
       </div>
 
       <div className="admin-card" style={{ marginBottom: 18 }}>

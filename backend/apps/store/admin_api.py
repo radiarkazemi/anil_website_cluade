@@ -227,8 +227,16 @@ class AdminGoldRefreshView(APIView):
     permission_classes = [IsAdminRole]
 
     def post(self, request):
-        row = refresh_gold_price()
-        return Response(GoldPriceSerializer(row).data)
+        try:
+            row = refresh_gold_price(force_live=True, allow_jitter=False)
+        except Exception as exc:
+            return Response(
+                {"detail": f"خطا در دریافت نرخ زنده: {exc}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        data = GoldPriceSerializer(row).data
+        data["live"] = True
+        return Response(data)
 
 
 class AdminOrderViewSet(viewsets.ModelViewSet):
