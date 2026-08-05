@@ -81,32 +81,40 @@ Analytics (MongoDB):
   GET  /api/v1/analytics/popular/          Popular products
 ```
 
-## Quick Start
+## Quick Start (two terminals — different ports)
 
-### Backend
+| Service  | Port | URL |
+|----------|------|-----|
+| Backend (Django API) | **8000** | http://127.0.0.1:8000/api/v1/ |
+| Frontend (Vite React) | **5173** | http://localhost:5173/ |
+
+### Terminal 1 — Backend `:8000`
 
 ```bash
 cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # edit DATABASE_URL, MONGODB_URI
+source .venv/Scripts/activate   # Windows Git Bash; use .venv/bin/activate on Linux/macOS
 python manage.py migrate
 python manage.py seed
-python manage.py createsuperuser
-python manage.py runserver
+python manage.py seed_images
+python manage.py create_admin
+python manage.py runserver 8000
 ```
 
-### Frontend
+### Terminal 2 — Frontend `:5173`
 
 ```bash
 cd frontend
 npm install
-npm run dev       # http://localhost:5173 (proxies /api → :8000)
+npm run dev
+# → http://localhost:5173  (proxies /api and /media → backend :8000)
 ```
 
-### Admin
+Open the **frontend** URL to see the shop (fonts, theme, catalog). Do not open only the backend port for the UI.
 
-Open `http://localhost:8000/admin/` to manage products, categories, gold prices, orders, and users.
+### Admin panel (custom)
+
+- Login: http://localhost:5173/login — phone `09120000000` / password `anil-admin-2026`
+- Panel: http://localhost:5173/panel
 
 ## Deploy
 
