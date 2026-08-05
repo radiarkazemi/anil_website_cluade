@@ -18,6 +18,7 @@ from .services.gold import fetch_online_payload, maybe_auto_refresh, refresh_gol
 class GoldPriceView(APIView):
     """Latest quote — prefers live in-memory Faraz cache, else DB snapshot."""
 
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -40,6 +41,7 @@ class GoldPriceLiveView(APIView):
     Prefer WebSocket /ws/gold/ for continuous streaming.
     """
 
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):

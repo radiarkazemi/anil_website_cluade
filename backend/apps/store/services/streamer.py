@@ -30,7 +30,13 @@ def _poll_seconds() -> float:
 
 
 def _persist_seconds() -> float:
-    return max(15.0, float(os.environ.get("GOLD_PERSIST_SECONDS", "60")))
+    return max(30.0, float(os.environ.get("GOLD_PERSIST_SECONDS", "120")))
+
+
+def _change_ratio(old_g18: int, new_g18: int) -> float:
+    if old_g18 <= 0:
+        return 1.0
+    return abs(new_g18 - old_g18) / float(old_g18)
 
 
 def broadcast_quote(quote: dict[str, Any]) -> None:
@@ -47,17 +53,26 @@ def broadcast_quote(quote: dict[str, Any]) -> None:
 
 
 def _maybe_persist(payload: dict[str, Any], source: str) -> None:
+    """
+    Broadcast every tick; write DB sparsely.
+    Persist when: first snapshot, timer due, or g18 moved ≥0.15% / coins changed a lot.
+    """
     global _last_persist_sig, _last_persist_at
     sig = price_cache.signature(payload)
     now = time.time()
-    changed = sig != _last_persist_sig
+    first = _last_persist_sig is None
     due = _last_persist_at <= 0 or (now - _last_persist_at) >= _persist_seconds()
-    # Persist on meaningful quote change, or periodically for audit trail
-    if not changed and not due:
+
+    significant = first
+    if _last_persist_sig is not None:
+        old_g18 = int(_last_persist_sig[0])
+        new_g18 = int(payload.get("price_18k_per_gram") or 0)
+        coin_delta = abs(int(payload.get("coin_emami") or 0) - int(_last_persist_sig[3]))
+        significant = _change_ratio(old_g18, new_g18) >= 0.0015 or coin_delta >= 200_000
+
+    if not first and not due and not significant:
         return
-    if not changed and due and _last_persist_sig is not None:
-        # periodic snapshot even if flat
-        pass
+
     try:
         from apps.store.models import GoldPrice
 
