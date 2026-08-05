@@ -46,6 +46,7 @@ export interface SiteSettings {
   hero_subtitle: string;
   hero_image: string | null;
   hero_image_url: string | null;
+  hero_mode: '3d' | 'image';
   hero_cta_primary: string;
   hero_cta_secondary: string;
   show_rates: boolean;

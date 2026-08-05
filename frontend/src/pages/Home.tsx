@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
 import type { MarketRow, SiteSettings } from '../types';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+const HeroRing3D = lazy(() =>
+  import('../components/HeroRing3D').then((m) => ({ default: m.HeroRing3D })),
+);
 
 function RatesBoard({ rows }: { rows: MarketRow[] }) {
   return (
@@ -109,6 +113,7 @@ function HeroJewel({ src }: { src: string }) {
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
   const heroSrc = site?.hero_image_url || '/hero/ring.png';
+  const mode = site?.hero_mode || '3d';
 
   return (
     <section className="container home-hero">
@@ -131,7 +136,13 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
         </div>
       </div>
-      <HeroJewel src={heroSrc} />
+      {mode === 'image' ? (
+        <HeroJewel src={heroSrc} />
+      ) : (
+        <Suspense fallback={<div className="hero-ring hero-3d"><div className="hero-3d-fallback">بارگذاری ۳D…</div></div>}>
+          <HeroRing3D />
+        </Suspense>
+      )}
     </section>
   );
 }

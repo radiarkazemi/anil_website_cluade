@@ -6,7 +6,7 @@ import { PageHeader } from './adminShared';
 import type { SiteSettings } from '../../types';
 
 const SECTION_LABELS: Record<string, string> = {
-  hero: 'هیرو (تصویر متحرک)',
+  hero: 'هیرو (۳بعدی / تصویر)',
   rates: 'نرخ زنده طلا',
   categories: 'دسته‌بندی محصولات',
   featured: 'پرفروش‌ها',
@@ -41,7 +41,7 @@ export function AdminSiteLayout() {
       const fd = new FormData();
       const keys: (keyof SiteSettings)[] = [
         'brand_name', 'brand_tagline', 'cart_label', 'top_banner',
-        'hero_badge', 'hero_title', 'hero_subtitle',
+        'hero_badge', 'hero_title', 'hero_subtitle', 'hero_mode',
         'hero_cta_primary', 'hero_cta_secondary',
       ];
       keys.forEach((k) => {
@@ -129,8 +129,19 @@ export function AdminSiteLayout() {
         </div>
 
         <div className="admin-card">
-          <h3 style={{ marginBottom: 14 }}>هیرو و تصویر متحرک</h3>
+          <h3 style={{ marginBottom: 14 }}>هیرو و مدل سه‌بعدی</h3>
           <div className="form-grid">
+            <label>
+              <span>نوع هیرو</span>
+              <select
+                className="input"
+                value={form.hero_mode || '3d'}
+                onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
+              >
+                <option value="3d">حلقه طلای ۳بعدی واقعی (WebGL)</option>
+                <option value="image">تصویر ۲بعدی آپلودشده</option>
+              </select>
+            </label>
             <label>
               <span>بج</span>
               <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
@@ -152,7 +163,7 @@ export function AdminSiteLayout() {
               <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
             </label>
             <label className="full">
-              <span>تصویر جواهر متحرک (جایگزین حلقه CSS)</span>
+              <span>تصویر جایگزین (فقط وقتی نوع = تصویر ۲بعدی)</span>
               {(form.hero_image_url || heroFile) && (
                 <img
                   className="layout-preview-hero"

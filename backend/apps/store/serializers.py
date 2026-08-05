@@ -93,7 +93,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         fields = [
             "brand_name", "brand_tagline", "brand_logo", "brand_logo_url", "cart_label",
             "hero_badge", "hero_title", "hero_subtitle", "hero_image", "hero_image_url",
-            "hero_cta_primary", "hero_cta_secondary",
+            "hero_mode", "hero_cta_primary", "hero_cta_secondary",
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "top_banner", "updated_at",
         ]

@@ -83,6 +83,7 @@ class Command(BaseCommand):
         site.cart_label = "گلد باکس"
         site.hero_badge = "گالری طلا آنیل"
         site.hero_title = "طلا،\nآن‌گونه که باید بدرخشد"
+        site.hero_mode = "3d"
         site.section_order = ["hero", "rates", "categories", "featured", "trust"]
         if hero_src.exists() and not site.hero_image:
             with hero_src.open("rb") as fh:
