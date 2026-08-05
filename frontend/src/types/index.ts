@@ -113,6 +113,8 @@ export interface User {
   email: string;
   full_name: string;
   role: string;
+  is_active?: boolean;
+  is_staff?: boolean;
   national_code: string;
   address: string;
   city: string;

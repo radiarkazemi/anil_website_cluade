@@ -4,15 +4,22 @@ import type { AuthTokens, Category, GoldPrice, Order, PaginatedResponse, Product
 export interface DashboardStats {
   products_total: number;
   products_active: number;
+  products_featured?: number;
   categories_total: number;
   orders_total: number;
   orders_pending: number;
   orders_today: number;
   revenue_total: number;
   revenue_today: number;
+  avg_order_value?: number;
   users_total: number;
+  users_by_role?: Record<string, number>;
   gold_price_18k: number;
   gold_updated_at: string | null;
+  revenue_series?: { date: string; label: string; revenue: number; orders: number }[];
+  orders_by_status?: { status: string; label: string; count: number }[];
+  top_products?: { product_name: string; qty: number; revenue: number }[];
+  gold_history?: { price_18k_per_gram: number; created_at: string; source: string }[];
   recent_orders: Order[];
   low_stock: Product[];
 }
@@ -72,6 +79,8 @@ export const api = {
     client.patch<Order>(`/admin/orders/${orderNumber}/`, data),
   adminUsers: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<User>>('/admin/users/', { params }),
+  adminUpdateUser: (id: string, data: Partial<User> & { is_active?: boolean }) =>
+    client.patch<User>(`/admin/users/${id}/`, data),
   adminGoldList: () => client.get<PaginatedResponse<GoldPrice> | GoldPrice[]>('/admin/gold-price/'),
   adminCreateGold: (data: Partial<GoldPrice>) => client.post<GoldPrice>('/admin/gold-price/', data),
   adminRefreshGold: () => client.post<GoldPrice>('/admin/gold-price/refresh/'),

@@ -16,6 +16,8 @@ import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminGold } from './pages/admin/AdminGold';
 import { AdminUsers } from './pages/admin/AdminUsers';
+import { AdminAnalytics } from './pages/admin/AdminAnalytics';
+import { AdminSettings } from './pages/admin/AdminSettings';
 import './fonts.css';
 import './index.css';
 
@@ -41,7 +43,9 @@ function AppInner() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="gold" element={<AdminGold />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
       </Routes>
       {!isPanel && <CartDrawer />}

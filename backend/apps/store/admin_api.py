@@ -1,13 +1,15 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
-from django.db.models import Sum
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import generics, parsers, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAdminRole
-from apps.accounts.serializers import UserSerializer
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem
 from apps.orders.serializers import OrderSerializer
 from apps.store.models import Category, GoldPrice, Product, ProductImage
 from apps.store.serializers import CategorySerializer, GoldPriceSerializer, ProductImageSerializer
@@ -53,29 +55,121 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         return obj.price_breakdown()["total"]
 
 
+class AdminUserManageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "phone",
+            "email",
+            "full_name",
+            "role",
+            "is_active",
+            "is_staff",
+            "national_code",
+            "address",
+            "city",
+            "postal_code",
+            "avatar",
+            "email_verified",
+            "phone_verified",
+            "created_at",
+        ]
+        read_only_fields = ["id", "phone", "created_at", "avatar", "is_staff"]
+
+    def update(self, instance, validated_data):
+        role = validated_data.get("role", instance.role)
+        instance = super().update(instance, validated_data)
+        instance.is_staff = role in (User.Role.ADMIN, User.Role.STAFF)
+        instance.save(update_fields=["is_staff"])
+        return instance
+
+
 class DashboardView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
         gold = GoldPrice.current()
         today = timezone.now().date()
+        start = today - timedelta(days=13)
         orders_today = Order.objects.filter(created_at__date=today)
+        paid_qs = Order.objects.exclude(status=Order.Status.CANCELLED)
+
+        daily = (
+            paid_qs.filter(created_at__date__gte=start)
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(revenue=Sum("total"), orders=Count("id"))
+            .order_by("day")
+        )
+        by_day = {row["day"]: row for row in daily}
+        revenue_series = []
+        for i in range(14):
+            d = start + timedelta(days=i)
+            row = by_day.get(d)
+            revenue_series.append(
+                {
+                    "date": d.isoformat(),
+                    "label": d.strftime("%m/%d"),
+                    "revenue": int(row["revenue"] or 0) if row else 0,
+                    "orders": int(row["orders"] or 0) if row else 0,
+                }
+            )
+
+        status_counts = {
+            row["status"]: row["c"]
+            for row in Order.objects.values("status").annotate(c=Count("id"))
+        }
+        orders_by_status = [
+            {"status": key, "label": label, "count": status_counts.get(key, 0)}
+            for key, label in Order.Status.choices
+        ]
+
+        top_products = list(
+            OrderItem.objects.values("product_name")
+            .annotate(qty=Sum("qty"), revenue=Sum("line_total"))
+            .order_by("-qty")[:6]
+        )
+
+        gold_history = list(
+            GoldPrice.objects.order_by("-created_at")[:14].values(
+                "price_18k_per_gram", "created_at", "source"
+            )
+        )
+        gold_history.reverse()
+
+        role_counts = {
+            row["role"]: row["c"] for row in User.objects.values("role").annotate(c=Count("id"))
+        }
+
         return Response(
             {
                 "products_total": Product.objects.count(),
                 "products_active": Product.objects.filter(is_active=True).count(),
+                "products_featured": Product.objects.filter(is_featured=True).count(),
                 "categories_total": Category.objects.count(),
                 "orders_total": Order.objects.count(),
                 "orders_pending": Order.objects.filter(status=Order.Status.PENDING).count(),
                 "orders_today": orders_today.count(),
-                "revenue_total": Order.objects.exclude(status=Order.Status.CANCELLED).aggregate(s=Sum("total"))["s"]
+                "revenue_total": paid_qs.aggregate(s=Sum("total"))["s"] or 0,
+                "revenue_today": orders_today.exclude(status=Order.Status.CANCELLED).aggregate(
+                    s=Sum("total")
+                )["s"]
                 or 0,
-                "revenue_today": orders_today.exclude(status=Order.Status.CANCELLED).aggregate(s=Sum("total"))["s"]
-                or 0,
+                "avg_order_value": int(
+                    (paid_qs.aggregate(s=Sum("total"))["s"] or 0) / max(paid_qs.count(), 1)
+                ),
                 "users_total": User.objects.count(),
+                "users_by_role": role_counts,
                 "gold_price_18k": gold.price_18k_per_gram if gold else 0,
                 "gold_updated_at": gold.created_at if gold else None,
-                "recent_orders": OrderSerializer(Order.objects.prefetch_related("items")[:8], many=True).data,
+                "revenue_series": revenue_series,
+                "orders_by_status": orders_by_status,
+                "top_products": top_products,
+                "gold_history": gold_history,
+                "recent_orders": OrderSerializer(
+                    Order.objects.prefetch_related("items")[:10], many=True
+                ).data,
                 "low_stock": AdminProductWriteSerializer(
                     Product.objects.filter(stock__lte=2, is_active=True)[:8],
                     many=True,
@@ -134,10 +228,11 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         return Order.objects.prefetch_related("items").all()
 
 
-class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminUserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
-    serializer_class = UserSerializer
-    queryset = User.objects.all()
+    serializer_class = AdminUserManageSerializer
+    http_method_names = ["get", "patch", "head", "options"]
+    queryset = User.objects.all().order_by("-created_at")
     search_fields = ["phone", "full_name", "email"]
     filterset_fields = ["role", "is_active"]
 
