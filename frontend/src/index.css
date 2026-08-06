@@ -1246,6 +1246,7 @@ body.nav-open { overflow: hidden; }
   .header-account,
   .header-theme-btn,
   .live-gold { display: none; }
+  .live-gold-mini { display: inline-flex; }
   .desktop-nav { display: none; }
   .nav-toggle { display: inline-flex; width: 42px; height: 42px; }
   .mobile-nav,
