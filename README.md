@@ -74,6 +74,16 @@ git pull origin cursor/anil-gold-product-site-9af9
 
 ### 1) Backend `:8000` (ASGI + live gold WebSocket)
 
+**Recommended (fixes Pillow / missing tables in one go):**
+
+```bash
+cd /d/anil_website_cluade/backend
+bash setup_local.sh
+uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+```
+
+**Manual steps:**
+
 ```bash
 cd /d/anil_website_cluade/backend
 python -m venv .venv
@@ -95,8 +105,13 @@ uvicorn config.asgi:application --host 0.0.0.0 --port 8000
 >
 > Use **uvicorn** or **Daphne** (not plain `runserver`) so `/ws/gold/` works for live Faraz prices.
 >
-> **Must run `migrate` + `seed_layout` before starting the server.** Otherwise you get
-> `no such table: store_sitesettings` / `store_contentpage`.
+> **DB out of date** (`no such table: store_sitesettings` / `no such column: …payment_gateway`):
+> stop the server, then run `bash setup_local.sh` (or `migrate` + `seed_layout` after Pillow works).
+> Nuclear reset (deletes local SQLite data):
+> ```bash
+> rm -f db.sqlite3
+> bash setup_local.sh
+> ```
 >
 > **Pillow missing** (`Cannot use ImageField because Pillow is not installed`):
 > ```bash
