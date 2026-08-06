@@ -8,8 +8,10 @@ type Listener = (data: GoldPrice) => void;
 function goldWsUrl(): string {
   const env = import.meta.env.VITE_WS_URL as string | undefined;
   if (env) return env;
-  // Connect straight to the Django/Daphne host — avoid Vite WS proxy
-  // (ECONNABORTED is common with Tun/VPN + http-proxy on Windows).
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws/gold/`;
+  }
   const apiBase = (import.meta.env.VITE_API_URL as string | undefined) || 'http://127.0.0.1:8000/api/v1';
   try {
     const u = new URL(apiBase);

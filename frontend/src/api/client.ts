@@ -1,7 +1,9 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { ADMIN_TOKEN_KEY, CLIENT_TOKEN_KEY, setSessionTokens } from '../store/useStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000/api/v1' : '/api/v1');
 
 export type AuthSession = 'client' | 'admin';
 

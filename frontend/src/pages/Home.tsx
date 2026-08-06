@@ -180,27 +180,29 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
 
   return (
-    <section className="container home-hero">
-      <div className="hero-copy">
-        <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
-        <h1 className="shimmer-text hero-h1">
-          {title.map((line, i) => (
-            <span key={i}>
-              {i > 0 && <br />}
-              {line}
-            </span>
-          ))}
-        </h1>
-        <p className="hero-lead">
-          {site?.hero_subtitle
-            || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
-        </p>
-        <div className="hero-actions">
-          <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
-          <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
+    <section className="home-hero-bleed">
+      <div className="container home-hero">
+        <div className="hero-copy">
+          <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
+          <h1 className="shimmer-text hero-h1">
+            {title.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
+          <p className="hero-lead">
+            {site?.hero_subtitle
+              || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
+          </p>
+          <div className="hero-actions">
+            <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
+            <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
+          </div>
         </div>
+        <HeroVisual site={site} />
       </div>
-      <HeroVisual site={site} />
     </section>
   );
 }

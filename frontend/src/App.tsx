@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
+import { MobileTabBar } from './components/MobileTabBar';
 import { useGoldPrice } from './hooks/useGoldPrice';
 import { Home } from './pages/Home';
 import { Products } from './pages/Products';
@@ -62,6 +63,7 @@ function AppInner() {
         </Route>
       </Routes>
       {!isPanel && <CartDrawer />}
+      {!isPanel && <MobileTabBar />}
       <Toast />
     </>
   );
