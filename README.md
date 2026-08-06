@@ -113,12 +113,15 @@ uvicorn config.asgi:application --host 0.0.0.0 --port 8000
 > bash setup_local.sh
 > ```
 >
-> **Pillow missing** (`Cannot use ImageField because Pillow is not installed`):
+> **Pillow missing / broken** (`Cannot use ImageField` or `cannot import name '_imaging'`):
 > ```bash
-> python -m pip install --upgrade Pillow
+> python -m pip uninstall -y Pillow pillow PIL
+> python -m pip install --upgrade --force-reinstall --no-cache-dir Pillow
+> python -c "from PIL import Image; print('Pillow OK')"
 > python manage.py migrate
 > python manage.py seed_layout
 > ```
+> Or just re-run: `bash setup_local.sh`
 >
 > **Windows fix** if Daphne crashes with `No module named '_cffi_backend'`:
 > ```bash
