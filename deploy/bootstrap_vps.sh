@@ -96,7 +96,7 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py seed_layout || true
 # Admin with known password for first login (change immediately)
-ADMIN_PHONE=09120000000 ADMIN_PASSWORD="${ADMIN_PASS}" python manage.py create_admin || true
+python manage.py create_admin --phone 09120000000 --password "${ADMIN_PASS}" || true
 deactivate
 
 # Frontend build (API via same host /api proxy)
