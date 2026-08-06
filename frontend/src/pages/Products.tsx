@@ -26,7 +26,7 @@ export function Products() {
   const title = category === 'all' ? 'همه‌ی محصولات' : categories.find((c) => c.slug === category)?.name || category;
 
   return (
-    <section className="container" style={{ padding: '40px var(--px) 70px', minHeight: '70vh' }}>
+    <section className="container products-page">
       <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 10 }}>
         <Link to="/">خانه</Link> <span style={{ color: 'var(--text-dim)' }}> / </span> محصولات
       </div>

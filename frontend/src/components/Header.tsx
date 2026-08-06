@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
@@ -15,6 +16,7 @@ export function Header() {
   const openCart = useUI((s) => s.openCart);
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
+  const [menuOpen, setMenuOpen] = useState(false);
   const hasAdminSession =
     !!adminTokens && !!adminUser && (adminUser.role === 'admin' || adminUser.role === 'staff');
   const gp = goldPrice?.price_18k_per_gram ?? 0;
@@ -30,18 +32,57 @@ export function Header() {
     staleTime: 60_000,
   });
 
+  useEffect(() => {
+    document.body.classList.toggle('nav-open', menuOpen);
+    return () => document.body.classList.remove('nav-open');
+  }, [menuOpen]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 900) setMenuOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const brandName = site?.brand_name || 'Anil';
   const brandTag = site?.brand_tagline || 'درخششی ابدی';
   const cartLabel = site?.cart_label || 'گلد باکس';
   const logoSrc = site?.brand_logo_url || '/logo.png';
   const banner = site?.top_banner;
 
+  const closeMenu = () => setMenuOpen(false);
+
+  const navLinks = (
+    <>
+      <NavLink to="/" end onClick={closeMenu}>خانه</NavLink>
+      <NavLink to="/products" onClick={closeMenu}>محصولات</NavLink>
+      {navPages.length > 0 ? (
+        navPages.map((p) => {
+          const to = p.slug === 'بلاگ'
+            ? '/blog'
+            : p.page_type === 'blog'
+              ? `/blog/${p.slug}`
+              : `/p/${p.slug}`;
+          const label = p.title === 'بلاگ آنیل' ? 'بلاگ' : p.title;
+          return <NavLink key={p.id} to={to} onClick={closeMenu}>{label}</NavLink>;
+        })
+      ) : (
+        <>
+          <NavLink to="/p/راهنمای-خرید" onClick={closeMenu}>راهنمای خرید</NavLink>
+          <NavLink to="/blog" onClick={closeMenu}>بلاگ</NavLink>
+        </>
+      )}
+      {hasAdminSession && <NavLink to="/panel" onClick={closeMenu}>پنل مدیریت</NavLink>}
+    </>
+  );
+
   return (
     <>
       {banner && <div className="top-banner">{banner}</div>}
       <header className="site-header">
         <div className="container header-inner">
-          <Link to="/" className="logo">
+          <Link to="/" className="logo" onClick={closeMenu}>
             <img className="logo-img" src={logoSrc} alt={brandName} />
             <span className="logo-text">
               <span className="logo-name">{brandName}</span>
@@ -49,26 +90,8 @@ export function Header() {
             </span>
           </Link>
 
-          <nav className="main-nav">
-            <NavLink to="/" end>خانه</NavLink>
-            <NavLink to="/products">محصولات</NavLink>
-            {navPages.length > 0 ? (
-              navPages.map((p) => {
-                const to = p.slug === 'بلاگ'
-                  ? '/blog'
-                  : p.page_type === 'blog'
-                    ? `/blog/${p.slug}`
-                    : `/p/${p.slug}`;
-                const label = p.title === 'بلاگ آنیل' ? 'بلاگ' : p.title;
-                return <NavLink key={p.id} to={to}>{label}</NavLink>;
-              })
-            ) : (
-              <>
-                <NavLink to="/p/راهنمای-خرید">راهنمای خرید</NavLink>
-                <NavLink to="/blog">بلاگ</NavLink>
-              </>
-            )}
-            {hasAdminSession && <NavLink to="/panel">پنل مدیریت</NavLink>}
+          <nav className="main-nav desktop-nav" aria-label="منوی اصلی">
+            {navLinks}
           </nav>
 
           <div className="header-actions">
@@ -91,25 +114,64 @@ export function Header() {
             </button>
 
             {user ? (
-              <Link to="/account" className="text-btn">
+              <Link to="/account" className="text-btn header-account" onClick={closeMenu}>
                 {user.full_name || 'حساب من'}
               </Link>
             ) : (
-              <Link to="/login" className="text-btn ghost-border">ورود</Link>
+              <Link to="/login" className="text-btn ghost-border header-account" onClick={closeMenu}>ورود</Link>
             )}
 
             {!hasAdminSession && (
-              <Link to="/panel/login" className="text-btn" title="ورود مدیران">
+              <Link to="/panel/login" className="text-btn header-panel" title="ورود مدیران" onClick={closeMenu}>
                 پنل
               </Link>
             )}
 
-            <button className="icon-btn cart-btn" onClick={openCart} type="button" aria-label={cartLabel}>
-              {cartLabel}
+            <button className="icon-btn cart-btn" onClick={() => { closeMenu(); openCart(); }} type="button" aria-label={cartLabel}>
+              <span className="cart-label-full">{cartLabel}</span>
+              <span className="cart-label-short">سبد</span>
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+            </button>
+
+            <button
+              type="button"
+              className={`nav-toggle ${menuOpen ? 'open' : ''}`}
+              aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <span />
+              <span />
+              <span />
             </button>
           </div>
         </div>
+
+        {menuOpen && (
+          <>
+            <button type="button" className="mobile-nav-backdrop" aria-label="بستن منو" onClick={closeMenu} />
+            <nav className="mobile-nav" aria-label="منوی موبایل">
+              {gp > 0 && (
+                <div className="mobile-nav-gold">
+                  <span className="live-dot" />
+                  <span>طلای ۱۸</span>
+                  <strong>{faPrice(gp)}</strong>
+                </div>
+              )}
+              {navLinks}
+              <div className="mobile-nav-actions">
+                {user ? (
+                  <Link to="/account" className="gold-btn" onClick={closeMenu}>حساب من</Link>
+                ) : (
+                  <Link to="/login" className="gold-btn" onClick={closeMenu}>ورود / ثبت‌نام</Link>
+                )}
+                {!hasAdminSession && (
+                  <Link to="/panel/login" className="outline-btn" onClick={closeMenu}>پنل مدیریت</Link>
+                )}
+              </div>
+            </nav>
+          </>
+        )}
       </header>
     </>
   );

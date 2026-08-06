@@ -45,7 +45,7 @@ export function ProductDetail() {
 
   if (isLoading || !product) {
     return (
-      <div className="container" style={{ padding: '60px var(--px)', textAlign: 'center', color: 'var(--text-dim)' }}>
+      <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>
         در حال بارگذاری…
       </div>
     );

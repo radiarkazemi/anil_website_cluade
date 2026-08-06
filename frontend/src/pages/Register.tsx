@@ -32,7 +32,7 @@ export function Register() {
   };
 
   return (
-    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px var(--px)' }}>
       <form onSubmit={handleRegister} style={{
         width: 420, maxWidth: '100%', background: 'var(--surface)', border: '1px solid var(--border-gold)',
         borderRadius: 20, padding: '36px 30px',

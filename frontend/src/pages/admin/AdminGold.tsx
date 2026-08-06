@@ -68,7 +68,7 @@ export function AdminGold() {
 
       <div className="admin-card" style={{ marginBottom: 18 }}>
         <h3 style={{ marginBottom: 14 }}>ثبت نرخ جدید (منبع حقیقت قیمت‌گذاری)</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+        <div className="form-grid gold-manual-grid">
           {([
             ['price_18k_per_gram', 'طلای ۱۸ عیار'],
             ['price_24k_per_gram', 'طلای ۲۴ عیار'],

@@ -39,7 +39,7 @@ export function Login() {
   };
 
   return (
-    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px var(--px)' }}>
       <form
         onSubmit={handleLogin}
         style={{

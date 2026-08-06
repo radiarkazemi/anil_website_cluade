@@ -43,6 +43,7 @@ export function AdminLayout() {
   const toggleTheme = useTheme((s) => s.toggle);
   const [loading, setLoading] = useState(!user);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQ, setCmdQ] = useState('');
   const navigate = useNavigate();
@@ -112,7 +113,18 @@ export function AdminLayout() {
   const groups = [...new Set(NAV.map((n) => n.group))];
 
   return (
-    <div className={`admin-shell advanced ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`admin-shell advanced ${collapsed ? 'collapsed' : ''} ${mobileNav ? 'mobile-nav-open' : ''}`}>
+      <button
+        type="button"
+        className="admin-mobile-toggle"
+        aria-label="منوی پنل"
+        onClick={() => setMobileNav((v) => !v)}
+      >
+        {mobileNav ? 'بستن منو' : 'منوی پنل'}
+      </button>
+      {mobileNav && (
+        <button type="button" className="admin-mobile-backdrop" aria-label="بستن" onClick={() => setMobileNav(false)} />
+      )}
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <div className="logo-mark admin-logo-mark">
@@ -138,6 +150,7 @@ export function AdminLayout() {
                   end={n.end}
                   className={({ isActive }) => `admin-nav-item${isActive ? ' active' : ''}`}
                   title={n.label}
+                  onClick={() => setMobileNav(false)}
                 >
                   <span className="admin-nav-icon">{n.icon}</span>
                   {!collapsed && <span className="admin-nav-label">{n.label}</span>}
@@ -157,7 +170,7 @@ export function AdminLayout() {
             <span className="admin-nav-icon">{theme === 'dark' ? '☀' : '☾'}</span>
             {!collapsed && <span>{theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}</span>}
           </button>
-          <a href="/" className="admin-nav-item">
+          <a href="/" className="admin-nav-item" onClick={() => setMobileNav(false)}>
             <span className="admin-nav-icon">←</span>
             {!collapsed && <span>فروشگاه</span>}
           </a>
