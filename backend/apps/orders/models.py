@@ -1,9 +1,11 @@
 import uuid
+import random
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
-from apps.store.models import GoldPrice, Product
+from apps.store.models import Product
 
 
 class Order(models.Model):
@@ -69,9 +71,15 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            last = Order.objects.order_by("-created_at").first()
-            num = 1001 if not last or not last.order_number else int(last.order_number.replace("AG-", "")) + 1
-            self.order_number = f"AG-{num}"
+            # Collision-resistant number (no sequential race under concurrency)
+            day = timezone.localtime(timezone.now()).strftime("%y%m%d")
+            for _ in range(40):
+                candidate = f"AG-{day}-{random.randint(10000, 99999)}"
+                if not Order.objects.filter(order_number=candidate).exists():
+                    self.order_number = candidate
+                    break
+            if not self.order_number:
+                self.order_number = f"AG-{uuid.uuid4().hex[:10].upper()}"
         super().save(*args, **kwargs)
 
 

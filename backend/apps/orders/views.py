@@ -5,6 +5,7 @@ from django.views.decorators.cache import cache_page
 from rest_framework import generics, permissions, status, throttling
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import re
 
 from .models import Order
 from .payments import get_gateway, list_gateways, mark_order_paid
@@ -219,6 +220,11 @@ class PaymentSandboxConfirmView(APIView):
         order = Order.objects.filter(order_number=order_number).first()
         if not order:
             return Response({"detail": "سفارش یافت نشد."}, status=404)
+        # Require matching phone so strangers cannot mark arbitrary orders paid
+        phone = re.sub(r"\D", "", str(request.data.get("phone", "")))
+        order_phone = re.sub(r"\D", "", order.phone or "")
+        if not phone or phone != order_phone:
+            return Response({"detail": "شماره موبایل با سفارش مطابقت ندارد."}, status=403)
         if order.status == Order.Status.PAID:
             return Response({"ok": True, "already_paid": True, "order": OrderSerializer(order).data})
         authority = order.payment_authority or f"SANDBOX-MANUAL-{order.order_number}"

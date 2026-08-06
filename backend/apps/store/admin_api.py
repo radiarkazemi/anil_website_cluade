@@ -315,6 +315,14 @@ class AdminProductImageUploadView(APIView):
         if not image:
             return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
+        from apps.store.uploads import validate_uploaded_image
+
+        try:
+            validate_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(detail if isinstance(detail, dict) else {"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
         obj = ProductImage.objects.create(
             product=product,
             image=image,
@@ -403,6 +411,13 @@ class AdminCategoryImageUploadView(APIView):
         image = request.FILES.get("image")
         if not image:
             return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.store.uploads import validate_uploaded_image
+
+        try:
+            validate_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(detail if isinstance(detail, dict) else {"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
         cat.image = image
         cat.save(update_fields=["image"])
         return Response(CategorySerializer(cat, context={"request": request}).data)

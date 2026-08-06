@@ -78,8 +78,10 @@ export const api = {
       message?: string;
       amount: number;
     }>(`/orders/${orderNumber}/pay/`, data),
-  sandboxConfirmPayment: (orderNumber: string) =>
-    client.post<{ ok: boolean; order?: Order }>(`/orders/${orderNumber}/pay/sandbox-confirm/`, {}),
+  sandboxConfirmPayment: (orderNumber: string, phone?: string) =>
+    client.post<{ ok: boolean; order?: Order }>(`/orders/${orderNumber}/pay/sandbox-confirm/`, {
+      phone: phone || '',
+    }),
 
   login: (phone: string, password: string) =>
     client.post<{ access: string; refresh: string; user?: User }>('/auth/login/', { phone, password }, {

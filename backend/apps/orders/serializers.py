@@ -64,6 +64,8 @@ class OrderCreateSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
+        from django.db import transaction
+
         items_data = validated_data.pop("items")
         gold = GoldPrice.current()
         if not gold:
@@ -71,49 +73,62 @@ class OrderCreateSerializer(serializers.Serializer):
 
         gp = gold.price_18k_per_gram
         product_ids = [i["product_id"] for i in items_data]
-        products = {
-            p.id: p
-            for p in Product.objects.filter(id__in=product_ids, is_active=True).select_related("category")
-        }
-        missing = set(product_ids) - set(products.keys())
-        if missing:
-            raise serializers.ValidationError({"items": "یک یا چند محصول یافت نشد یا غیرفعال است."})
-
         user = self.context["request"].user if self.context["request"].user.is_authenticated else None
 
-        order = Order.objects.create(
-            user=user,
-            full_name=validated_data["full_name"],
-            phone=validated_data["phone"],
-            email=validated_data.get("email", ""),
-            address=validated_data["address"],
-            city=validated_data.get("city", ""),
-            postal_code=validated_data.get("postal_code", ""),
-            note=validated_data.get("note", ""),
-            gold_price_snapshot=gp,
-        )
+        with transaction.atomic():
+            products = {
+                p.id: p
+                for p in Product.objects.select_for_update().filter(
+                    id__in=product_ids, is_active=True
+                ).select_related("category")
+            }
+            missing = set(product_ids) - set(products.keys())
+            if missing:
+                raise serializers.ValidationError({"items": "یک یا چند محصول یافت نشد یا غیرفعال است."})
 
-        subtotal = 0
-        for item in items_data:
-            product = products[item["product_id"]]
-            bd = product.price_breakdown(gp)
-            unit = bd["total"]
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                product_name=product.name,
-                weight_g=product.weight_g,
-                fee_ratio=product.fee_ratio,
-                stone_value=product.stone_value,
-                qty=item["qty"],
-                unit_price=unit,
+            for item in items_data:
+                product = products[item["product_id"]]
+                if product.stock is not None and product.stock < item["qty"]:
+                    raise serializers.ValidationError(
+                        {"items": f"موجودی «{product.name}» کافی نیست."}
+                    )
+
+            order = Order.objects.create(
+                user=user,
+                full_name=validated_data["full_name"],
+                phone=validated_data["phone"],
+                email=validated_data.get("email", ""),
+                address=validated_data["address"],
+                city=validated_data.get("city", ""),
+                postal_code=validated_data.get("postal_code", ""),
+                note=validated_data.get("note", ""),
+                gold_price_snapshot=gp,
             )
-            subtotal += unit * item["qty"]
 
-        order.subtotal = subtotal
-        order.total = subtotal + order.shipping_cost - order.discount
-        order.save(update_fields=["subtotal", "total"])
-        return order
+            subtotal = 0
+            for item in items_data:
+                product = products[item["product_id"]]
+                bd = product.price_breakdown(gp)
+                unit = bd["total"]
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    product_name=product.name,
+                    weight_g=product.weight_g,
+                    fee_ratio=product.fee_ratio,
+                    stone_value=product.stone_value,
+                    qty=item["qty"],
+                    unit_price=unit,
+                )
+                if product.stock is not None:
+                    product.stock = max(0, product.stock - item["qty"])
+                    product.save(update_fields=["stock"])
+                subtotal += unit * item["qty"]
+
+            order.subtotal = subtotal
+            order.total = subtotal + order.shipping_cost - order.discount
+            order.save(update_fields=["subtotal", "total"])
+            return order
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

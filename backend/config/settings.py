@@ -21,12 +21,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get(
     "SECRET_KEY", "django-insecure-dev-only-anil-gold-change-me"
 )
+# Default True for local DX; production MUST set DEBUG=False explicitly.
 DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if h.strip()
 ]
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 
 # ─── Apps ────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -85,14 +87,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# In-memory channel layer is enough for single-process daphne/runserver.
+# In-memory channel layer is enough for single-process daphne/uvicorn.
 # Set REDIS_URL to use Redis in multi-worker production.
-_redis_url = os.environ.get("REDIS_URL", "").strip()
-if _redis_url:
+if REDIS_URL:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [_redis_url]},
+            "CONFIG": {"hosts": [REDIS_URL]},
         }
     }
 else:
@@ -150,6 +151,7 @@ REST_FRAMEWORK = {
         "order_create": "20/minute",
         "payment_start": "20/minute",
         "auth": "10/minute",
+        "gold_live": os.environ.get("THROTTLE_GOLD_LIVE", "12/minute"),
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -160,7 +162,7 @@ REST_FRAMEWORK = {
 }
 
 # ─── Cache (LocMem by default; set REDIS_URL / CACHE_URL for production) ─────
-_cache_url = os.environ.get("CACHE_URL", "").strip() or os.environ.get("REDIS_URL", "").strip()
+_cache_url = os.environ.get("CACHE_URL", "").strip() or REDIS_URL
 if _cache_url and _cache_url.startswith("redis"):
     CACHES = {
         "default": {
@@ -243,9 +245,60 @@ STORAGES = {
 }
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+# Small VPS without nginx media alias: set MEDIA_SERVE=1 (Django serves files).
+# Prefer nginx → MEDIA_ROOT or USE_S3=1 in production.
+MEDIA_SERVE = os.environ.get("MEDIA_SERVE", "0").lower() in ("1", "true", "yes")
+MAX_UPLOAD_IMAGE_MB = int(os.environ.get("MAX_UPLOAD_IMAGE_MB", "5"))
+MAX_UPLOAD_IMAGE_PIXELS = int(os.environ.get("MAX_UPLOAD_IMAGE_PIXELS", str(4096 * 4096)))
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(6 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(6 * 1024 * 1024)))
+
+# Optional S3 / MinIO / Liara object storage
+USE_S3 = os.environ.get("USE_S3", "0").lower() in ("1", "true", "yes")
+if USE_S3:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    }
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", "") or None
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "") or None
+    AWS_DEFAULT_ACL = os.environ.get("AWS_DEFAULT_ACL", "public-read")
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    else:
+        MEDIA_URL = "/media/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO" if not DEBUG else "DEBUG")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[{asctime}] {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "apps": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
 
 # ─── Security (production) ───────────────────────────────────────────────────
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -266,10 +319,14 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     # Never allow CORS_ALLOW_ALL in production
     CORS_ALLOW_ALL_ORIGINS = False
-else:
-    # Soft warning path — keep local DX, but never ship DEBUG=True
-    pass
 
-# Fail fast if production secret is still the insecure default
-if not DEBUG and "insecure" in SECRET_KEY:
-    raise RuntimeError("SECRET_KEY must be set to a strong value when DEBUG=False")
+# Fail fast if production secret is still a known placeholder
+_WEAK_SECRET_MARKERS = ("insecure", "change-me", "django-insecure", "anil-gold-change")
+if not DEBUG:
+    sk = SECRET_KEY or ""
+    if len(sk) < 40 or any(m in sk.lower() for m in _WEAK_SECRET_MARKERS):
+        raise RuntimeError(
+            "SECRET_KEY must be a strong random value (≥40 chars) when DEBUG=False"
+        )
+    if not ALLOWED_HOSTS or ALLOWED_HOSTS == ["*"]:
+        raise RuntimeError("ALLOWED_HOSTS must be set to your domain(s) when DEBUG=False")

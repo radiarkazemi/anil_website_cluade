@@ -18,4 +18,9 @@ uvicorn[standard]>=0.30
 # Windows ASGI often needs a clean cffi wheel (fixes: No module named '_cffi_backend')
 cffi>=1.17
 cryptography>=42
-# optional multi-worker WS: channels-redis>=4.2
+# Production multi-worker cache + WebSockets
+redis>=5.0
+channels-redis>=4.2
+# Optional S3 / MinIO / Liara object storage (USE_S3=1)
+django-storages[s3]>=1.14
+boto3>=1.34

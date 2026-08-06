@@ -91,11 +91,11 @@ export function Account() {
         gateway: order.payment_gateway || 'zarinpal',
         phone: order.phone,
       });
-      return r.data;
+      return { ...r.data, phone: order.phone };
     },
     onSuccess: async (data) => {
       if (data.sandbox && data.authority?.startsWith('SANDBOX')) {
-        await api.sandboxConfirmPayment(data.order_number);
+        await api.sandboxConfirmPayment(data.order_number, data.phone);
         toast('پرداخت آزمایشی تأیید شد');
         qc.invalidateQueries({ queryKey: ['my-orders'] });
         return;

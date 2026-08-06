@@ -184,23 +184,33 @@ Analytics (MongoDB):
 
 ## Deploy
 
-### Backend
+See **[DEPLOY.md](./DEPLOY.md)** for the full VPS checklist (security, media, Redis, payments, Nginx).
+
+### Backend (ASGI — required for live gold WebSocket)
 
 ```bash
 docker build -t anil-gold-api ./backend
 docker run -p 8000:8000 \
+  -e DEBUG=False \
   -e SECRET_KEY=... \
+  -e ALLOWED_HOSTS=anil.example.com \
   -e DATABASE_URL=postgres://... \
-  -e MONGODB_URI=mongodb://... \
+  -e REDIS_URL=redis://... \
+  -e PAYMENT_SANDBOX=False \
+  -v anil_media:/app/media \
   anil-gold-api
+
+# Pre-flight:
+# python manage.py check_prod --strict
 ```
 
 ### Frontend
 
 ```bash
-cd frontend && npm run build
-# Serve dist/ with nginx, Vercel, Netlify, etc.
-# Set VITE_API_URL to your backend URL
+cd frontend
+cp .env.example .env.production   # set VITE_API_URL=https://your-domain/api/v1
+npm ci && npm run build
+# Serve dist/ with Nginx — see deploy/nginx.conf.example
 ```
 
 ## Gold Price Updates

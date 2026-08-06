@@ -49,13 +49,21 @@ class GoldPriceLiveView(APIView):
     """
     Fetch live Faraz market (مثقال ۱۷ → گرم ۱۸) and optionally persist a snapshot.
     Prefer WebSocket /ws/gold/ for continuous streaming.
+    GET is public (throttled). POST requires staff (avoids anonymous DB spam).
     """
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "gold_live"
+
+    def get_throttles(self):
+        from rest_framework.throttling import ScopedRateThrottle
+
+        return [ScopedRateThrottle()]
 
     def get(self, request):
-        persist = request.query_params.get("persist", "1") not in ("0", "false", "no")
+        # Public GET never persists — avoids anonymous DB growth / Faraz spam.
+        # Persistence is owned by the gold streamer + admin POST.
         payload, source = fetch_online_payload()
         if not payload:
             gold = GoldPrice.current()
@@ -69,19 +77,28 @@ class GoldPriceLiveView(APIView):
             data["live_error"] = "upstream_unavailable"
             return Response(data, status=status.HTTP_200_OK)
 
-        if persist:
-            row = refresh_gold_price(force_live=True, allow_jitter=False)
-            data = GoldPriceSerializer(row).data
-            data["live"] = True
-            return Response(data)
-
         preview = price_cache.public_quote(payload, source=source or "faraz")
         preview["live"] = True
         preview["persisted"] = False
         return Response(preview)
 
     def post(self, request):
-        """Force a live refresh and store a new snapshot (same as admin refresh)."""
+        """Force a live refresh and store a new snapshot (staff/admin only)."""
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated or not (user.is_staff or getattr(user, "role", "") in ("admin", "staff")):
+            # Re-authenticate JWT for POST
+            from rest_framework_simplejwt.authentication import JWTAuthentication
+
+            try:
+                auth = JWTAuthentication().authenticate(request)
+            except Exception:
+                auth = None
+            if not auth:
+                return Response({"detail": "احراز هویت الزامی است."}, status=status.HTTP_401_UNAUTHORIZED)
+            user = auth[0]
+            if not (user.is_staff or getattr(user, "role", "") in ("admin", "staff")):
+                return Response({"detail": "دسترسی مجاز نیست."}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             row = refresh_gold_price(force_live=True, allow_jitter=False)
         except Exception as exc:

@@ -166,7 +166,7 @@ export function CartDrawer() {
     try {
       const { data: pay } = await api.payOrder(orderNumber, { gateway, phone: form.phone.trim() });
       if (pay.sandbox && (pay.authority?.startsWith('SANDBOX') || pay.authority?.startsWith('ID-'))) {
-        await api.sandboxConfirmPayment(orderNumber);
+        await api.sandboxConfirmPayment(orderNumber, form.phone.trim());
         toast('پرداخت آزمایشی با موفقیت تأیید شد');
         resetAndClose();
         return;
