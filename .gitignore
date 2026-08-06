@@ -21,3 +21,6 @@ frontend/dist/
 *.log
 .idea/
 .vscode/
+
+anil-deploy-credentials.txt
+**/anil-deploy-credentials.txt
