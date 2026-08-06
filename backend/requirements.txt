@@ -14,4 +14,8 @@ pymongo>=4.8
 django-extensions>=3.2
 channels>=4.1
 daphne>=4.1
+uvicorn[standard]>=0.30
+# Windows ASGI often needs a clean cffi wheel (fixes: No module named '_cffi_backend')
+cffi>=1.17
+cryptography>=42
 # optional multi-worker WS: channels-redis>=4.2

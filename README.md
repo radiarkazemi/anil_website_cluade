@@ -85,12 +85,21 @@ python manage.py seed
 python manage.py seed_images
 python manage.py seed_layout
 python manage.py create_admin
-daphne -b 0.0.0.0 -p 8000 config.asgi:application
+# Prefer uvicorn on Windows (more reliable than Daphne + cryptography wheels)
+uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+# Alternative: daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
 > `seed_layout` loads the 9 jewelry categories with images, homepage layout (hero/logo), and pages **راهنمای خرید** + **بلاگ**.
 >
-> Use **Daphne** (not `runserver`) so `/ws/gold/` works for live Faraz prices.
+> Use **uvicorn** or **Daphne** (not plain `runserver`) so `/ws/gold/` works for live Faraz prices.
+>
+> **Windows fix** if Daphne crashes with `No module named '_cffi_backend'`:
+> ```bash
+> pip install --upgrade --force-reinstall cffi cryptography
+> # then either retry daphne, or use uvicorn (recommended on Windows):
+> uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+> ```
 
 ### 2) Frontend `:5180`
 
