@@ -45,7 +45,9 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE anil_gold TO anil;"
 
 # Code
 mkdir -p /var/www
-if [[ -d "${APP_DIR}/.git" ]]; then
+if [[ "${SKIP_GIT:-0}" == "1" && -d "${APP_DIR}/backend" ]]; then
+  echo "==> SKIP_GIT=1 — using existing ${APP_DIR}"
+elif [[ -d "${APP_DIR}/.git" ]]; then
   cd "${APP_DIR}"
   git fetch origin
   git checkout "${BRANCH}"
