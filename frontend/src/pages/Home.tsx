@@ -48,6 +48,17 @@ function HeroJewel({ src }: { src: string }) {
   const [ry, setRy] = useState(12);
   const auto = useRef(true);
   const resumeTimer = useRef<number | null>(null);
+  const reduceMotion = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px), (prefers-reduced-motion: reduce)');
+    const sync = () => {
+      reduceMotion.current = mq.matches;
+    };
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -55,7 +66,7 @@ function HeroJewel({ src }: { src: string }) {
     const tick = (now: number) => {
       const dt = Math.min(48, now - last);
       last = now;
-      if (auto.current) setRy((v) => v + dt * 0.018);
+      if (auto.current && !reduceMotion.current) setRy((v) => v + dt * 0.018);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -71,28 +82,13 @@ function HeroJewel({ src }: { src: string }) {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    // Mouse: prevent image drag. Touch: never block page scroll.
-    if (e.pointerType === 'mouse') e.preventDefault();
+    if (reduceMotion.current || e.pointerType === 'touch') return;
+    e.preventDefault();
     pauseAuto();
     const start = { x: e.clientX, y: e.clientY, rx, ry };
-    let axis: 'x' | 'y' | null = e.pointerType === 'touch' ? null : 'x';
-
     const move = (ev: PointerEvent) => {
       const dx = ev.clientX - start.x;
       const dy = ev.clientY - start.y;
-      if (axis === null) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        // Vertical intent = let the browser scroll; stop rotating.
-        if (Math.abs(dy) > Math.abs(dx)) {
-          axis = 'y';
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', up);
-          window.removeEventListener('pointercancel', up);
-          return;
-        }
-        axis = 'x';
-      }
-      if (axis !== 'x') return;
       setRy(start.ry + dx * 0.55);
       setRx(Math.max(-42, Math.min(42, start.rx - dy * 0.35)));
     };
@@ -182,6 +178,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   return (
     <section className="home-hero-bleed">
       <div className="container home-hero">
+        <HeroVisual site={site} />
         <div className="hero-copy">
           <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
           <h1 className="shimmer-text hero-h1">
@@ -198,10 +195,9 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           </p>
           <div className="hero-actions">
             <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
-            <a href="#market" className="outline-btn">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
+            <a href="#market" className="outline-btn hero-cta-secondary">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
           </div>
         </div>
-        <HeroVisual site={site} />
       </div>
     </section>
   );

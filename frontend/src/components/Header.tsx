@@ -102,6 +102,12 @@ export function Header() {
                 <span className="live-price">{faPrice(gp)}</span>
               </div>
             )}
+            {gp > 0 && (
+              <a href="/#market" className="live-gold-mini" title="نرخ طلای ۱۸ عیار">
+                <span className="live-dot" />
+                <span>{faPrice(gp)}</span>
+              </a>
+            )}
 
             <button
               className="icon-btn header-theme-btn"
