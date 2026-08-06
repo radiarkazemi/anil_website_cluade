@@ -104,7 +104,7 @@ export function Header() {
             )}
 
             <button
-              className="icon-btn"
+              className="icon-btn header-theme-btn"
               onClick={toggleTheme}
               title={theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
               type="button"
@@ -129,7 +129,7 @@ export function Header() {
 
             <button className="icon-btn cart-btn" onClick={() => { closeMenu(); openCart(); }} type="button" aria-label={cartLabel}>
               <span className="cart-label-full">{cartLabel}</span>
-              <span className="cart-label-short">سبد</span>
+              <span className="cart-label-short" aria-hidden>◈</span>
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </button>
 
@@ -165,6 +165,13 @@ export function Header() {
                 ) : (
                   <Link to="/login" className="gold-btn" onClick={closeMenu}>ورود / ثبت‌نام</Link>
                 )}
+                <button
+                  type="button"
+                  className="outline-btn mobile-theme-btn"
+                  onClick={() => { toggleTheme(); }}
+                >
+                  {theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
+                </button>
                 {!hasAdminSession && (
                   <Link to="/panel/login" className="outline-btn" onClick={closeMenu}>پنل مدیریت</Link>
                 )}

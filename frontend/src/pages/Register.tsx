@@ -32,13 +32,10 @@ export function Register() {
   };
 
   return (
-    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px var(--px)' }}>
-      <form onSubmit={handleRegister} style={{
-        width: 420, maxWidth: '100%', background: 'var(--surface)', border: '1px solid var(--border-gold)',
-        borderRadius: 20, padding: '36px 30px',
-      }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>ثبت‌نام</h1>
-        <p style={{ color: 'var(--text-dim)', fontSize: 14, marginBottom: 28 }}>حساب جدید بسازید.</p>
+    <div className="auth-shell">
+      <form onSubmit={handleRegister} className="auth-card">
+        <h1 className="auth-title">ثبت‌نام</h1>
+        <p className="auth-sub">حساب جدید بسازید.</p>
         <input value={form.full_name} onChange={upd('full_name')} placeholder="نام و نام خانوادگی" className="input" style={{ marginBottom: 14 }} />
         <input value={form.phone} onChange={upd('phone')} placeholder="شماره تلفن" className="input" dir="ltr" style={{ marginBottom: 14 }} />
         <input value={form.email} onChange={upd('email')} placeholder="ایمیل (اختیاری)" className="input" dir="ltr" style={{ marginBottom: 14 }} />

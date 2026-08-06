@@ -70,26 +70,40 @@ function HeroJewel({ src }: { src: string }) {
     }, 2200);
   };
 
-  const onDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Mouse: prevent image drag. Touch: never block page scroll.
+    if (e.pointerType === 'mouse') e.preventDefault();
     pauseAuto();
-    const pt = 'touches' in e ? e.touches[0] : e;
-    const start = { x: pt.clientX, y: pt.clientY, rx, ry };
-    const move = (ev: MouseEvent | TouchEvent) => {
-      const p = 'touches' in ev ? (ev as TouchEvent).touches[0] : (ev as MouseEvent);
-      setRy(start.ry + (p.clientX - start.x) * 0.55);
-      setRx(Math.max(-42, Math.min(42, start.rx - (p.clientY - start.y) * 0.4)));
+    const start = { x: e.clientX, y: e.clientY, rx, ry };
+    let axis: 'x' | 'y' | null = e.pointerType === 'touch' ? null : 'x';
+
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - start.x;
+      const dy = ev.clientY - start.y;
+      if (axis === null) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        // Vertical intent = let the browser scroll; stop rotating.
+        if (Math.abs(dy) > Math.abs(dx)) {
+          axis = 'y';
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+          return;
+        }
+        axis = 'x';
+      }
+      if (axis !== 'x') return;
+      setRy(start.ry + dx * 0.55);
+      setRx(Math.max(-42, Math.min(42, start.rx - dy * 0.35)));
     };
     const up = () => {
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-      window.removeEventListener('touchmove', move);
-      window.removeEventListener('touchend', up);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
     };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchmove', move, { passive: false });
-    window.addEventListener('touchend', up);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
 
   return (
@@ -98,8 +112,7 @@ function HeroJewel({ src }: { src: string }) {
       <div className="hero-orbit-ring" aria-hidden />
       <div
         className="hero-ring-scene hero-jewel-scene"
-        onMouseDown={onDown}
-        onTouchStart={onDown}
+        onPointerDown={onPointerDown}
         style={{ transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }}
       >
         <img

@@ -39,22 +39,10 @@ export function Login() {
   };
 
   return (
-    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px var(--px)' }}>
-      <form
-        onSubmit={handleLogin}
-        style={{
-          width: 420,
-          maxWidth: '100%',
-          background: 'var(--surface)',
-          border: '1px solid var(--border-gold)',
-          borderRadius: 20,
-          padding: '36px 30px',
-        }}
-      >
-        <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>ورود مشتریان</h1>
-        <p style={{ color: 'var(--text-dim)', fontSize: 14, marginBottom: 28 }}>
-          با شماره تلفن وارد فروشگاه شوید.
-        </p>
+    <div className="auth-shell">
+      <form onSubmit={handleLogin} className="auth-card">
+        <h1 className="auth-title">ورود مشتریان</h1>
+        <p className="auth-sub">با شماره تلفن وارد فروشگاه شوید.</p>
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}

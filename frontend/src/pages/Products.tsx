@@ -38,7 +38,7 @@ export function Products() {
       </div>
 
       <div className="filter-row">
-        <div className="filter-chips">
+        <div className="filter-chips" role="listbox" aria-label="دسته‌بندی">
           {chips.map((c) => {
             const active = category === c.slug;
             return (
@@ -56,8 +56,7 @@ export function Products() {
         <select
           value={sort}
           onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
-          className="input"
-          style={{ width: 'auto', minWidth: 180 }}
+          className="input filter-sort"
         >
           <option value="">مرتب‌سازی: پیشنهادی</option>
           <option value="price">ارزان‌ترین</option>
