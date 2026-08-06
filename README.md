@@ -94,6 +94,9 @@ uvicorn config.asgi:application --host 0.0.0.0 --port 8000
 >
 > Use **uvicorn** or **Daphne** (not plain `runserver`) so `/ws/gold/` works for live Faraz prices.
 >
+> **Must run `migrate` + `seed_layout` before starting the server.** Otherwise you get
+> `no such table: store_sitesettings` / `store_contentpage`.
+>
 > **Windows fix** if Daphne crashes with `No module named '_cffi_backend'`:
 > ```bash
 > pip install --upgrade --force-reinstall cffi cryptography
