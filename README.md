@@ -79,6 +79,7 @@ cd /d/anil_website_cluade/backend
 python -m venv .venv
 source .venv/Scripts/activate
 pip install -r requirements.txt
+# If ImageField errors appear later:  python -m pip install --upgrade Pillow
 # Optional: copy .env.example → .env  (leave DATABASE_URL unset for SQLite)
 python manage.py migrate
 python manage.py seed
@@ -96,6 +97,13 @@ uvicorn config.asgi:application --host 0.0.0.0 --port 8000
 >
 > **Must run `migrate` + `seed_layout` before starting the server.** Otherwise you get
 > `no such table: store_sitesettings` / `store_contentpage`.
+>
+> **Pillow missing** (`Cannot use ImageField because Pillow is not installed`):
+> ```bash
+> python -m pip install --upgrade Pillow
+> python manage.py migrate
+> python manage.py seed_layout
+> ```
 >
 > **Windows fix** if Daphne crashes with `No module named '_cffi_backend'`:
 > ```bash
