@@ -30,11 +30,11 @@ export function Products() {
       <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 10 }}>
         <Link to="/">خانه</Link> <span style={{ color: 'var(--text-dim)' }}> / </span> محصولات
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 26 }}>
+      <div className="products-title-row">
         <div>
-          <h1 style={{ fontSize: 34, fontWeight: 800 }}>{title}</h1>
+          <h1 className="products-title">{title}</h1>
         </div>
-        <div style={{ color: 'var(--text-dim)', fontSize: 13.5 }}>{faNum(products.length)} محصول</div>
+        <div className="products-count">{faNum(products.length)} محصول</div>
       </div>
 
       <div className="filter-row">
