@@ -342,8 +342,8 @@ export function Home() {
       {order.map((key) => sections[key]).filter(Boolean)}
 
       <footer className="site-footer">
-        <div className="container footer-grid">
-          <div>
+        <div className="container footer-inner">
+          <div className="footer-top">
             <div className="footer-brand-row">
               <img className="logo-img footer-logo" src={site?.brand_logo_url || '/logo.png'} alt="" />
               <div>
@@ -351,38 +351,43 @@ export function Home() {
                 <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>
               </div>
             </div>
-            <p className="footer-tag">گالری طلا آنیل، جایی برای انتخاب زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
+            <p className="footer-tag">گالری طلا آنیل — زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
           </div>
-          <div>
-            <h3>دسته‌بندی‌ها</h3>
-            <ul>
-              {categories.slice(0, 5).map((c) => (
-                <li key={c.id}>
-                  <Link to={`/products?category=${c.slug}`}>{c.name}</Link>
-                </li>
-              ))}
-            </ul>
+
+          <div className="footer-links">
+            <div className="footer-col">
+              <h3>دسته‌بندی‌ها</h3>
+              <ul>
+                {categories.slice(0, 4).map((c) => (
+                  <li key={c.id}>
+                    <Link to={`/products?category=${c.slug}`}>{c.name}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h3>خدمات</h3>
+              <ul>
+                <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
+                <li><Link to="/blog">بلاگ</Link></li>
+                <li><Link to="/products">محصولات</Link></li>
+                <li><Link to="/account">پیگیری سفارش</Link></li>
+              </ul>
+            </div>
+            <div className="footer-col footer-contact">
+              <h3>تماس</h3>
+              <ul>
+                <li>تهران، بازار بزرگ طلا</li>
+                <li dir="ltr">۰۲۱-۱۲۳۴۵۶۷۸</li>
+                <li dir="ltr">info@anilgold.ir</li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <h3>خدمات مشتریان</h3>
-            <ul>
-              <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
-              <li><Link to="/blog">بلاگ</Link></li>
-              <li><Link to="/products">محصولات</Link></li>
-            </ul>
+
+          <div className="footer-copy footer-copy-row">
+            <span>© گالری طلا آنیل ۱۴۰۵</span>
+            <span>پرداخت امن · ضمانت اصالت</span>
           </div>
-          <div>
-            <h3>تماس با ما</h3>
-            <ul>
-              <li>تهران، بازار بزرگ طلا</li>
-              <li>۰۲۱ - ۱۲۳۴ ۵۶۷۸</li>
-              <li>info@anilgold.ir</li>
-            </ul>
-          </div>
-        </div>
-        <div className="container footer-copy footer-copy-row">
-          <span>© گالری طلا آنیل ۱۴۰۵ — تمامی حقوق محفوظ است.</span>
-          <span>نماد اعتماد الکترونیکی · درگاه پرداخت امن</span>
         </div>
       </footer>
     </div>
