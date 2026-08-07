@@ -6,16 +6,7 @@ import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useTheme } from '../store/themeStore';
 import { faNum, faPrice } from '../utils/format';
-
-function IconBag() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M6.2 8.2h11.6l-.9 10.1a1.8 1.8 0 0 1-1.8 1.5H8.9a1.8 1.8 0 0 1-1.8-1.5L6.2 8.2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M9 8.2V6.8a3 3 0 0 1 6 0v1.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M4.8 8.2h14.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { IconGoldBox } from './icons';
 
 export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
@@ -140,8 +131,11 @@ export function Header() {
               type="button"
               aria-label={cartLabel}
             >
-              <span className="cart-label-full">{cartLabel}</span>
-              <span className="cart-ico-mobile"><IconBag /></span>
+              <span className="cart-label-full">
+                <IconGoldBox size={18} />
+                {cartLabel}
+              </span>
+              <span className="cart-ico-mobile"><IconGoldBox size={22} /></span>
               {cartCount > 0 && <span className="cart-badge">{faNum(cartCount)}</span>}
             </button>
 

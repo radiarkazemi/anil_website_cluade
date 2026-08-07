@@ -7,6 +7,7 @@ import { useUI } from '../store/uiStore';
 import { useToast } from '../store/toastStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import type { Product } from '../types';
+import { IconGoldBox } from './icons';
 
 type Step = 'cart' | 'checkout' | 'pay';
 
@@ -190,12 +191,17 @@ export function CartDrawer() {
       <div className="goldbox-backdrop" onClick={resetAndClose} />
       <aside className="goldbox-panel" role="dialog" aria-label="گلد باکس">
         <header className="goldbox-head">
-          <div>
-            <div className="goldbox-title">گلد باکس</div>
-            <div className="goldbox-sub">
-              {step === 'cart' && `${faNum(totalQty)} قلم`}
-              {step === 'checkout' && 'اطلاعات ارسال'}
-              {step === 'pay' && 'پرداخت امن'}
+          <div className="goldbox-head-title">
+            <span className="goldbox-head-ico" aria-hidden>
+              <IconGoldBox size={22} />
+            </span>
+            <div>
+              <div className="goldbox-title">گلد باکس</div>
+              <div className="goldbox-sub">
+                {step === 'cart' && `${faNum(totalQty)} قلم`}
+                {step === 'checkout' && 'اطلاعات ارسال'}
+                {step === 'pay' && 'پرداخت امن'}
+              </div>
             </div>
           </div>
           <button type="button" className="goldbox-close" onClick={resetAndClose}>✕</button>

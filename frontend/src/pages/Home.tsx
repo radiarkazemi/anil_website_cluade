@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
+import { IconBuyback, IconConsult, IconInsuredShip, IconShieldCheck } from '../components/icons';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
 import type { MarketRow, SiteSettings } from '../types';
@@ -273,13 +274,15 @@ export function Home() {
         <h2 className="section-title trust-heading">{site?.trust_heading || 'چرا آنیل؟'}</h2>
         <div className="trust-grid">
           {[
-            { key: ' authenticity', title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی', icon: '◆' },
-            { key: 'ship', title: 'ارسال بیمه‌شده', desc: 'بیمه کامل تا درب منزل', icon: '▣' },
-            { key: 'buyback', title: 'بازخرید تضمینی', desc: 'بر اساس نرخ روز طلا', icon: '↺' },
-            { key: 'consult', title: 'مشاوره تخصصی', desc: 'همراهی در تمام مراحل', icon: '✦' },
+            { key: 'authenticity', title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی', Icon: IconShieldCheck },
+            { key: 'ship', title: 'ارسال بیمه‌شده', desc: 'بیمه کامل تا درب منزل', Icon: IconInsuredShip },
+            { key: 'buyback', title: 'بازخرید تضمینی', desc: 'بر اساس نرخ روز طلا', Icon: IconBuyback },
+            { key: 'consult', title: 'مشاوره تخصصی', desc: 'همراهی در تمام مراحل', Icon: IconConsult },
           ].map((t) => (
             <div key={t.key} className="trust-item">
-              <div className="trust-ico" aria-hidden>{t.icon}</div>
+              <div className="trust-ico" aria-hidden>
+                <t.Icon size={18} />
+              </div>
               <div>
                 <div className="trust-title">{t.title}</div>
                 <div className="trust-desc">{t.desc}</div>

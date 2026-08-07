@@ -268,6 +268,11 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
   font-weight: 600;
 }
 .cart-btn { width: auto; padding: 0 12px; min-width: 38px; }
+.cart-label-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .text-btn {
   font-size: 13px;
   color: var(--gold-light);
@@ -1219,17 +1224,20 @@ body.nav-open { overflow: hidden; }
   box-shadow: 0 0 12px rgba(212,175,55,.35);
 }
 .trust-ico {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: var(--warm);
+  color: #1a1206;
   background: var(--gold-grad);
   box-shadow: 0 6px 16px rgba(212,175,55,.25);
+}
+.trust-ico svg {
+  display: block;
+  flex-shrink: 0;
 }
 .trust-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
 .trust-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; }
@@ -1867,11 +1875,10 @@ body.nav-open { overflow: hidden; }
     border: 1px solid var(--border);
   }
   .trust-ico {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
-    border-radius: 10px;
-    font-size: 13px;
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    border-radius: 11px;
   }
   .trust-mark { display: none; }
   .trust-title { font-size: 13px; margin-bottom: 3px; }
@@ -2837,6 +2844,24 @@ body.nav-open { overflow: hidden; }
   animation: toast-in .28s ease;
 }
 .goldbox-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 22px; border-bottom: 1px solid var(--border); }
+.goldbox-head-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.goldbox-head-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1206;
+  background: var(--gold-grad);
+  box-shadow: 0 6px 16px rgba(212,175,55,.22);
+  flex-shrink: 0;
+}
 .goldbox-title { font-size: 18px; font-weight: 800; }
 .goldbox-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 .goldbox-close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); }
