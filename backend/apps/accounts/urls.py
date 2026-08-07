@@ -12,4 +12,8 @@ urlpatterns = [
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("change-password/", views.ChangePasswordView.as_view(), name="change-password"),
+    path("verify/phone/send/", views.SendPhoneOtpView.as_view(), name="verify-phone-send"),
+    path("verify/phone/confirm/", views.ConfirmPhoneOtpView.as_view(), name="verify-phone-confirm"),
+    path("verify/email/send/", views.SendEmailOtpView.as_view(), name="verify-email-send"),
+    path("verify/email/confirm/", views.ConfirmEmailOtpView.as_view(), name="verify-email-confirm"),
 ]

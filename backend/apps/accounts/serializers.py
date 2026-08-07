@@ -4,6 +4,15 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .validators import (
+    PROFILE_FIELD_LABELS,
+    is_profile_ready,
+    normalize_iran_mobile,
+    profile_missing_fields,
+    validate_iran_national_code,
+    validate_iran_postal_code,
+)
+
 User = get_user_model()
 
 
@@ -42,12 +51,7 @@ class ClientTokenObtainPairSerializer(CustomTokenObtainPairSerializer):
             raise AuthenticationFailed(
                 "این حساب مربوط به پنل مدیریت است. از صفحه ورود مدیریت استفاده کنید."
             )
-        data["user"] = {
-            "id": str(user.id),
-            "phone": user.phone,
-            "full_name": user.full_name,
-            "role": user.role,
-        }
+        data["user"] = UserSerializer(user).data
         return data
 
 
@@ -71,6 +75,12 @@ class AdminTokenObtainPairSerializer(CustomTokenObtainPairSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    email = serializers.EmailField(required=True)
+    full_name = serializers.CharField(required=True, max_length=150)
+    national_code = serializers.CharField(required=True, max_length=10)
+    address = serializers.CharField(required=True)
+    city = serializers.CharField(required=True, max_length=80)
+    postal_code = serializers.CharField(required=True, max_length=10)
 
     class Meta:
         model = User
@@ -86,6 +96,35 @@ class RegisterSerializer(serializers.ModelSerializer):
             "postal_code",
         ]
 
+    def validate_phone(self, value):
+        phone = normalize_iran_mobile(value)
+        if User.objects.filter(phone=phone).exists():
+            raise serializers.ValidationError("این شماره موبایل قبلاً ثبت شده است.")
+        return phone
+
+    def validate_email(self, value):
+        email = (value or "").strip().lower()
+        if not email:
+            raise serializers.ValidationError("ایمیل الزامی است.")
+        if User.objects.filter(email__iexact=email).exclude(email="").exists():
+            raise serializers.ValidationError("این ایمیل قبلاً ثبت شده است.")
+        return email
+
+    def validate_national_code(self, value):
+        code = validate_iran_national_code(value)
+        if User.objects.filter(national_code=code).exclude(national_code="").exists():
+            raise serializers.ValidationError("این کد ملی قبلاً ثبت شده است.")
+        return code
+
+    def validate_postal_code(self, value):
+        return validate_iran_postal_code(value)
+
+    def validate_full_name(self, value):
+        name = (value or "").strip()
+        if len(name) < 3:
+            raise serializers.ValidationError("نام و نام خانوادگی را کامل وارد کنید.")
+        return name
+
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password_confirm"):
             raise serializers.ValidationError({"password_confirm": "رمز عبور مطابقت ندارد."})
@@ -97,12 +136,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.role = User.Role.CUSTOMER
         user.is_staff = False
         user.is_superuser = False
+        user.email_verified = False
+        user.phone_verified = False
         user.set_password(password)
         user.save()
         return user
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_complete = serializers.SerializerMethodField()
+    missing_fields = serializers.SerializerMethodField()
+    missing_field_labels = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -118,9 +163,74 @@ class UserSerializer(serializers.ModelSerializer):
             "avatar",
             "email_verified",
             "phone_verified",
+            "profile_complete",
+            "missing_fields",
+            "missing_field_labels",
             "created_at",
         ]
-        read_only_fields = ["id", "role", "email_verified", "phone_verified", "created_at"]
+        read_only_fields = [
+            "id",
+            "role",
+            "email_verified",
+            "phone_verified",
+            "profile_complete",
+            "missing_fields",
+            "missing_field_labels",
+            "created_at",
+        ]
+
+    def get_profile_complete(self, obj):
+        return is_profile_ready(obj)
+
+    def get_missing_fields(self, obj):
+        return profile_missing_fields(obj)
+
+    def get_missing_field_labels(self, obj):
+        return [PROFILE_FIELD_LABELS.get(k, k) for k in profile_missing_fields(obj)]
+
+    def validate_phone(self, value):
+        phone = normalize_iran_mobile(value)
+        qs = User.objects.filter(phone=phone)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("این شماره موبایل قبلاً ثبت شده است.")
+        return phone
+
+    def validate_email(self, value):
+        email = (value or "").strip().lower()
+        if not email:
+            raise serializers.ValidationError("ایمیل الزامی است.")
+        qs = User.objects.filter(email__iexact=email).exclude(email="")
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("این ایمیل قبلاً ثبت شده است.")
+        return email
+
+    def validate_national_code(self, value):
+        if value in (None, ""):
+            return ""
+        code = validate_iran_national_code(value)
+        qs = User.objects.filter(national_code=code).exclude(national_code="")
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("این کد ملی قبلاً ثبت شده است.")
+        return code
+
+    def validate_postal_code(self, value):
+        if value in (None, ""):
+            return ""
+        return validate_iran_postal_code(value)
+
+    def update(self, instance, validated_data):
+        # Changing phone/email resets verification
+        if "phone" in validated_data and validated_data["phone"] != instance.phone:
+            instance.phone_verified = False
+        if "email" in validated_data and validated_data["email"] != instance.email:
+            instance.email_verified = False
+        return super().update(instance, validated_data)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -131,3 +241,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not self.context["request"].user.check_password(value):
             raise serializers.ValidationError("رمز عبور فعلی نادرست است.")
         return value
+
+
+class OtpConfirmSerializer(serializers.Serializer):
+    code = serializers.CharField(min_length=4, max_length=8)

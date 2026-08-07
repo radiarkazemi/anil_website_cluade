@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
@@ -7,13 +7,17 @@ import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
+import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const addToCart = useStore((s) => s.addToCart);
+  const user = useStore((s) => s.user);
+  const tokens = useStore((s) => s.tokens);
   const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
+  const nav = useNavigate();
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
 
@@ -174,6 +178,16 @@ export function ProductDetail() {
               className="gold-btn"
               disabled={!inStock}
               onClick={() => {
+                if (!tokens || !user) {
+                  toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
+                  nav('/register');
+                  return;
+                }
+                if (!isProfileReady(user)) {
+                  toast(profileGapMessage(user));
+                  nav(profileCompletePath());
+                  return;
+                }
                 addToCart(product.id, qty);
                 toast(`«${product.name}» به گلد باکس افزوده شد`);
                 openCart();

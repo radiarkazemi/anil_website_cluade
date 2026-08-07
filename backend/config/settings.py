@@ -332,3 +332,12 @@ if not DEBUG:
         )
     if not ALLOWED_HOSTS or ALLOWED_HOSTS == ["*"]:
         raise RuntimeError("ALLOWED_HOSTS must be set to your domain(s) when DEBUG=False")
+
+# Auth verification (Iran phone + email). Demo mode returns OTP in API for testing.
+AUTH_DEMO_OTP = os.environ.get("AUTH_DEMO_OTP", "1").lower() in ("1", "true", "yes")
+AUTH_OTP_TTL_SECONDS = int(os.environ.get("AUTH_OTP_TTL_SECONDS", "300"))
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@anil.gold")
+# Require verified profile before storefront checkout
+REQUIRE_VERIFIED_PROFILE_FOR_ORDERS = os.environ.get(
+    "REQUIRE_VERIFIED_PROFILE_FOR_ORDERS", "1"
+).lower() in ("1", "true", "yes")

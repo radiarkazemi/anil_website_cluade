@@ -25,11 +25,38 @@ class PaymentStartThrottle(throttling.AnonRateThrottle):
 
 
 class OrderCreateView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [OrderCreateThrottle]
 
     def post(self, request):
-        serializer = OrderCreateSerializer(data=request.data, context={"request": request})
+        from apps.accounts.validators import PROFILE_FIELD_LABELS, is_profile_ready, profile_missing_fields
+
+        user = request.user
+        if getattr(settings, "REQUIRE_VERIFIED_PROFILE_FOR_ORDERS", True) and not is_profile_ready(user):
+            missing = profile_missing_fields(user)
+            return Response(
+                {
+                    "detail": "برای ثبت سفارش ابتدا پروفایل و تأیید هویت را کامل کنید.",
+                    "missing_fields": missing,
+                    "missing_field_labels": [PROFILE_FIELD_LABELS.get(k, k) for k in missing],
+                    "next": "/account?tab=profile&complete=1",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Prefer profile data so checkout does not re-collect known info
+        payload = {
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "email": user.email or "",
+            "address": user.address,
+            "city": user.city or "",
+            "postal_code": user.postal_code or "",
+            "note": request.data.get("note", ""),
+            "items": request.data.get("items", []),
+        }
+        # Allow optional note override only; identity comes from verified profile
+        serializer = OrderCreateSerializer(data=payload, context={"request": request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         order = serializer.save()

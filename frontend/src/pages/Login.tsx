@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
+import { isProfileReady, profileCompletePath } from '../utils/profileGate';
 
 /** Storefront customer login — rejects admin/staff accounts on the API. */
 export function Login() {
@@ -22,10 +23,14 @@ export function Login() {
     try {
       const { data } = await api.login(phone, password);
       setTokens({ access: data.access, refresh: data.refresh });
-      const { data: user } = await api.profile('client');
+      let user = data.user;
+      if (!user) {
+        const profile = await api.profile('client');
+        user = profile.data;
+      }
       setUser(user);
       toast(`خوش آمدید، ${user.full_name || user.phone}`);
-      nav('/');
+      nav(isProfileReady(user) ? '/' : profileCompletePath());
     } catch (err: any) {
       const d = err.response?.data;
       setError(
@@ -42,11 +47,11 @@ export function Login() {
     <div className="auth-shell">
       <form onSubmit={handleLogin} className="auth-card">
         <h1 className="auth-title">ورود مشتریان</h1>
-        <p className="auth-sub">با شماره تلفن وارد فروشگاه شوید.</p>
+        <p className="auth-sub">با شماره موبایل وارد فروشگاه شوید.</p>
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="شماره تلفن"
+          placeholder="موبایل (09…)"
           className="input"
           dir="ltr"
           style={{ marginBottom: 14 }}

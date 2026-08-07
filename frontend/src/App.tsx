@@ -13,6 +13,7 @@ import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
 import { ContentPageView } from './pages/ContentPage';
 import { Account } from './pages/Account';
+import { DemoPayment } from './pages/DemoPayment';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -48,6 +49,7 @@ function AppInner() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/payment/demo/:orderNumber" element={<DemoPayment />} />
         <Route path="/panel/login" element={<AdminLogin />} />
         <Route path="/panel" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />

@@ -1,64 +1,33 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useToast } from '../store/toastStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
+import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import type { Product } from '../types';
 import { IconGoldBox } from './icons';
 
-type Step = 'cart' | 'checkout' | 'pay';
-
-const FIELD_LABELS: Record<string, string> = {
-  full_name: 'نام',
-  phone: 'موبایل',
-  email: 'ایمیل',
-  address: 'آدرس',
-  city: 'شهر',
-  postal_code: 'کد پستی',
-  note: 'یادداشت',
-  items: 'اقلام سفارش',
-  non_field_errors: 'خطا',
-  detail: 'خطا',
-};
-
-const GENERIC_BLANK = /این مقدار نباید خالی باشد/;
-
-function humanizeFieldKey(key: string): string {
-  if (FIELD_LABELS[key]) return FIELD_LABELS[key];
-  // Never surface snake_case / English API keys to the customer
-  if (/^[a-z][a-z0-9_]*$/.test(key)) return 'خطا';
-  return key;
-}
+type Step = 'cart' | 'checkout';
 
 function formatApiErrors(data: unknown): string {
   if (!data || typeof data !== 'object') return '';
   const d = data as Record<string, unknown>;
-  const parts: string[] = [];
-  if (typeof d.detail === 'string') parts.push(d.detail);
-  for (const [k, v] of Object.entries(d)) {
-    if (k === 'detail') continue;
-    const label = humanizeFieldKey(k);
-    let msg = Array.isArray(v)
-      ? v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('، ')
-      : typeof v === 'string'
-        ? v
-        : typeof v === 'object' && v
-          ? formatApiErrors(v)
-          : JSON.stringify(v);
-    if (!msg) continue;
-    if (GENERIC_BLANK.test(msg)) {
-      msg = k === 'postal_code'
-        ? 'کد پستی اختیاری است؛ می‌توانید خالی بگذارید.'
-        : `${label} را وارد کنید.`;
-      parts.push(msg);
-      continue;
-    }
-    parts.push(msg.includes(label) ? msg : `${label}: ${msg}`);
+  if (typeof d.detail === 'string') {
+    const labels = Array.isArray(d.missing_field_labels)
+      ? (d.missing_field_labels as string[]).join('، ')
+      : '';
+    return labels ? `${d.detail} (${labels})` : d.detail;
   }
-  return parts.filter(Boolean).join(' — ');
+  return Object.entries(d)
+    .map(([, v]) => {
+      const msg = Array.isArray(v) ? v.join('، ') : String(v);
+      return msg;
+    })
+    .filter(Boolean)
+    .join(' — ');
 }
 
 export function CartDrawer() {
@@ -71,45 +40,28 @@ export function CartDrawer() {
   const user = useStore((s) => s.user);
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const toast = useToast((s) => s.show);
+  const nav = useNavigate();
 
   const { data } = useQuery({
     queryKey: ['products-all'],
     queryFn: () => api.products({ page_size: '200' }).then((r) => r.data.results),
     staleTime: 60000,
   });
-  const { data: gatewaysData } = useQuery({
-    queryKey: ['payment-gateways'],
-    queryFn: () => api.paymentGateways().then((r) => r.data),
-    staleTime: 120000,
-  });
 
   const products = data ?? [];
-  const gateways = gatewaysData?.gateways ?? [
-    { code: 'zarinpal', label: 'زرین‌پال' },
-    { code: 'idpay', label: 'آیدی‌پی' },
-  ];
-
   const [step, setStep] = useState<Step>('cart');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [orderNumber, setOrderNumber] = useState('');
-  const [gateway, setGateway] = useState('zarinpal');
-  const [form, setForm] = useState({
-    full_name: user?.full_name || '',
-    phone: user?.phone || '',
-    email: user?.email || '',
-    address: user?.address || '',
-    city: user?.city || '',
-    postal_code: user?.postal_code || '',
-    note: '',
-  });
+  const [note, setNote] = useState('');
 
-  const cartItems = cart.map((c) => {
-    const p = products.find((x) => x.id === c.productId);
-    if (!p) return null;
-    const pr = calcPrice(Number(p.weight_g), gp, Number(p.fee_ratio), p.stone_value);
-    return { ...c, product: p, price: pr.total };
-  }).filter(Boolean) as { productId: string; qty: number; product: Product; price: number }[];
+  const cartItems = cart
+    .map((c) => {
+      const p = products.find((x) => x.id === c.productId);
+      if (!p) return null;
+      const pr = calcPrice(Number(p.weight_g), gp, Number(p.fee_ratio), p.stone_value);
+      return { ...c, product: p, price: pr.total };
+    })
+    .filter(Boolean) as { productId: string; qty: number; product: Product; price: number }[];
 
   const subtotal = cartItems.reduce((s, c) => s + c.price * c.qty, 0);
   const totalQty = cart.reduce((s, c) => s + c.qty, 0);
@@ -117,14 +69,36 @@ export function CartDrawer() {
   const resetAndClose = () => {
     setStep('cart');
     setError('');
-    setOrderNumber('');
+    setNote('');
     closeCart();
+  };
+
+  const goCompleteProfile = () => {
+    resetAndClose();
+    nav(profileCompletePath());
+  };
+
+  const handleContinue = () => {
+    if (!user) {
+      toast('برای ادامه خرید وارد شوید یا ثبت‌نام کنید.');
+      resetAndClose();
+      nav('/login');
+      return;
+    }
+    if (!isProfileReady(user)) {
+      toast(profileGapMessage(user));
+      goCompleteProfile();
+      return;
+    }
+    setError('');
+    setStep('checkout');
   };
 
   const handleCheckout = async () => {
     if (busy) return;
-    if (!form.full_name.trim() || !form.phone.trim() || !form.address.trim()) {
-      setError('نام، موبایل و آدرس الزامی است.');
+    if (!user || !isProfileReady(user)) {
+      toast(profileGapMessage(user));
+      goCompleteProfile();
       return;
     }
     if (!cart.length) {
@@ -134,51 +108,26 @@ export function CartDrawer() {
     setBusy(true);
     setError('');
     try {
-      const postal = form.postal_code.replace(/\D/g, '').trim();
-      const { data: order } = await api.createOrder({
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
-        ...(form.email.trim() ? { email: form.email.trim() } : {}),
-        ...(form.city.trim() ? { city: form.city.trim() } : {}),
-        // Only send postal_code when the user typed something — empty is optional
-        ...(postal ? { postal_code: postal } : {}),
-        ...(form.note.trim() ? { note: form.note.trim() } : {}),
+      const { data: order } = await api.createOrderFromProfile({
         items: cart.map((c) => ({ product_id: c.productId, qty: c.qty })),
+        ...(note.trim() ? { note: note.trim() } : {}),
       });
       clearCart();
-      setOrderNumber(order.order_number);
-      setStep('pay');
-      toast(`سفارش ${order.order_number} ثبت شد`);
+      toast(`سفارش ${order.order_number} ثبت شد — ادامه پرداخت آزمایشی`);
+      resetAndClose();
+      nav(`/payment/demo/${order.order_number}`);
     } catch (e: any) {
+      const status = e.response?.status;
       const formatted = formatApiErrors(e.response?.data);
-      setError(formatted || (e.response?.status === 429
-        ? 'تعداد درخواست زیاد است — چند ثانیه صبر کنید.'
-        : 'ثبت سفارش ناموفق بود.'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handlePay = async () => {
-    if (!orderNumber) return;
-    setBusy(true);
-    setError('');
-    try {
-      const { data: pay } = await api.payOrder(orderNumber, { gateway, phone: form.phone.trim() });
-      if (pay.sandbox && (pay.authority?.startsWith('SANDBOX') || pay.authority?.startsWith('ID-'))) {
-        await api.sandboxConfirmPayment(orderNumber, form.phone.trim());
-        toast('پرداخت آزمایشی با موفقیت تأیید شد');
-        resetAndClose();
+      if (status === 403 || status === 401) {
+        toast(formatted || profileGapMessage(user));
+        goCompleteProfile();
         return;
       }
-      if (pay.payment_url) {
-        window.location.href = pay.payment_url;
-        return;
-      }
-      setError('لینک پرداخت دریافت نشد.');
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'خطا در اتصال به درگاه');
+      setError(
+        formatted ||
+          (status === 429 ? 'تعداد درخواست زیاد است — چند ثانیه صبر کنید.' : 'ثبت سفارش ناموفق بود.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -199,57 +148,48 @@ export function CartDrawer() {
               <div className="goldbox-title">گلد باکس</div>
               <div className="goldbox-sub">
                 {step === 'cart' && `${faNum(totalQty)} قلم`}
-                {step === 'checkout' && 'اطلاعات ارسال'}
-                {step === 'pay' && 'پرداخت امن'}
+                {step === 'checkout' && 'تأیید و پرداخت'}
               </div>
             </div>
           </div>
-          <button type="button" className="goldbox-close" onClick={resetAndClose}>✕</button>
+          <button type="button" className="goldbox-close" onClick={resetAndClose}>
+            ✕
+          </button>
         </header>
 
-        {step === 'pay' ? (
+        {step === 'checkout' ? (
           <div className="goldbox-body">
-            <div className="goldbox-success">
-              <div className="goldbox-success-title">سفارش ثبت شد</div>
-              <div className="goldbox-order-no">{orderNumber}</div>
-              <p>درگاه پرداخت ایرانی را انتخاب کنید.</p>
+            <div className="goldbox-sum">
+              جمع قابل پرداخت: <strong>{faPrice(subtotal)}</strong> تومان
             </div>
-            <div className="goldbox-gateways">
-              {gateways.map((g) => (
-                <label key={g.code} className={`goldbox-gw${gateway === g.code ? ' on' : ''}`}>
-                  <input
-                    type="radio"
-                    name="gw"
-                    checked={gateway === g.code}
-                    onChange={() => setGateway(g.code)}
-                  />
-                  {g.label}
-                </label>
-              ))}
+            <div className="goldbox-profile-box">
+              <div className="goldbox-profile-title">ارسال با اطلاعات حساب</div>
+              <div>{user?.full_name}</div>
+              <div dir="ltr">{user?.phone}</div>
+              <div>{user?.email}</div>
+              <div>
+                {user?.city} — {user?.address}
+              </div>
+              <div dir="ltr">کد پستی: {user?.postal_code}</div>
+              <div dir="ltr">کد ملی: {user?.national_code}</div>
+              <button type="button" className="text-link" onClick={goCompleteProfile}>
+                ویرایش در پروفایل
+              </button>
             </div>
-            {error && <div className="goldbox-error">{error}</div>}
-            <button type="button" className="gold-btn" disabled={busy} onClick={handlePay}>
-              {busy ? '…' : 'پرداخت آنلاین'}
-            </button>
-            <Link to="/account" className="outline-btn" style={{ textAlign: 'center' }} onClick={resetAndClose}>
-              مشاهده در حساب من
-            </Link>
-          </div>
-        ) : step === 'checkout' ? (
-          <div className="goldbox-body">
-            <div className="goldbox-sum">جمع قابل پرداخت: <strong>{faPrice(subtotal)}</strong> تومان</div>
-            <input className="input" placeholder="نام و نام خانوادگی *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-            <input className="input" placeholder="موبایل *" dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <input className="input" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <input className="input" placeholder="شهر" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <input className="input" placeholder="کد پستی (اختیاری)" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
-            <textarea className="input" placeholder="آدرس کامل *" rows={3} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-            <textarea className="input" placeholder="یادداشت سفارش (اختیاری)" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+            <textarea
+              className="input"
+              placeholder="یادداشت سفارش (اختیاری)"
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
             {error && <div className="goldbox-error">{error}</div>}
             <button type="button" className="gold-btn" disabled={busy} onClick={handleCheckout}>
-              {busy ? 'در حال ثبت…' : 'ثبت و ادامه پرداخت'}
+              {busy ? 'در حال ثبت…' : 'ثبت سفارش و پرداخت آزمایشی'}
             </button>
-            <button type="button" className="outline-btn" onClick={() => setStep('cart')}>بازگشت به گلد باکس</button>
+            <button type="button" className="outline-btn" onClick={() => setStep('cart')}>
+              بازگشت به گلد باکس
+            </button>
           </div>
         ) : cartItems.length > 0 ? (
           <>
@@ -257,40 +197,67 @@ export function CartDrawer() {
               {cartItems.map((c) => (
                 <div key={c.productId} className="goldbox-item">
                   <div className="goldbox-thumb">
-                    {(c.product.primary_image || c.product.images?.[0]?.image) ? (
+                    {c.product.primary_image || c.product.images?.[0]?.image ? (
                       <img src={c.product.primary_image || c.product.images![0].image} alt="" />
                     ) : null}
                   </div>
                   <div className="goldbox-item-body">
                     <div className="goldbox-item-name">{c.product.name}</div>
-                    <div className="goldbox-item-meta">{c.product.category_name} · {faNum(Number(c.product.weight_g))} گرم</div>
+                    <div className="goldbox-item-meta">
+                      {c.product.category_name} · {faNum(Number(c.product.weight_g))} گرم
+                    </div>
                     <div className="goldbox-item-row">
                       <div className="pd-qty compact">
-                        <button type="button" onClick={() => updateQty(c.productId, c.qty - 1)}>−</button>
+                        <button type="button" onClick={() => updateQty(c.productId, c.qty - 1)}>
+                          −
+                        </button>
                         <div>{faNum(c.qty)}</div>
-                        <button type="button" onClick={() => updateQty(c.productId, c.qty + 1)}>+</button>
+                        <button type="button" onClick={() => updateQty(c.productId, c.qty + 1)}>
+                          +
+                        </button>
                       </div>
                       <div className="goldbox-item-price">{faPrice(c.price * c.qty)}</div>
                     </div>
                   </div>
-                  <button type="button" className="goldbox-remove" onClick={() => removeFromCart(c.productId)}>✕</button>
+                  <button type="button" className="goldbox-remove" onClick={() => removeFromCart(c.productId)}>
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
             <footer className="goldbox-foot">
               <div className="goldbox-total-row">
                 <span>جمع کل ({faNum(totalQty)} قلم)</span>
-                <strong>{faPrice(subtotal)} <small>تومان</small></strong>
+                <strong>
+                  {faPrice(subtotal)} <small>تومان</small>
+                </strong>
               </div>
-              <p className="goldbox-note">قیمت بر اساس نرخ لحظه‌ای طلا · پرداخت از طریق درگاه‌های ایرانی</p>
-              <button type="button" className="gold-btn" onClick={() => setStep('checkout')}>ادامه خرید و پرداخت</button>
+              <p className="goldbox-note">قیمت بر اساس نرخ لحظه‌ای طلا · پرداخت آزمایشی فعال است</p>
+              {!user && (
+                <p className="goldbox-note" style={{ color: 'var(--down)' }}>
+                  برای ادامه باید وارد شوید.{' '}
+                  <Link to="/login" onClick={resetAndClose}>
+                    ورود
+                  </Link>
+                </p>
+              )}
+              {user && !isProfileReady(user) && (
+                <p className="goldbox-note" style={{ color: 'var(--down)' }}>
+                  {profileGapMessage(user)}
+                </p>
+              )}
+              <button type="button" className="gold-btn" onClick={handleContinue}>
+                ادامه خرید و پرداخت
+              </button>
             </footer>
           </>
         ) : (
           <div className="goldbox-empty">
             <div className="goldbox-empty-title">گلد باکس خالی است</div>
             <p>زیورآلات مورد علاقه‌تان را اضافه کنید.</p>
-            <button type="button" className="gold-btn" onClick={resetAndClose}>مشاهده محصولات</button>
+            <button type="button" className="gold-btn" onClick={resetAndClose}>
+              مشاهده محصولات
+            </button>
           </div>
         )}
       </aside>

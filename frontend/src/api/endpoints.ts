@@ -92,13 +92,31 @@ export const api = {
       authSession: 'admin',
     }),
   register: (data: Record<string, string>) =>
-    client.post<{ user: User; tokens: AuthTokens }>('/auth/register/', data, { authSession: 'client' }),
+    client.post<{ user: User; tokens: AuthTokens; next?: string; detail?: string }>('/auth/register/', data, {
+      authSession: 'client',
+    }),
   profile: (session: 'client' | 'admin' = 'client') =>
     client.get<User>('/auth/profile/', { authSession: session }),
   updateProfile: (data: Partial<User>) => client.patch<User>('/auth/profile/', data),
   logout: (refresh: string, session: 'client' | 'admin' = 'client') =>
     client.post('/auth/logout/', { refresh }, { authSession: session }),
+  sendPhoneOtp: () =>
+    client.post<{ detail: string; demo_code?: string; expires_in?: number; user?: User }>(
+      '/auth/verify/phone/send/',
+      {},
+    ),
+  confirmPhoneOtp: (code: string) =>
+    client.post<{ detail: string; user: User }>('/auth/verify/phone/confirm/', { code }),
+  sendEmailOtp: () =>
+    client.post<{ detail: string; demo_code?: string; expires_in?: number; user?: User }>(
+      '/auth/verify/email/send/',
+      {},
+    ),
+  confirmEmailOtp: (code: string) =>
+    client.post<{ detail: string; user: User }>('/auth/verify/email/confirm/', { code }),
 
+  createOrderFromProfile: (data: { items: { product_id: string; qty: number }[]; note?: string }) =>
+    client.post<Order>('/orders/', data),
   priceHistory: (limit = 50) => client.get('/analytics/price-history/', { params: { limit } }),
   logProductView: (product_id: string) => client.post('/analytics/product-view/', { product_id }),
 

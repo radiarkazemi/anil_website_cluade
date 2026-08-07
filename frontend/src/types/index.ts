@@ -177,6 +177,9 @@ export interface User {
   avatar: string | null;
   email_verified: boolean;
   phone_verified: boolean;
+  profile_complete?: boolean;
+  missing_fields?: string[];
+  missing_field_labels?: string[];
   created_at: string;
 }
 
