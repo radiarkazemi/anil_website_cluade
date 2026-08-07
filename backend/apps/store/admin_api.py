@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework import generics, parsers, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +23,8 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     price = serializers.SerializerMethodField()
     category_name = serializers.CharField(source="category.name", read_only=True)
+    slug = serializers.SlugField(required=False, allow_blank=True, allow_unicode=True, max_length=200)
+    sku = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=30)
 
     class Meta:
         model = Product
@@ -54,6 +57,34 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
     def get_price(self, obj):
         return obj.price_breakdown()["total"]
 
+    def _unique_slug(self, base: str, instance=None) -> str:
+        root = slugify(base, allow_unicode=True) or "product"
+        candidate = root
+        n = 2
+        qs = Product.objects.all()
+        if instance is not None:
+            qs = qs.exclude(pk=instance.pk)
+        while qs.filter(slug=candidate).exists():
+            candidate = f"{root}-{n}"
+            n += 1
+        return candidate
+
+    def validate_sku(self, value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        return value or None
+
+    def validate(self, attrs):
+        name = attrs.get("name") or getattr(self.instance, "name", "")
+        slug = attrs.get("slug", None)
+        if slug is None or str(slug).strip() == "":
+            attrs["slug"] = self._unique_slug(name, self.instance)
+        else:
+            attrs["slug"] = str(slug).strip()
+        if "sku" in attrs and attrs["sku"] == "":
+            attrs["sku"] = None
+        return attrs
 
 class AdminUserManageSerializer(serializers.ModelSerializer):
     class Meta:

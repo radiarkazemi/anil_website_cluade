@@ -2229,12 +2229,15 @@ body.nav-open { overflow: hidden; }
   width: 160px; height: 160px; object-fit: contain;
   margin: 8px 0; display: block; background: var(--surface-2); border-radius: 12px;
 }
-.layout-section-save {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+.admin-form-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(224, 101, 95, .35);
+  background: rgba(224, 101, 95, .08);
+  color: var(--down);
+  font-size: 13.5px;
+  line-height: 1.7;
 }
 .layout-section-save .gold-btn {
   min-height: 44px;
