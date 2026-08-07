@@ -14,8 +14,8 @@ class SeparatedLoginTests(APITestCase):
             role=User.Role.CUSTOMER,
         )
         self.admin = User.objects.create_user(
-            phone="09120000000",
-            password="anil-admin-2026",
+            phone="radiar9841",
+            password="test-admin-pass-1",
             full_name="مدیر تست",
             role=User.Role.ADMIN,
             is_staff=True,
@@ -35,7 +35,7 @@ class SeparatedLoginTests(APITestCase):
     def test_admin_rejected_from_client_login(self):
         r = self.client.post(
             "/api/v1/auth/login/",
-            {"phone": "09120000000", "password": "anil-admin-2026"},
+            {"phone": "radiar9841", "password": "test-admin-pass-1"},
             format="json",
         )
         self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -43,7 +43,7 @@ class SeparatedLoginTests(APITestCase):
     def test_admin_can_use_admin_login(self):
         r = self.client.post(
             "/api/v1/auth/admin/login/",
-            {"phone": "09120000000", "password": "anil-admin-2026"},
+            {"phone": "radiar9841", "password": "test-admin-pass-1"},
             format="json",
         )
         self.assertEqual(r.status_code, status.HTTP_200_OK)

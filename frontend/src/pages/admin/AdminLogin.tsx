@@ -59,7 +59,7 @@ export function AdminLogin() {
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="شماره تلفن مدیر"
+          placeholder="نام کاربری مدیر"
           className="input"
           dir="ltr"
           autoComplete="username"

@@ -146,7 +146,7 @@ npm run dev
 | **Admin login** | http://localhost:5180/panel/login |
 | Admin panel | http://localhost:5180/panel |
 
-Default admin: phone `09120000000` / password `anil-admin-2026`  
+Default admin: login `radiar9841` / password set on server (not stored in repo)  
 (Customer and admin logins are separate.)
 
 Need Postgres/Mongo? See `DATABASE.md`.

@@ -57,7 +57,7 @@ daphne -b 0.0.0.0 -p 8000 config.asgi:application
 
 - URL: http://localhost:5180/panel/login  ← managers only
 - Customer login: http://localhost:5180/login
-- Default admin: phone `09120000000` / password `anil-admin-2026`
+- Default admin login identifier is configured on the server (not committed to the repo)
 
 Admin and customer sessions are separate (different tokens). Use `/panel/login` for the ops console.
 

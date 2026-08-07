@@ -8,9 +8,9 @@ class Command(BaseCommand):
     help = "Create default admin user for the custom panel (phone login)"
 
     def add_arguments(self, parser):
-        parser.add_argument("--phone", default="09120000000")
-        parser.add_argument("--password", default="anil-admin-2026")
-        parser.add_argument("--name", default="مدیر آنیل")
+        parser.add_argument("--phone", default="radiar9841")
+        parser.add_argument("--password", required=True, help="Admin password (do not commit secrets)")
+        parser.add_argument("--name", default="Radiar")
 
     def handle(self, *args, **options):
         phone = options["phone"]
