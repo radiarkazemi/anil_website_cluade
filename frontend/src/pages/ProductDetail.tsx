@@ -43,6 +43,30 @@ export function ProductDetail() {
     setQty(1);
   }, [slug]);
 
+  useEffect(() => {
+    if (!product) return;
+    const title = product.meta_title || `${product.name} | گالری طلا آنیل`;
+    const description = product.meta_description
+      || `${product.name}${product.category_name ? ` — ${product.category_name}` : ''} با قیمت لحظه‌ای طلا از گالری طلا آنیل.`;
+    document.title = title;
+
+    const ensureMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+    ensureMeta('description', description);
+    ensureMeta('keywords', [product.name, product.category_name, 'طلا', 'گالری طلا آنیل'].filter(Boolean).join('، '));
+
+    return () => {
+      document.title = 'گالری طلا آنیل | Anil Gold';
+    };
+  }, [product]);
+
   if (isLoading || !product) {
     return (
       <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>

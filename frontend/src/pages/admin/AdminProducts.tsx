@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
+import { bestProductSeo, suggestProductSeo, type SeoSuggestion } from '../../utils/productSeo';
 import { useToast } from '../../store/toastStore';
 import type { Product } from '../../types';
 import { PageHeader } from './adminShared';
@@ -99,6 +100,16 @@ export function AdminProducts() {
       }
 
       const autoSlug = slugifyName(form.name);
+      const categoryName = categories?.find((c) => c.id === form.category)?.name || '';
+      const seoFallback = bestProductSeo({
+        name: form.name,
+        categoryName,
+        weight_g: weight,
+        karat: Number(form.karat) || 18,
+        tag: form.tag || '',
+        sku: form.sku || '',
+        description: form.description || '',
+      });
       const payload = {
         name: String(form.name).trim(),
         slug: String(form.slug || '').trim() || autoSlug,
@@ -114,8 +125,8 @@ export function AdminProducts() {
         sku: String(form.sku || '').trim() || null,
         is_active: form.is_active !== false,
         is_featured: !!form.is_featured,
-        meta_title: form.meta_title || '',
-        meta_description: form.meta_description || '',
+        meta_title: String(form.meta_title || '').trim() || seoFallback?.meta_title || '',
+        meta_description: String(form.meta_description || '').trim() || seoFallback?.meta_description || '',
       };
 
       let product: Product;
@@ -183,6 +194,38 @@ export function AdminProducts() {
         slug: shouldAutoSlug ? slugifyName(name) : prev.slug,
       };
     });
+  };
+
+  const categoryName = categories?.find((c) => c.id === form?.category)?.name || '';
+  const seoSuggestions = useMemo(() => {
+    if (!form?.name?.trim()) return [] as SeoSuggestion[];
+    return suggestProductSeo({
+      name: form.name,
+      categoryName,
+      weight_g: form.weight_g,
+      karat: form.karat,
+      tag: form.tag,
+      sku: form.sku,
+      description: form.description,
+    });
+  }, [form?.name, form?.weight_g, form?.karat, form?.tag, form?.sku, form?.description, categoryName]);
+
+  const applySeo = (s: SeoSuggestion) => {
+    setForm((prev: any) => prev ? ({
+      ...prev,
+      meta_title: s.meta_title,
+      meta_description: s.meta_description,
+      _seoAppliedId: s.id,
+    }) : prev);
+    toast(`سئو «${s.label}» اعمال شد`);
+  };
+
+  const applyBestSeo = () => {
+    if (!seoSuggestions[0]) {
+      toast('اول نام محصول را وارد کنید');
+      return;
+    }
+    applySeo(seoSuggestions[0]);
   };
 
   return (
@@ -288,13 +331,64 @@ export function AdminProducts() {
               <span>توضیحات کامل</span>
               <textarea className="input" rows={4} value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </label>
-            <label>
-              <span>عنوان سئو (meta title)</span>
-              <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} />
+
+            <div className="full seo-smart-box">
+              <div className="seo-smart-head">
+                <div>
+                  <h4>سئوی هوشمند محصول</h4>
+                  <p>بر اساس نام، دسته، وزن و عیار، بهترین عنوان و توضیح متا پیشنهاد می‌شود.</p>
+                </div>
+                <button type="button" className="gold-btn" onClick={applyBestSeo} disabled={!seoSuggestions.length}>
+                  پیشنهاد برتر را پر کن
+                </button>
+              </div>
+              {seoSuggestions.length > 0 ? (
+                <div className="seo-suggest-list">
+                  {seoSuggestions.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`seo-suggest-card${form._seoAppliedId === s.id || (form.meta_title === s.meta_title && form.meta_description === s.meta_description) ? ' on' : ''}`}
+                      onClick={() => applySeo(s)}
+                    >
+                      <div className="seo-suggest-top">
+                        <strong>{s.label}</strong>
+                        <span>امتیاز {faNum(s.score)}</span>
+                      </div>
+                      <div className="seo-suggest-title">{s.meta_title}</div>
+                      <div className="seo-suggest-desc">{s.meta_description}</div>
+                      <div className="seo-suggest-keys">
+                        {s.keywords.slice(0, 4).map((k) => (
+                          <span key={k}>{k}</span>
+                        ))}
+                      </div>
+                      <div className="seo-suggest-tip">{s.tips[0]}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="layout-hint">برای دیدن پیشنهادها، نام محصول را بنویسید.</p>
+              )}
+            </div>
+
+            <label className="full">
+              <span>
+                عنوان سئو (meta title)
+                <em className="seo-count">{faNum((form.meta_title || '').length)} / ۶۰</em>
+              </span>
+              <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value, _seoAppliedId: '' })} />
             </label>
-            <label>
-              <span>توضیح سئو (meta description)</span>
-              <input className="input" value={form.meta_description || ''} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} />
+            <label className="full">
+              <span>
+                توضیح سئو (meta description)
+                <em className="seo-count">{faNum((form.meta_description || '').length)} / ۱۶۰</em>
+              </span>
+              <textarea
+                className="input"
+                rows={3}
+                value={form.meta_description || ''}
+                onChange={(e) => setForm({ ...form, meta_description: e.target.value, _seoAppliedId: '' })}
+              />
             </label>
             <label className="full">
               <span>تصویر اصلی</span>
