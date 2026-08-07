@@ -726,7 +726,7 @@ body.nav-open { overflow: hidden; }
   background: var(--rate-board-bg);
   color: var(--rate-board-text);
   border-block: 1px solid var(--rate-chip-border);
-  padding: 36px 0 40px;
+  padding-block: 36px 40px;
 }
 .rates-board-inner { padding-block: 0; }
 .rates-board-head {
@@ -1449,7 +1449,7 @@ body.nav-open { overflow: hidden; }
 
   /* Rates — stable 2×2 grid, no clipped scroll */
   .rates-board {
-    padding: var(--section-gap) 0 calc(var(--section-gap) - 8px);
+    padding-block: var(--section-gap) calc(var(--section-gap) - 8px);
     border-block: none;
     background: transparent;
   }
@@ -1595,7 +1595,7 @@ body.nav-open { overflow: hidden; }
   .trust-desc { font-size: 13.5px; line-height: 1.7; }
   .footer-grid { grid-template-columns: 1fr; gap: 24px; }
   .site-footer {
-    padding: 40px 0 36px;
+    padding-block: 40px 36px;
     font-size: 14px;
   }
   .footer-brand { font-size: 22px; }
@@ -1626,14 +1626,14 @@ body.nav-open { overflow: hidden; }
     white-space: nowrap;
   }
   .filter-sort { width: 100%; min-width: 0; height: 46px; }
-  .products-page { padding: 24px 0 56px; }
+  .products-page { padding-block: 24px 56px; }
   .products-title { font-size: 26px; }
   .products-count { font-size: 13.5px; }
 
   .form-grid { grid-template-columns: 1fr; }
   .blog-grid { grid-template-columns: 1fr; }
   .account-head { flex-direction: column; align-items: stretch; }
-  .account-page { padding: 24px 0 56px; }
+  .account-page { padding-block: 24px 56px; }
   .account-panel { padding: 20px; border-radius: 18px; }
   .account-tabs {
     gap: 8px;
@@ -1653,7 +1653,7 @@ body.nav-open { overflow: hidden; }
   .pd-info h1 { font-size: 26px; }
   .pd-price { font-size: 26px; }
   .pd-live { margin-inline-start: 0; width: 100%; }
-  .product-detail-page { padding: 20px 0 56px; }
+  .product-detail-page { padding-block: 20px 56px; }
   .pd-breadcrumb { font-size: 13px; margin-bottom: 18px; }
   .pd-related { margin-top: 44px; }
   .pd-related h2 { font-size: 22px; }
@@ -2282,7 +2282,7 @@ body.nav-open { overflow: hidden; }
 
 
 /* ── Product detail ── */
-.product-detail-page { padding: 36px 0 64px; }
+.product-detail-page { padding-block: 36px 64px; }
 .pd-breadcrumb { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pd-breadcrumb .current { color: var(--gold-deep); }
 .pd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
@@ -2377,7 +2377,7 @@ body.nav-open { overflow: hidden; }
 .goldbox-gw.on { border-color: var(--gold); background: rgba(212,175,55,.08); }
 
 /* ── Account ── */
-.account-page { padding: 40px 0 70px; }
+.account-page { padding-block: 40px 70px; }
 .account-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
 .account-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .account-tabs button {
@@ -2402,7 +2402,7 @@ body.nav-open { overflow: hidden; }
 .ot-step.on span { background: var(--gold); }
 .ot-step.now { color: var(--gold-light); font-weight: 700; }
 
-.products-page { padding: 40px 0 70px; min-height: 70vh; }
+.products-page { padding-block: 40px 70px; min-height: 70vh; }
 .products-title-row {
   display: flex;
   align-items: flex-end;
@@ -2414,7 +2414,7 @@ body.nav-open { overflow: hidden; }
 .products-title { font-size: clamp(24px, 6vw, 34px); font-weight: 800; }
 .products-count { color: var(--text-dim); font-size: 13.5px; }
 @media (max-width: 560px) {
-  .products-page { padding: 24px 0 48px; }
+  .products-page { padding-block: 24px 48px; }
 }
 
 .analytics-kpi { margin-bottom: 8px; }
