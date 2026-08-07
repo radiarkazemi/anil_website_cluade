@@ -5,7 +5,17 @@ import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useTheme } from '../store/themeStore';
-import { faPrice } from '../utils/format';
+import { faNum, faPrice } from '../utils/format';
+
+function IconBag() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M6.2 8.2h11.6l-.9 10.1a1.8 1.8 0 0 1-1.8 1.5H8.9a1.8 1.8 0 0 1-1.8-1.5L6.2 8.2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9 8.2V6.8a3 3 0 0 1 6 0v1.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4.8 8.2h14.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
@@ -50,7 +60,6 @@ export function Header() {
   const cartLabel = site?.cart_label || 'گلد باکس';
   const logoSrc = site?.brand_logo_url || '/logo.png';
   const banner = site?.top_banner;
-
   const closeMenu = () => setMenuOpen(false);
 
   const navLinks = (
@@ -127,10 +136,15 @@ export function Header() {
               </Link>
             )}
 
-            <button className="icon-btn cart-btn" onClick={() => { closeMenu(); openCart(); }} type="button" aria-label={cartLabel}>
+            <button
+              className="icon-btn cart-btn"
+              onClick={() => { closeMenu(); openCart(); }}
+              type="button"
+              aria-label={cartLabel}
+            >
               <span className="cart-label-full">{cartLabel}</span>
-              <span className="cart-label-short" aria-hidden>◈</span>
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+              <span className="cart-ico-mobile"><IconBag /></span>
+              {cartCount > 0 && <span className="cart-badge">{faNum(cartCount)}</span>}
             </button>
 
             <button
@@ -148,13 +162,15 @@ export function Header() {
         </div>
 
         {gp > 0 && (
-          <a href="/#market" className="mobile-gold-bar" aria-label="نرخ زنده طلای ۱۸ عیار">
-            <span className="mobile-gold-bar-live">
-              <span className="live-dot" />
-              طلای ۱۸ عیار
-            </span>
-            <strong className="mobile-gold-bar-price">{faPrice(gp)} <span>تومان</span></strong>
-          </a>
+          <div className="mobile-ticker">
+            <div className="container mobile-ticker-inner">
+              <span className="mobile-ticker-live">
+                <span className="live-dot" />
+                نرخ زنده طلای ۱۸
+              </span>
+              <strong>{faPrice(gp)} <em>تومان / گرم</em></strong>
+            </div>
+          </div>
         )}
 
         {menuOpen && (
@@ -168,11 +184,7 @@ export function Header() {
                 ) : (
                   <Link to="/login" className="gold-btn" onClick={closeMenu}>ورود / ثبت‌نام</Link>
                 )}
-                <button
-                  type="button"
-                  className="outline-btn mobile-theme-btn"
-                  onClick={() => { toggleTheme(); }}
-                >
+                <button type="button" className="outline-btn mobile-theme-btn" onClick={() => toggleTheme()}>
                   {theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
                 </button>
                 {!hasAdminSession && (

@@ -174,10 +174,38 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
 
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
+  const heroSrc = site?.hero_image_url || '/hero/ring.png';
 
   return (
     <section className="home-hero-bleed">
-      <div className="container home-hero">
+      {/* Phone: full-bleed gallery composition */}
+      <div className="m-hero">
+        <div className="m-hero-media">
+          <img src={heroSrc} alt="" decoding="async" fetchPriority="high" />
+          <div className="m-hero-veil" />
+        </div>
+        <div className="m-hero-copy">
+          <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
+          <h1 className="shimmer-text hero-h1">
+            {title.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
+          <p className="hero-lead">
+            {site?.hero_subtitle
+              || 'زیورآلات اصیل با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
+          </p>
+          <div className="hero-actions">
+            <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop / tablet landscape: original split layout */}
+      <div className="container home-hero d-hero">
         <HeroVisual site={site} />
         <div className="hero-copy">
           <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
