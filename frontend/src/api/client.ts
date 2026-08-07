@@ -45,6 +45,14 @@ client.interceptors.request.use((config) => {
   if (tokens?.access) {
     config.headers.Authorization = `Bearer ${tokens.access}`;
   }
+  // Let the browser set multipart boundary — a bare multipart/form-data header breaks Django parsing
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Content-Type', undefined as unknown as string);
+    }
+    delete (config.headers as Record<string, unknown>)['Content-Type'];
+    delete (config.headers as Record<string, unknown>)['content-type'];
+  }
   return config;
 });
 

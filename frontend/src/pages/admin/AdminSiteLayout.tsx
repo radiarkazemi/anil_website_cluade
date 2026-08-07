@@ -15,6 +15,26 @@ const SECTION_LABELS: Record<string, string> = {
 
 const DEFAULT_ORDER = ['hero', 'rates', 'categories', 'featured', 'trust'];
 
+type SaveSection = 'brand' | 'hero' | 'footer' | 'visibility' | 'order' | 'all';
+
+function SectionSaveBar({
+  label,
+  pending,
+  onSave,
+}: {
+  label?: string;
+  pending: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <div className="layout-section-save">
+      <button type="button" className="gold-btn" disabled={pending} onClick={onSave}>
+        {pending ? 'در حال ذخیره…' : (label || 'ذخیره این بخش')}
+      </button>
+    </div>
+  );
+}
+
 export function AdminSiteLayout() {
   const qc = useQueryClient();
   const toast = useToast((s) => s.show);
@@ -25,6 +45,7 @@ export function AdminSiteLayout() {
   const [form, setForm] = useState<Partial<SiteSettings> | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [savingSection, setSavingSection] = useState<SaveSection | null>(null);
 
   useEffect(() => {
     if (data) {
@@ -35,9 +56,80 @@ export function AdminSiteLayout() {
     }
   }, [data]);
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!form) return;
+  const buildPayload = (section: SaveSection): FormData | Record<string, unknown> => {
+    if (!form) return {};
+
+    if (section === 'brand') {
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append('brand_name', form.brand_name || '');
+        fd.append('brand_tagline', form.brand_tagline || '');
+        fd.append('cart_label', form.cart_label || '');
+        fd.append('top_banner', form.top_banner || '');
+        fd.append('brand_logo', logoFile);
+        return fd;
+      }
+      return {
+        brand_name: form.brand_name || '',
+        brand_tagline: form.brand_tagline || '',
+        cart_label: form.cart_label || '',
+        top_banner: form.top_banner || '',
+      };
+    }
+
+    if (section === 'hero') {
+      if (heroFile) {
+        const fd = new FormData();
+        fd.append('hero_badge', form.hero_badge || '');
+        fd.append('hero_title', form.hero_title || '');
+        fd.append('hero_subtitle', form.hero_subtitle || '');
+        fd.append('hero_mode', form.hero_mode || 'image');
+        fd.append('hero_cta_primary', form.hero_cta_primary || '');
+        fd.append('hero_cta_secondary', form.hero_cta_secondary || '');
+        fd.append('hero_cta_primary_url', form.hero_cta_primary_url || '/products');
+        fd.append('hero_cta_secondary_url', form.hero_cta_secondary_url || '#market');
+        fd.append('hero_image', heroFile);
+        return fd;
+      }
+      return {
+        hero_badge: form.hero_badge || '',
+        hero_title: form.hero_title || '',
+        hero_subtitle: form.hero_subtitle || '',
+        hero_mode: form.hero_mode || 'image',
+        hero_cta_primary: form.hero_cta_primary || '',
+        hero_cta_secondary: form.hero_cta_secondary || '',
+        hero_cta_primary_url: form.hero_cta_primary_url || '/products',
+        hero_cta_secondary_url: form.hero_cta_secondary_url || '#market',
+      };
+    }
+
+    if (section === 'footer') {
+      return {
+        trust_heading: form.trust_heading || '',
+        footer_tagline: form.footer_tagline || '',
+        contact_phone: form.contact_phone || '',
+        contact_email: form.contact_email || '',
+        contact_address: form.contact_address || '',
+      };
+    }
+
+    if (section === 'visibility') {
+      return {
+        show_rates: !!form.show_rates,
+        show_categories: !!form.show_categories,
+        show_featured: !!form.show_featured,
+        show_trust: !!form.show_trust,
+      };
+    }
+
+    if (section === 'order') {
+      return {
+        section_order: form.section_order || DEFAULT_ORDER,
+      };
+    }
+
+    // all
+    if (logoFile || heroFile) {
       const fd = new FormData();
       const keys: (keyof SiteSettings)[] = [
         'brand_name', 'brand_tagline', 'cart_label', 'top_banner',
@@ -58,16 +150,66 @@ export function AdminSiteLayout() {
       fd.append('section_order', JSON.stringify(form.section_order || DEFAULT_ORDER));
       if (logoFile) fd.append('brand_logo', logoFile);
       if (heroFile) fd.append('hero_image', heroFile);
-      return api.adminUpdateSiteSettings(fd);
+      return fd;
+    }
+
+    return {
+      brand_name: form.brand_name || '',
+      brand_tagline: form.brand_tagline || '',
+      cart_label: form.cart_label || '',
+      top_banner: form.top_banner || '',
+      hero_badge: form.hero_badge || '',
+      hero_title: form.hero_title || '',
+      hero_subtitle: form.hero_subtitle || '',
+      hero_mode: form.hero_mode || 'image',
+      hero_cta_primary: form.hero_cta_primary || '',
+      hero_cta_secondary: form.hero_cta_secondary || '',
+      hero_cta_primary_url: form.hero_cta_primary_url || '/products',
+      hero_cta_secondary_url: form.hero_cta_secondary_url || '#market',
+      trust_heading: form.trust_heading || '',
+      footer_tagline: form.footer_tagline || '',
+      contact_phone: form.contact_phone || '',
+      contact_email: form.contact_email || '',
+      contact_address: form.contact_address || '',
+      show_rates: !!form.show_rates,
+      show_categories: !!form.show_categories,
+      show_featured: !!form.show_featured,
+      show_trust: !!form.show_trust,
+      section_order: form.section_order || DEFAULT_ORDER,
+    };
+  };
+
+  const save = useMutation({
+    mutationFn: async (section: SaveSection) => {
+      setSavingSection(section);
+      const payload = buildPayload(section);
+      return api.adminUpdateSiteSettings(payload);
     },
-    onSuccess: () => {
-      toast('چیدمان ذخیره شد — تغییرات در فروشگاه اعمال می‌شود');
-      setLogoFile(null);
-      setHeroFile(null);
+    onSuccess: (_data, section) => {
+      toast('ذخیره شد');
+      if (section === 'brand' || section === 'all') setLogoFile(null);
+      if (section === 'hero' || section === 'all') setHeroFile(null);
       qc.invalidateQueries({ queryKey: ['admin-site-settings'] });
       qc.invalidateQueries({ queryKey: ['site-settings'] });
     },
-    onError: () => toast('خطا در ذخیره چیدمان'),
+    onError: (err: unknown) => {
+      const anyErr = err as { response?: { data?: Record<string, unknown> | string } };
+      const data = anyErr?.response?.data;
+      let msg = 'خطا در ذخیره';
+      if (typeof data === 'string') msg = data;
+      else if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string') msg = data.detail;
+        else {
+          const first = Object.entries(data)[0];
+          if (first) {
+            const [k, v] = first;
+            msg = `${k}: ${Array.isArray(v) ? v.join('، ') : String(v)}`;
+          }
+        }
+      }
+      toast(msg);
+    },
+    onSettled: () => setSavingSection(null),
   });
 
   const moveSection = (idx: number, dir: -1 | 1) => {
@@ -85,15 +227,21 @@ export function AdminSiteLayout() {
 
   const set = (patch: Partial<SiteSettings>) => setForm({ ...form, ...patch });
   const previewTitle = (form.hero_title || '').split('\n').filter(Boolean);
+  const pending = save.isPending;
 
   return (
     <div>
       <PageHeader
         title="چیدمان فروشگاه"
-        subtitle="متن هیرو، تصویر، دکمه‌ها، فوتر و ترتیب بخش‌های صفحه اصلی را از اینجا تغییر دهید"
+        subtitle="هر بخش دکمه ذخیره جدا دارد — بعد از ویرایش همان بخش را ذخیره کنید"
         actions={(
-          <button type="button" className="gold-btn" disabled={save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? '…' : 'ذخیره چیدمان'}
+          <button
+            type="button"
+            className="outline-btn"
+            disabled={pending}
+            onClick={() => save.mutate('all')}
+          >
+            {savingSection === 'all' ? '…' : 'ذخیره همه'}
           </button>
         )}
       />
@@ -130,6 +278,7 @@ export function AdminSiteLayout() {
               <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
             </label>
           </div>
+          <SectionSaveBar pending={savingSection === 'brand'} onSave={() => save.mutate('brand')} />
         </div>
 
         <div className="admin-card layout-hero-preview-card">
@@ -158,53 +307,53 @@ export function AdminSiteLayout() {
               value={form.hero_mode || 'image'}
               onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
             >
-                <option value="image">نقاشی جواهر (ثابت — پیشنهادی)</option>
-                <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
-              </select>
-            </label>
-            <label>
-              <span>بج بالای عنوان</span>
-              <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>عنوان (هر خط در یک سطر جدا)</span>
-              <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>توضیح کوتاه زیر عنوان</span>
-              <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
-            </label>
-            <label>
-              <span>متن دکمه اصلی</span>
-              <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
-            </label>
-            <label>
-              <span>لینک دکمه اصلی</span>
-              <input
-                className="input"
-                dir="ltr"
-                placeholder="/products"
-                value={form.hero_cta_primary_url || ''}
-                onChange={(e) => set({ hero_cta_primary_url: e.target.value })}
-              />
-            </label>
-            <label>
-              <span>متن دکمه فرعی (دسکتاپ)</span>
-              <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
-            </label>
-            <label>
-              <span>لینک دکمه فرعی</span>
-              <input
-                className="input"
-                dir="ltr"
-                placeholder="#market"
-                value={form.hero_cta_secondary_url || ''}
-                onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
-              />
-            </label>
-            <label className="full">
-              <span>تصویر هیرو (نقاشی / بنر — دسکتاپ و موبایل)</span>
-              <p className="layout-hint">اگر خالی باشد، تصویر نقاشی پیش‌فرض گالری نمایش داده می‌شود. می‌توانید تصویر دلخواه آپلود کنید.</p>
+              <option value="image">نقاشی جواهر (ثابت — پیشنهادی)</option>
+              <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
+            </select>
+          </label>
+          <label>
+            <span>بج بالای عنوان</span>
+            <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
+          </label>
+          <label className="full">
+            <span>عنوان (هر خط در یک سطر جدا)</span>
+            <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
+          </label>
+          <label className="full">
+            <span>توضیح کوتاه زیر عنوان</span>
+            <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
+          </label>
+          <label>
+            <span>متن دکمه اصلی</span>
+            <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
+          </label>
+          <label>
+            <span>لینک دکمه اصلی</span>
+            <input
+              className="input"
+              dir="ltr"
+              placeholder="/products"
+              value={form.hero_cta_primary_url || ''}
+              onChange={(e) => set({ hero_cta_primary_url: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>متن دکمه فرعی (دسکتاپ)</span>
+            <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
+          </label>
+          <label>
+            <span>لینک دکمه فرعی</span>
+            <input
+              className="input"
+              dir="ltr"
+              placeholder="#market"
+              value={form.hero_cta_secondary_url || ''}
+              onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
+            />
+          </label>
+          <label className="full">
+            <span>تصویر هیرو (نقاشی / بنر — دسکتاپ و موبایل)</span>
+            <p className="layout-hint">اگر خالی باشد، تصویر نقاشی پیش‌فرض گالری نمایش داده می‌شود. می‌توانید تصویر دلخواه آپلود کنید.</p>
             {(form.hero_image_url || heroFile) && (
               <img
                 className="layout-preview-hero"
@@ -215,6 +364,11 @@ export function AdminSiteLayout() {
             <input type="file" accept="image/*" onChange={(e) => setHeroFile(e.target.files?.[0] || null)} />
           </label>
         </div>
+        <SectionSaveBar
+          label="ذخیره هیرو"
+          pending={savingSection === 'hero'}
+          onSave={() => save.mutate('hero')}
+        />
       </div>
 
       <div className="admin-grid-2" style={{ marginTop: 18 }}>
@@ -242,6 +396,11 @@ export function AdminSiteLayout() {
               <input className="input" dir="ltr" value={form.contact_email || ''} onChange={(e) => set({ contact_email: e.target.value })} />
             </label>
           </div>
+          <SectionSaveBar
+            label="ذخیره فوتر"
+            pending={savingSection === 'footer'}
+            onSave={() => save.mutate('footer')}
+          />
         </div>
 
         <div className="admin-card">
@@ -263,6 +422,11 @@ export function AdminSiteLayout() {
               </label>
             ))}
           </div>
+          <SectionSaveBar
+            label="ذخیره نمایش"
+            pending={savingSection === 'visibility'}
+            onSave={() => save.mutate('visibility')}
+          />
         </div>
       </div>
 
@@ -286,6 +450,11 @@ export function AdminSiteLayout() {
             </li>
           ))}
         </ul>
+        <SectionSaveBar
+          label="ذخیره ترتیب"
+          pending={savingSection === 'order'}
+          onSave={() => save.mutate('order')}
+        />
       </div>
     </div>
   );

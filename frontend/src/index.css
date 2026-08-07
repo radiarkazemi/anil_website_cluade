@@ -2229,11 +2229,16 @@ body.nav-open { overflow: hidden; }
   width: 160px; height: 160px; object-fit: contain;
   margin: 8px 0; display: block; background: var(--surface-2); border-radius: 12px;
 }
-.layout-hint {
-  font-size: 12.5px;
-  color: var(--text-dim);
-  margin-bottom: 12px;
-  line-height: 1.6;
+.layout-section-save {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.layout-section-save .gold-btn {
+  min-height: 44px;
+  min-width: 140px;
 }
 .layout-hero-preview {
   padding: 20px 16px;

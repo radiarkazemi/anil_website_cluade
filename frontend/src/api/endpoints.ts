@@ -125,15 +125,11 @@ export const api = {
   adminUploadCategoryImage: (categoryId: string, file: File) => {
     const fd = new FormData();
     fd.append('image', file);
-    return client.post<Category>(`/admin/categories/${categoryId}/image/`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return client.post<Category>(`/admin/categories/${categoryId}/image/`, fd);
   },
   adminSiteSettings: () => client.get<SiteSettings>('/admin/site-settings/'),
   adminUpdateSiteSettings: (data: FormData | Record<string, unknown>) =>
-    client.patch<SiteSettings>('/admin/site-settings/', data, {
-      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
-    }),
+    client.patch<SiteSettings>('/admin/site-settings/', data),
   adminPages: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<ContentPage> | ContentPage[]>('/admin/pages/', { params }),
   adminCreatePage: (data: Partial<ContentPage>) => client.post<ContentPage>('/admin/pages/', data),
