@@ -27,13 +27,13 @@ export function Products() {
 
   return (
     <section className="container products-page">
-      <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 10 }}>
-        <Link to="/">خانه</Link> <span style={{ color: 'var(--text-dim)' }}> / </span> محصولات
+      <div className="products-crumb">
+        <Link to="/">خانه</Link>
+        <span aria-hidden> / </span>
+        <span>محصولات</span>
       </div>
       <div className="products-title-row">
-        <div>
-          <h1 className="products-title">{title}</h1>
-        </div>
+        <h1 className="products-title">{title}</h1>
         <div className="products-count">{faNum(products.length)} محصول</div>
       </div>
 
@@ -66,7 +66,7 @@ export function Products() {
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-dim)' }}>در حال بارگذاری…</div>
+        <div className="products-loading">در حال بارگذاری…</div>
       ) : (
         <div className="product-grid">
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
