@@ -346,27 +346,36 @@ class AdminProductImageUploadView(APIView):
         if not image:
             return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
-        from apps.store.uploads import validate_uploaded_image
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
 
         try:
-            validate_uploaded_image(image)
+            processed, meta = process_uploaded_image(image)
         except Exception as exc:
             detail = getattr(exc, "detail", None) or str(exc)
-            return Response(detail if isinstance(detail, dict) else {"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                detail if isinstance(detail, dict) else {"detail": detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        obj = ProductImage.objects.create(
-            product=product,
-            image=image,
-            alt=request.data.get("alt", product.name),
-            order=int(request.data.get("order", 0)),
-            is_primary=str(request.data.get("is_primary", "false")).lower() in ("1", "true", "yes"),
-        )
+        try:
+            ensure_media_subdir("products")
+            obj = ProductImage.objects.create(
+                product=product,
+                image=processed,
+                alt=request.data.get("alt", product.name),
+                order=int(request.data.get("order", 0) or 0),
+                is_primary=str(request.data.get("is_primary", "false")).lower() in ("1", "true", "yes"),
+            )
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         if obj.is_primary:
             ProductImage.objects.filter(product=product).exclude(id=obj.id).update(is_primary=False)
-        return Response(
-            ProductImageSerializer(obj, context={"request": request}).data,
-            status=status.HTTP_201_CREATED,
-        )
+        data = ProductImageSerializer(obj, context={"request": request}).data
+        data["processed"] = meta
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, product_id):
         image_id = request.query_params.get("image_id")
@@ -442,13 +451,20 @@ class AdminCategoryImageUploadView(APIView):
         image = request.FILES.get("image")
         if not image:
             return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
-        from apps.store.uploads import validate_uploaded_image
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
 
         try:
-            validate_uploaded_image(image)
+            processed, _meta = process_uploaded_image(image)
         except Exception as exc:
             detail = getattr(exc, "detail", None) or str(exc)
             return Response(detail if isinstance(detail, dict) else {"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
-        cat.image = image
-        cat.save(update_fields=["image"])
+        try:
+            ensure_media_subdir("categories")
+            cat.image = processed
+            cat.save(update_fields=["image"])
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         return Response(CategorySerializer(cat, context={"request": request}).data)

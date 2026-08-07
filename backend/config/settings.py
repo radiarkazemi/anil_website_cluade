@@ -249,10 +249,12 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 # Small VPS without nginx media alias: set MEDIA_SERVE=1 (Django serves files).
 # Prefer nginx → MEDIA_ROOT or USE_S3=1 in production.
 MEDIA_SERVE = os.environ.get("MEDIA_SERVE", "0").lower() in ("1", "true", "yes")
-MAX_UPLOAD_IMAGE_MB = int(os.environ.get("MAX_UPLOAD_IMAGE_MB", "5"))
-MAX_UPLOAD_IMAGE_PIXELS = int(os.environ.get("MAX_UPLOAD_IMAGE_PIXELS", str(4096 * 4096)))
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(6 * 1024 * 1024)))
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(6 * 1024 * 1024)))
+MAX_UPLOAD_IMAGE_MB = int(os.environ.get("MAX_UPLOAD_IMAGE_MB", "8"))
+MAX_UPLOAD_IMAGE_PIXELS = int(os.environ.get("MAX_UPLOAD_IMAGE_PIXELS", str(6000 * 6000)))
+IMAGE_MAX_SIDE = int(os.environ.get("IMAGE_MAX_SIDE", "1600"))
+IMAGE_JPEG_QUALITY = int(os.environ.get("IMAGE_JPEG_QUALITY", "82"))
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 
 # Optional S3 / MinIO / Liara object storage
 USE_S3 = os.environ.get("USE_S3", "0").lower() in ("1", "true", "yes")

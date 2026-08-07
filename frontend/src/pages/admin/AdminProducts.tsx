@@ -51,9 +51,21 @@ function slugifyName(name: string) {
     .slice(0, 180);
 }
 
-function formatApiError(data: unknown): string {
-  if (!data) return 'خطا در ذخیره';
-  if (typeof data === 'string') return data;
+function formatApiError(data: unknown, status?: number): string {
+  if (!data) {
+    if (status === 413) return 'حجم تصویر بیش از حد مجاز سرور است.';
+    if (status && status >= 500) return 'خطای سرور هنگام ذخیره تصویر. دوباره تلاش کنید.';
+    return 'خطا در ذخیره';
+  }
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (trimmed.startsWith('<!') || trimmed.toLowerCase().includes('<html')) {
+      return status && status >= 500
+        ? 'خطای سرور هنگام آپلود تصویر. دسترسی پوشه media یا حجم فایل را بررسی کنید.'
+        : 'پاسخ نامعتبر از سرور دریافت شد.';
+    }
+    return trimmed.slice(0, 280) || 'خطا در ذخیره';
+  }
   if (typeof data !== 'object') return 'خطا در ذخیره';
   const obj = data as Record<string, unknown>;
   if (typeof obj.detail === 'string') return obj.detail;
@@ -135,7 +147,18 @@ export function AdminProducts() {
       } else {
         product = (await api.adminCreateProduct(payload)).data;
       }
-      if (file) await api.adminUploadImage(product.id, file, true);
+      if (file) {
+        try {
+          await api.adminUploadImage(product.id, file, true);
+        } catch (uploadErr: any) {
+          const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
+          throw Object.assign(new Error(msg), {
+            response: uploadErr?.response,
+            isImageUpload: true,
+            productSaved: true,
+          });
+        }
+      }
       return product;
     },
     onSuccess: () => {
@@ -148,9 +171,15 @@ export function AdminProducts() {
       qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
     onError: (e: any) => {
-      const msg = formatApiError(e?.response?.data);
-      setFormError(msg);
-      toast(msg);
+      const msg = formatApiError(e?.response?.data, e?.response?.status);
+      const prefix = e?.isImageUpload || e?.productSaved ? 'محصول ذخیره شد؛ خطا در آپلود تصویر: ' : '';
+      const full = `${prefix}${msg}`;
+      setFormError(full);
+      toast(full);
+      if (e?.productSaved) {
+        qc.invalidateQueries({ queryKey: ['admin-products'] });
+        qc.invalidateQueries({ queryKey: ['products'] });
+      }
     },
   });
 
