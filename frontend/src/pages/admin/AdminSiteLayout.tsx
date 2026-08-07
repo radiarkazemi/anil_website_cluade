@@ -158,52 +158,53 @@ export function AdminSiteLayout() {
               value={form.hero_mode || 'image'}
               onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
             >
-              <option value="image">تصویر واقعی جواهر (سریع — پیشنهادی)</option>
-              <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
-            </select>
-          </label>
-          <label>
-            <span>بج بالای عنوان</span>
-            <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
-          </label>
-          <label className="full">
-            <span>عنوان (هر خط در یک سطر جدا)</span>
-            <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
-          </label>
-          <label className="full">
-            <span>توضیح کوتاه زیر عنوان</span>
-            <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
-          </label>
-          <label>
-            <span>متن دکمه اصلی</span>
-            <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
-          </label>
-          <label>
-            <span>لینک دکمه اصلی</span>
-            <input
-              className="input"
-              dir="ltr"
-              placeholder="/products"
-              value={form.hero_cta_primary_url || ''}
-              onChange={(e) => set({ hero_cta_primary_url: e.target.value })}
-            />
-          </label>
-          <label>
-            <span>متن دکمه فرعی (دسکتاپ)</span>
-            <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
-          </label>
-          <label>
-            <span>لینک دکمه فرعی</span>
-            <input
-              className="input"
-              dir="ltr"
-              placeholder="#market"
-              value={form.hero_cta_secondary_url || ''}
-              onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
-            />
-          </label>
-          <label className="full">
-            <span>تصویر هیرو (پس‌زمینه موبایل و تصویر دسکتاپ)</span>
+                <option value="image">نقاشی جواهر (ثابت — پیشنهادی)</option>
+                <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
+              </select>
+            </label>
+            <label>
+              <span>بج بالای عنوان</span>
+              <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>عنوان (هر خط در یک سطر جدا)</span>
+              <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>توضیح کوتاه زیر عنوان</span>
+              <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
+            </label>
+            <label>
+              <span>متن دکمه اصلی</span>
+              <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
+            </label>
+            <label>
+              <span>لینک دکمه اصلی</span>
+              <input
+                className="input"
+                dir="ltr"
+                placeholder="/products"
+                value={form.hero_cta_primary_url || ''}
+                onChange={(e) => set({ hero_cta_primary_url: e.target.value })}
+              />
+            </label>
+            <label>
+              <span>متن دکمه فرعی (دسکتاپ)</span>
+              <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
+            </label>
+            <label>
+              <span>لینک دکمه فرعی</span>
+              <input
+                className="input"
+                dir="ltr"
+                placeholder="#market"
+                value={form.hero_cta_secondary_url || ''}
+                onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
+              />
+            </label>
+            <label className="full">
+              <span>تصویر هیرو (نقاشی / بنر — دسکتاپ و موبایل)</span>
+              <p className="layout-hint">اگر خالی باشد، تصویر نقاشی پیش‌فرض گالری نمایش داده می‌شود. می‌توانید تصویر دلخواه آپلود کنید.</p>
             {(form.hero_image_url || heroFile) && (
               <img
                 className="layout-preview-hero"

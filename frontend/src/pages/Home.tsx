@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { useStore } from '../store/useStore';
@@ -42,97 +42,33 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
   );
 }
 
-/** Ready-to-go jewelry photo — lightweight, used for first paint / loading. */
-function HeroJewel({ src }: { src: string }) {
-  const [rx, setRx] = useState(-8);
-  const [ry, setRy] = useState(12);
-  const auto = useRef(true);
-  const resumeTimer = useRef<number | null>(null);
-  const reduceMotion = useRef(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 900px), (prefers-reduced-motion: reduce)');
-    const sync = () => {
-      reduceMotion.current = mq.matches;
-    };
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = Math.min(48, now - last);
-      last = now;
-      if (auto.current && !reduceMotion.current) setRy((v) => v + dt * 0.018);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  const pauseAuto = () => {
-    auto.current = false;
-    if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
-    resumeTimer.current = window.setTimeout(() => {
-      auto.current = true;
-    }, 2200);
-  };
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (reduceMotion.current || e.pointerType === 'touch') return;
-    e.preventDefault();
-    pauseAuto();
-    const start = { x: e.clientX, y: e.clientY, rx, ry };
-    const move = (ev: PointerEvent) => {
-      const dx = ev.clientX - start.x;
-      const dy = ev.clientY - start.y;
-      setRy(start.ry + dx * 0.55);
-      setRx(Math.max(-42, Math.min(42, start.rx - dy * 0.35)));
-    };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-  };
-
+/** Static painterly jewelry artwork — default desktop hero visual (no 3D spin). */
+function HeroPainting({ src }: { src: string }) {
   return (
-    <div className="hero-ring">
-      <div className="hero-ring-glow" />
-      <div className="hero-orbit-ring" aria-hidden />
-      <div
-        className="hero-ring-scene hero-jewel-scene"
-        onPointerDown={onPointerDown}
-        style={{ transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }}
-      >
+    <div className="hero-painting">
+      <div className="hero-painting-glow" aria-hidden />
+      <figure className="hero-painting-frame">
         <img
-          className="hero-jewel-img"
+          className="hero-painting-img"
           src={src}
-          alt="زیورآلات آنیل"
-          draggable={false}
+          alt="نقاشی زیورآلات آنیل"
           decoding="async"
           fetchPriority="high"
         />
-      </div>
-      <div className="hero-ring-hint">بکشید تا بچرخانید</div>
+        <figcaption className="hero-painting-caption">گالری طلا آنیل</figcaption>
+      </figure>
     </div>
   );
 }
 
 /**
- * Hero visual strategy:
- * - Always paint the real jewelry photo first (fast, good-looking).
- * - Never mount WebGL during website load.
- * - If admin enables 3D, user can opt-in with a button after the page is ready.
+ * Hero visual:
+ * - Default: beautiful painterly jewelry still-life (static).
+ * - Admin can upload a custom hero image.
+ * - Optional 3D only if admin enables it and the visitor opts in.
  */
 function HeroVisual({ site }: { site?: SiteSettings }) {
-  const heroSrc = site?.hero_image_url || '/hero/ring.png';
+  const heroSrc = site?.hero_image_url || '/hero/painterly.jpg';
   const allow3d = site?.hero_mode === '3d';
   const [wants3d, setWants3d] = useState(false);
 
@@ -141,10 +77,10 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
       <div className="hero-visual-wrap">
         <Suspense
           fallback={(
-            <div className="hero-ring">
-              <HeroJewel src={heroSrc} />
+            <>
+              <HeroPainting src={heroSrc} />
               <div className="hero-3d-loading-badge">در حال آماده‌سازی مدل ۳بعدی…</div>
-            </div>
+            </>
           )}
         >
           <HeroRing3D />
@@ -158,7 +94,7 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
 
   return (
     <div className="hero-visual-wrap">
-      <HeroJewel src={heroSrc} />
+      <HeroPainting src={heroSrc} />
       {allow3d && (
         <button
           type="button"
@@ -190,7 +126,7 @@ function HeroCta({
 
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
-  const heroSrc = site?.hero_image_url || '/hero/ring.png';
+  const heroSrc = site?.hero_image_url || '/hero/painterly.jpg';
   const subtitle = site?.hero_subtitle
     || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.';
   const primaryLabel = site?.hero_cta_primary || 'مشاهده‌ی محصولات';
