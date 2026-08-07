@@ -1,13 +1,33 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { faNum } from '../utils/format';
 
+type GridCols = 3 | 4;
+const GRID_KEY = 'anil-product-grid-cols';
+
 export function Products() {
   const [params, setParams] = useSearchParams();
   const category = params.get('category') || 'all';
   const sort = params.get('sort') || '';
+  const [cols, setCols] = useState<GridCols>(() => {
+    try {
+      const saved = Number(localStorage.getItem(GRID_KEY));
+      return saved === 3 ? 3 : 4;
+    } catch {
+      return 4;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(GRID_KEY, String(cols));
+    } catch {
+      /* ignore */
+    }
+  }, [cols]);
 
   const { data: categoriesData } = useQuery({ queryKey: ['categories'], queryFn: () => api.categories().then((r) => r.data) });
   const { data: productsData, isLoading } = useQuery({
@@ -53,22 +73,46 @@ export function Products() {
             );
           })}
         </div>
-        <select
-          value={sort}
-          onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
-          className="input filter-sort"
-        >
-          <option value="">مرتب‌سازی: پیشنهادی</option>
-          <option value="price">ارزان‌ترین</option>
-          <option value="-price">گران‌ترین</option>
-          <option value="-weight_g">سنگین‌ترین</option>
-        </select>
+        <div className="products-toolbar-end">
+          <div className="grid-density" role="group" aria-label="تعداد ستون">
+            <button
+              type="button"
+              className={`grid-density-btn${cols === 3 ? ' active' : ''}`}
+              aria-pressed={cols === 3}
+              title="۳ ستون"
+              onClick={() => setCols(3)}
+            >
+              <span aria-hidden className="grid-density-ico cols-3" />
+              <span className="sr-only">۳ ستون</span>
+            </button>
+            <button
+              type="button"
+              className={`grid-density-btn${cols === 4 ? ' active' : ''}`}
+              aria-pressed={cols === 4}
+              title="۴ ستون"
+              onClick={() => setCols(4)}
+            >
+              <span aria-hidden className="grid-density-ico cols-4" />
+              <span className="sr-only">۴ ستون</span>
+            </button>
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
+            className="input filter-sort"
+          >
+            <option value="">مرتب‌سازی: پیشنهادی</option>
+            <option value="price">ارزان‌ترین</option>
+            <option value="-price">گران‌ترین</option>
+            <option value="-weight_g">سنگین‌ترین</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="products-loading">در حال بارگذاری…</div>
       ) : (
-        <div className="product-grid">
+        <div className={`product-grid cols-${cols}`}>
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
       )}

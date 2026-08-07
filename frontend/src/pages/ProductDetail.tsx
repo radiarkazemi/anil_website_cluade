@@ -194,7 +194,7 @@ export function ProductDetail() {
       {related && related.length > 0 && (
         <div className="pd-related">
           <h2>محصولات مشابه</h2>
-          <div className="product-grid">
+          <div className="product-grid cols-4">
             {related.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         </div>

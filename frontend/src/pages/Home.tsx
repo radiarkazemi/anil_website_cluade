@@ -244,7 +244,7 @@ export function Home() {
           </div>
           <Link to="/products" className="text-link">مشاهده‌ی همه</Link>
         </div>
-        <div className="product-grid">
+        <div className="product-grid cols-4">
           {featured.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
