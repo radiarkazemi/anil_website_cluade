@@ -299,7 +299,7 @@ export function Home() {
     ) : null,
     trust: site?.show_trust !== false ? (
       <section key="trust" className="container section-pad trust-grid-wrap">
-        <div className="pricing-wrap" style={{ marginBottom: 28 }}>
+        <div className="pricing-wrap pricing-wrap-home">
           <div className="pricing-band-classic">
             <div>
               <div className="section-eyebrow">فناوری آنیل</div>
@@ -317,21 +317,25 @@ export function Home() {
             </div>
           </div>
         </div>
+        <h2 className="section-title trust-heading">چرا آنیل؟</h2>
         <div className="trust-grid">
           {[
-            { title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی برای هر قطعه' },
-            { title: 'ارسال بیمه‌شده', desc: 'بسته‌بندی امن و بیمه‌ی کامل تا درب منزل' },
-            { title: 'بازخرید تضمینی', desc: 'امکان بازخرید بر اساس نرخ روز طلا' },
-            { title: 'مشاوره‌ی تخصصی', desc: 'همراهی کارشناسان آنیل در تمام مراحل' },
+            { key: ' authenticity', title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی', icon: '◆' },
+            { key: 'ship', title: 'ارسال بیمه‌شده', desc: 'بیمه کامل تا درب منزل', icon: '▣' },
+            { key: 'buyback', title: 'بازخرید تضمینی', desc: 'بر اساس نرخ روز طلا', icon: '↺' },
+            { key: 'consult', title: 'مشاوره تخصصی', desc: 'همراهی در تمام مراحل', icon: '✦' },
           ].map((t) => (
-            <div key={t.title} className="trust-item">
-              <div className="trust-mark" />
+            <div key={t.key} className="trust-item">
+              <div className="trust-ico" aria-hidden>{t.icon}</div>
               <div>
                 <div className="trust-title">{t.title}</div>
                 <div className="trust-desc">{t.desc}</div>
               </div>
             </div>
           ))}
+        </div>
+        <div className="trust-cta-row">
+          <Link to="/products" className="gold-btn trust-cta">شروع خرید از گالری</Link>
         </div>
       </section>
     ) : null,
@@ -351,7 +355,8 @@ export function Home() {
                 <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>
               </div>
             </div>
-            <p className="footer-tag">گالری طلا آنیل — زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
+            <p className="footer-tag">زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
+            <Link to="/products" className="footer-shop-btn">مشاهده محصولات</Link>
           </div>
 
           <div className="footer-links">
@@ -375,11 +380,15 @@ export function Home() {
               </ul>
             </div>
             <div className="footer-col footer-contact">
-              <h3>تماس</h3>
+              <h3>تماس سریع</h3>
               <ul>
                 <li>تهران، بازار بزرگ طلا</li>
-                <li dir="ltr">۰۲۱-۱۲۳۴۵۶۷۸</li>
-                <li dir="ltr">info@anilgold.ir</li>
+                <li>
+                  <a href="tel:+982112345678" dir="ltr">۰۲۱-۱۲۳۴۵۶۷۸</a>
+                </li>
+                <li>
+                  <a href="mailto:info@anilgold.ir" dir="ltr">info@anilgold.ir</a>
+                </li>
               </ul>
             </div>
           </div>
