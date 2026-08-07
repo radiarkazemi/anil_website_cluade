@@ -172,9 +172,32 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
   );
 }
 
+function HeroCta({
+  to,
+  className,
+  children,
+}: {
+  to: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const href = (to || '/products').trim() || '/products';
+  if (href.startsWith('http') || href.startsWith('#')) {
+    return <a href={href} className={className}>{children}</a>;
+  }
+  return <Link to={href.startsWith('/') ? href : `/${href}`} className={className}>{children}</Link>;
+}
+
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
   const heroSrc = site?.hero_image_url || '/hero/ring.png';
+  const subtitle = site?.hero_subtitle
+    || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.';
+  const primaryLabel = site?.hero_cta_primary || 'مشاهده‌ی محصولات';
+  const primaryUrl = site?.hero_cta_primary_url || '/products';
+  const secondaryLabel = site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا';
+  const secondaryUrl = site?.hero_cta_secondary_url || '#market';
+  const badge = site?.hero_badge || 'گالری طلا آنیل';
 
   return (
     <section className="home-hero-bleed">
@@ -185,21 +208,20 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           <div className="m-hero-veil" />
         </div>
         <div className="m-hero-copy">
-          <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
-          <h1 className="shimmer-text hero-h1">
-            {title.map((line, i) => (
-              <span key={i}>
-                {i > 0 && <br />}
-                {line}
-              </span>
-            ))}
-          </h1>
-          <p className="hero-lead">
-            {site?.hero_subtitle
-              || 'زیورآلات اصیل با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
-          </p>
-          <div className="hero-actions">
-            <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
+          <div className="m-hero-copy-panel">
+            <div className="hero-badge">{badge}</div>
+            <h1 className="hero-h1 m-hero-title">
+              {title.map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br />}
+                  {line}
+                </span>
+              ))}
+            </h1>
+            <p className="hero-lead">{subtitle}</p>
+            <div className="hero-actions">
+              <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
+            </div>
           </div>
         </div>
       </div>
@@ -208,7 +230,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
       <div className="container home-hero d-hero">
         <HeroVisual site={site} />
         <div className="hero-copy">
-          <div className="hero-badge">{site?.hero_badge || 'گالری طلا آنیل'}</div>
+          <div className="hero-badge">{badge}</div>
           <h1 className="shimmer-text hero-h1">
             {title.map((line, i) => (
               <span key={i}>
@@ -217,13 +239,10 @@ function HeroSection({ site }: { site?: SiteSettings }) {
               </span>
             ))}
           </h1>
-          <p className="hero-lead">
-            {site?.hero_subtitle
-              || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.'}
-          </p>
+          <p className="hero-lead">{subtitle}</p>
           <div className="hero-actions">
-            <Link to="/products" className="gold-btn">{site?.hero_cta_primary || 'مشاهده‌ی محصولات'}</Link>
-            <a href="#market" className="outline-btn hero-cta-secondary">{site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا'}</a>
+            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
+            <HeroCta to={secondaryUrl} className="outline-btn hero-cta-secondary">{secondaryLabel}</HeroCta>
           </div>
         </div>
       </div>
@@ -317,7 +336,7 @@ export function Home() {
             </div>
           </div>
         </div>
-        <h2 className="section-title trust-heading">چرا آنیل؟</h2>
+        <h2 className="section-title trust-heading">{site?.trust_heading || 'چرا آنیل؟'}</h2>
         <div className="trust-grid">
           {[
             { key: ' authenticity', title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی', icon: '◆' },
@@ -355,7 +374,7 @@ export function Home() {
                 <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>
               </div>
             </div>
-            <p className="footer-tag">زیورآلات اصیل با قیمت شفاف و لحظه‌ای.</p>
+            <p className="footer-tag">{site?.footer_tagline || 'زیورآلات اصیل با قیمت شفاف و لحظه‌ای.'}</p>
             <Link to="/products" className="footer-shop-btn">مشاهده محصولات</Link>
           </div>
 
@@ -382,12 +401,19 @@ export function Home() {
             <div className="footer-col footer-contact">
               <h3>تماس سریع</h3>
               <ul>
-                <li>تهران، بازار بزرگ طلا</li>
+                <li>{site?.contact_address || 'تهران، بازار بزرگ طلا'}</li>
                 <li>
-                  <a href="tel:+982112345678" dir="ltr">۰۲۱-۱۲۳۴۵۶۷۸</a>
+                  <a
+                    href={`tel:${(site?.contact_phone || '02112345678').replace(/[^\d+]/g, '')}`}
+                    dir="ltr"
+                  >
+                    {site?.contact_phone || '۰۲۱-۱۲۳۴۵۶۷۸'}
+                  </a>
                 </li>
                 <li>
-                  <a href="mailto:info@anilgold.ir" dir="ltr">info@anilgold.ir</a>
+                  <a href={`mailto:${site?.contact_email || 'info@anilgold.ir'}`} dir="ltr">
+                    {site?.contact_email || 'info@anilgold.ir'}
+                  </a>
                 </li>
               </ul>
             </div>

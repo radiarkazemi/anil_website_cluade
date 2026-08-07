@@ -71,12 +71,6 @@ export function Login() {
             ثبت‌نام
           </Link>
         </div>
-        <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-dim)', marginTop: 18 }}>
-          مدیر فروشگاه هستید؟{' '}
-          <Link to="/panel/login" style={{ color: 'var(--gold-light)' }}>
-            ورود به پنل مدیریت
-          </Link>
-        </div>
       </form>
     </div>
   );

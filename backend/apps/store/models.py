@@ -185,12 +185,24 @@ class SiteSettings(models.Model):
     )
     hero_cta_primary = models.CharField(max_length=80, default="مشاهده‌ی محصولات")
     hero_cta_secondary = models.CharField(max_length=80, default="قیمت لحظه‌ای طلا")
+    hero_cta_primary_url = models.CharField(max_length=200, default="/products")
+    hero_cta_secondary_url = models.CharField(max_length=200, default="#market")
 
     show_rates = models.BooleanField(default=True)
     show_categories = models.BooleanField(default=True)
     show_featured = models.BooleanField(default=True)
     show_trust = models.BooleanField(default=True)
     section_order = models.JSONField(default=list, blank=True)
+
+    trust_heading = models.CharField(max_length=80, default="چرا آنیل؟")
+    footer_tagline = models.CharField(
+        max_length=200,
+        default="زیورآلات اصیل با قیمت شفاف و لحظه‌ای.",
+        blank=True,
+    )
+    contact_phone = models.CharField(max_length=40, default="021-12345678", blank=True)
+    contact_email = models.CharField(max_length=120, default="info@anilgold.ir", blank=True)
+    contact_address = models.CharField(max_length=300, default="تهران، بازار بزرگ طلا", blank=True)
 
     top_banner = models.CharField(
         max_length=300,

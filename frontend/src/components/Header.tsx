@@ -21,14 +21,10 @@ export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
   const cartCount = useStore((s) => s.cartCount());
   const user = useStore((s) => s.user);
-  const adminUser = useStore((s) => s.adminUser);
-  const adminTokens = useStore((s) => s.adminTokens);
   const openCart = useUI((s) => s.openCart);
   const theme = useTheme((s) => s.theme);
   const toggleTheme = useTheme((s) => s.toggle);
   const [menuOpen, setMenuOpen] = useState(false);
-  const hasAdminSession =
-    !!adminTokens && !!adminUser && (adminUser.role === 'admin' || adminUser.role === 'staff');
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
   const { data: site } = useQuery({
@@ -91,7 +87,6 @@ export function Header() {
           <NavLink to="/blog" onClick={closeMenu}>بلاگ</NavLink>
         </>
       )}
-      {hasAdminSession && <NavLink to="/panel" onClick={closeMenu}>پنل مدیریت</NavLink>}
     </>
   );
 
@@ -137,12 +132,6 @@ export function Header() {
               </Link>
             ) : (
               <Link to="/login" className="text-btn ghost-border header-account" onClick={closeMenu}>ورود</Link>
-            )}
-
-            {!hasAdminSession && (
-              <Link to="/panel/login" className="text-btn header-panel" title="ورود مدیران" onClick={closeMenu}>
-                پنل
-              </Link>
             )}
 
             <button
@@ -233,9 +222,6 @@ export function Header() {
             <button type="button" className="outline-btn mobile-theme-btn" onClick={() => toggleTheme()}>
               {theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
             </button>
-            {!hasAdminSession && (
-              <Link to="/panel/login" className="outline-btn" onClick={closeMenu}>پنل مدیریت</Link>
-            )}
           </div>
         </nav>
       </div>

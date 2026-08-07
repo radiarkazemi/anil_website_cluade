@@ -49,11 +49,18 @@ export interface SiteSettings {
   hero_mode: '3d' | 'image';
   hero_cta_primary: string;
   hero_cta_secondary: string;
+  hero_cta_primary_url: string;
+  hero_cta_secondary_url: string;
   show_rates: boolean;
   show_categories: boolean;
   show_featured: boolean;
   show_trust: boolean;
   section_order: string[];
+  trust_heading: string;
+  footer_tagline: string;
+  contact_phone: string;
+  contact_email: string;
+  contact_address: string;
   top_banner: string;
   updated_at?: string;
 }

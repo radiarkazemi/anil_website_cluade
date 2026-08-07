@@ -84,7 +84,12 @@ export function AdminSettings() {
       </div>
 
       <div className="admin-card" style={{ marginTop: 18 }}>
-        <h3 style={{ marginBottom: 10 }}>میانبرهای حرفه‌ای</h3>
+        <h3 style={{ marginBottom: 10 }}>چیدمان صفحه اصلی</h3>
+        <p style={{ fontSize: 13.5, color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: 12 }}>
+          متن هیرو، تصویر، دکمه‌ها، فوتر و ترتیب بخش‌ها را از صفحه{' '}
+          <a href="/panel/layout" style={{ color: 'var(--gold-light)', fontWeight: 700 }}>چیدمان سایت</a>
+          {' '}ویرایش کنید.
+        </p>
         <ul className="settings-tips">
           <li><kbd>Ctrl</kbd> + <kbd>K</kbd> — پالت فرمان برای پرش سریع بین صفحات</li>
           <li>داشبورد هر ۴۵ ثانیه به‌صورت خودکار همگام می‌شود</li>

@@ -6,7 +6,7 @@ import { PageHeader } from './adminShared';
 import type { SiteSettings } from '../../types';
 
 const SECTION_LABELS: Record<string, string> = {
-  hero: 'هیرو (۳بعدی / تصویر)',
+  hero: 'هیرو (تصویر / ۳بعدی)',
   rates: 'نرخ زنده طلا',
   categories: 'دسته‌بندی محصولات',
   featured: 'پرفروش‌ها',
@@ -43,6 +43,9 @@ export function AdminSiteLayout() {
         'brand_name', 'brand_tagline', 'cart_label', 'top_banner',
         'hero_badge', 'hero_title', 'hero_subtitle', 'hero_mode',
         'hero_cta_primary', 'hero_cta_secondary',
+        'hero_cta_primary_url', 'hero_cta_secondary_url',
+        'trust_heading', 'footer_tagline',
+        'contact_phone', 'contact_email', 'contact_address',
       ];
       keys.forEach((k) => {
         const v = form[k];
@@ -58,7 +61,7 @@ export function AdminSiteLayout() {
       return api.adminUpdateSiteSettings(fd);
     },
     onSuccess: () => {
-      toast('چیدمان ذخیره شد');
+      toast('چیدمان ذخیره شد — تغییرات در فروشگاه اعمال می‌شود');
       setLogoFile(null);
       setHeroFile(null);
       qc.invalidateQueries({ queryKey: ['admin-site-settings'] });
@@ -81,12 +84,13 @@ export function AdminSiteLayout() {
   }
 
   const set = (patch: Partial<SiteSettings>) => setForm({ ...form, ...patch });
+  const previewTitle = (form.hero_title || '').split('\n').filter(Boolean);
 
   return (
     <div>
       <PageHeader
         title="چیدمان فروشگاه"
-        subtitle="مثل Elementor — برند، هیرو، تصویر متحرک و ترتیب بخش‌های صفحه اصلی را از اینجا مدیریت کنید"
+        subtitle="متن هیرو، تصویر، دکمه‌ها، فوتر و ترتیب بخش‌های صفحه اصلی را از اینجا تغییر دهید"
         actions={(
           <button type="button" className="gold-btn" disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? '…' : 'ذخیره چیدمان'}
@@ -128,56 +132,117 @@ export function AdminSiteLayout() {
           </div>
         </div>
 
-        <div className="admin-card">
-          <h3 style={{ marginBottom: 14 }}>هیرو و مدل سه‌بعدی</h3>
-          <div className="form-grid">
-            <label>
-              <span>نوع هیرو</span>
-              <select
-                className="input"
-                value={form.hero_mode || 'image'}
-                onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
-              >
-                <option value="image">تصویر واقعی جواهر (سریع — پیشنهادی)</option>
-                <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
-              </select>
-            </label>
-            <label>
-              <span>بج</span>
-              <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
-            </label>
-            <label>
-              <span>دکمه اصلی</span>
-              <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>عنوان (هر خط جدا)</span>
-              <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>توضیح کوتاه</span>
-              <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
-            </label>
-            <label>
-              <span>دکمه فرعی</span>
-              <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>تصویر هیرو (همیشه در لود اولیه نمایش داده می‌شود)</span>
-              {(form.hero_image_url || heroFile) && (
-                <img
-                  className="layout-preview-hero"
-                  src={heroFile ? URL.createObjectURL(heroFile) : form.hero_image_url!}
-                  alt="hero"
-                />
-              )}
-              <input type="file" accept="image/*" onChange={(e) => setHeroFile(e.target.files?.[0] || null)} />
-            </label>
+        <div className="admin-card layout-hero-preview-card">
+          <h3 style={{ marginBottom: 10 }}>پیش‌نمایش متن هیرو</h3>
+          <p className="layout-hint">این همان متنی است که روی تصویر هیرو در موبایل و دسکتاپ دیده می‌شود.</p>
+          <div className="layout-hero-preview">
+            <span className="layout-hero-badge">{form.hero_badge || 'بج'}</span>
+            <div className="layout-hero-title">
+              {previewTitle.length
+                ? previewTitle.map((line, i) => <div key={i}>{line}</div>)
+                : 'عنوان هیرو'}
+            </div>
+            <p>{form.hero_subtitle || 'توضیح کوتاه هیرو'}</p>
+            <span className="layout-hero-cta">{form.hero_cta_primary || 'دکمه اصلی'}</span>
           </div>
         </div>
       </div>
 
+      <div className="admin-card" style={{ marginTop: 18 }}>
+        <h3 style={{ marginBottom: 14 }}>هیرو — متن، تصویر و دکمه‌ها</h3>
+        <div className="form-grid">
+          <label>
+            <span>نوع هیرو</span>
+            <select
+              className="input"
+              value={form.hero_mode || 'image'}
+              onChange={(e) => set({ hero_mode: e.target.value as '3d' | 'image' })}
+            >
+              <option value="image">تصویر واقعی جواهر (سریع — پیشنهادی)</option>
+              <option value="3d">۳بعدی اختیاری (فقط بعد از کلیک کاربر)</option>
+            </select>
+          </label>
+          <label>
+            <span>بج بالای عنوان</span>
+            <input className="input" value={form.hero_badge || ''} onChange={(e) => set({ hero_badge: e.target.value })} />
+          </label>
+          <label className="full">
+            <span>عنوان (هر خط در یک سطر جدا)</span>
+            <textarea className="input" rows={3} value={form.hero_title || ''} onChange={(e) => set({ hero_title: e.target.value })} />
+          </label>
+          <label className="full">
+            <span>توضیح کوتاه زیر عنوان</span>
+            <textarea className="input" rows={3} value={form.hero_subtitle || ''} onChange={(e) => set({ hero_subtitle: e.target.value })} />
+          </label>
+          <label>
+            <span>متن دکمه اصلی</span>
+            <input className="input" value={form.hero_cta_primary || ''} onChange={(e) => set({ hero_cta_primary: e.target.value })} />
+          </label>
+          <label>
+            <span>لینک دکمه اصلی</span>
+            <input
+              className="input"
+              dir="ltr"
+              placeholder="/products"
+              value={form.hero_cta_primary_url || ''}
+              onChange={(e) => set({ hero_cta_primary_url: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>متن دکمه فرعی (دسکتاپ)</span>
+            <input className="input" value={form.hero_cta_secondary || ''} onChange={(e) => set({ hero_cta_secondary: e.target.value })} />
+          </label>
+          <label>
+            <span>لینک دکمه فرعی</span>
+            <input
+              className="input"
+              dir="ltr"
+              placeholder="#market"
+              value={form.hero_cta_secondary_url || ''}
+              onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
+            />
+          </label>
+          <label className="full">
+            <span>تصویر هیرو (پس‌زمینه موبایل و تصویر دسکتاپ)</span>
+            {(form.hero_image_url || heroFile) && (
+              <img
+                className="layout-preview-hero"
+                src={heroFile ? URL.createObjectURL(heroFile) : form.hero_image_url!}
+                alt="hero"
+              />
+            )}
+            <input type="file" accept="image/*" onChange={(e) => setHeroFile(e.target.files?.[0] || null)} />
+          </label>
+        </div>
+      </div>
+
       <div className="admin-grid-2" style={{ marginTop: 18 }}>
+        <div className="admin-card">
+          <h3 style={{ marginBottom: 14 }}>فوتر و تماس</h3>
+          <div className="form-grid">
+            <label className="full">
+              <span>عنوان بخش اعتماد</span>
+              <input className="input" value={form.trust_heading || ''} onChange={(e) => set({ trust_heading: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>متن کوتاه فوتر</span>
+              <input className="input" value={form.footer_tagline || ''} onChange={(e) => set({ footer_tagline: e.target.value })} />
+            </label>
+            <label className="full">
+              <span>آدرس</span>
+              <input className="input" value={form.contact_address || ''} onChange={(e) => set({ contact_address: e.target.value })} />
+            </label>
+            <label>
+              <span>تلفن</span>
+              <input className="input" dir="ltr" value={form.contact_phone || ''} onChange={(e) => set({ contact_phone: e.target.value })} />
+            </label>
+            <label>
+              <span>ایمیل</span>
+              <input className="input" dir="ltr" value={form.contact_email || ''} onChange={(e) => set({ contact_email: e.target.value })} />
+            </label>
+          </div>
+        </div>
+
         <div className="admin-card">
           <h3 style={{ marginBottom: 14 }}>نمایش بخش‌ها</h3>
           <div className="layout-toggles">
@@ -198,31 +263,28 @@ export function AdminSiteLayout() {
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="admin-card">
-          <h3 style={{ marginBottom: 14 }}>ترتیب بخش‌های صفحه اصلی</h3>
-          <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 12 }}>
-            بالا و پایین ببرید — مثل ویرایشگر چیدمان وردپرس.
-          </p>
-          <ul className="layout-order-list">
-            {(form.section_order || DEFAULT_ORDER).map((key, idx) => (
-              <li key={key}>
-                <span>{SECTION_LABELS[key] || key}</span>
-                <span className="layout-order-actions">
-                  <button type="button" className="outline-btn" disabled={idx === 0} onClick={() => moveSection(idx, -1)}>↑</button>
-                  <button
-                    type="button"
-                    className="outline-btn"
-                    disabled={idx === (form.section_order?.length || 0) - 1}
-                    onClick={() => moveSection(idx, 1)}
-                  >
-                    ↓
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="admin-card" style={{ marginTop: 18 }}>
+        <h3 style={{ marginBottom: 14 }}>ترتیب بخش‌های صفحه اصلی</h3>
+        <ul className="layout-order-list">
+          {(form.section_order || DEFAULT_ORDER).map((key, idx) => (
+            <li key={key} className="layout-order-item">
+              <span>{SECTION_LABELS[key] || key}</span>
+              <span className="layout-order-actions">
+                <button type="button" className="outline-btn" disabled={idx === 0} onClick={() => moveSection(idx, -1)}>↑</button>
+                <button
+                  type="button"
+                  className="outline-btn"
+                  disabled={idx === (form.section_order || []).length - 1}
+                  onClick={() => moveSection(idx, 1)}
+                >
+                  ↓
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
