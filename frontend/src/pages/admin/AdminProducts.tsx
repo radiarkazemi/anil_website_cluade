@@ -468,7 +468,7 @@ export function AdminProducts() {
                         <img
                           src={p.images?.[0]?.image || p.primary_image}
                           alt=""
-                          style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
+                          style={{ width: 40, height: 71, objectFit: 'cover', borderRadius: 8 }}
                         />
                       ) : (
                         '—'
