@@ -114,9 +114,7 @@ export const api = {
     const fd = new FormData();
     fd.append('image', file);
     fd.append('is_primary', String(isPrimary));
-    return client.post(`/admin/products/${productId}/images/`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return client.post(`/admin/products/${productId}/images/`, fd);
   },
   adminCategories: () => client.get<Category[]>('/admin/categories/'),
   adminCreateCategory: (data: Partial<Category>) => client.post<Category>('/admin/categories/', data),
