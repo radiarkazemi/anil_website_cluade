@@ -1065,21 +1065,26 @@ body.nav-open { overflow: hidden; }
 
 .product-grid {
   --product-cols: 4;
-  --product-media-h: 236px;
+  --product-card-h: 320px;
   display: grid;
   grid-template-columns: repeat(var(--product-cols), minmax(0, 1fr));
   gap: 14px;
 }
 .product-grid.cols-3 {
   --product-cols: 3;
-  --product-media-h: 260px;
+  --product-card-h: 360px;
 }
 .product-grid.cols-4 {
   --product-cols: 4;
-  --product-media-h: 236px;
+  --product-card-h: 320px;
 }
 
 .product-card {
+  position: relative;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  height: var(--product-card-h);
+  min-height: var(--product-card-h);
   border-radius: 14px;
   overflow: hidden;
   background: transparent;
@@ -1092,14 +1097,17 @@ body.nav-open { overflow: hidden; }
   transform: translateY(-2px);
 }
 .product-media {
+  grid-area: 1 / 1;
   position: relative;
   display: block;
   width: 100%;
-  height: var(--product-media-h);
+  height: 100%;
+  min-height: 0;
   aspect-ratio: auto;
   overflow: hidden;
   background: repeating-linear-gradient(135deg, #171410 0 12px, #1e1a13 12px 24px);
-  border-radius: 12px 12px 0 0;
+  border-radius: 0;
+  z-index: 0;
 }
 [data-theme='light'] .product-media {
   background: repeating-linear-gradient(135deg, #f3e7d3 0 12px, #efe0c8 12px 24px);
@@ -1153,8 +1161,16 @@ body.nav-open { overflow: hidden; }
   border-radius: var(--radius-pill);
 }
 .product-body {
+  grid-area: 1 / 1;
+  align-self: end;
+  position: relative;
+  z-index: 2;
   padding: 12px 10px 14px;
-  background: transparent;
+  /* 50% opacity so bottom of photo stays visible behind info */
+  background: rgba(10, 9, 6, 0.5);
+}
+[data-theme='light'] .product-body {
+  background: rgba(247, 242, 233, 0.5);
 }
 .product-cat { font-size: 10.5px; color: var(--gold-deep); margin-bottom: 4px; }
 .product-name {
@@ -1504,15 +1520,15 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 1100px) {
   .product-grid:not(.cols-4):not(.cols-3) {
     --product-cols: 3;
-    --product-media-h: 248px;
+    --product-card-h: 340px;
   }
   .product-grid.cols-4 {
     --product-cols: 4;
-    --product-media-h: 220px;
+    --product-card-h: 300px;
   }
   .product-grid.cols-3 {
     --product-cols: 3;
-    --product-media-h: 248px;
+    --product-card-h: 340px;
   }
   .cat-grid { grid-template-columns: repeat(3, 1fr); }
   .trust-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1933,12 +1949,12 @@ body.nav-open { overflow: hidden; }
   .cat-title { font-size: 14px; padding: 0 12px; margin-bottom: 4px; }
   .cat-sub { font-size: 12px; padding: 0 12px; }
 
-  /* Products — compact 9:16 cards, 2-col */
+  /* Products — compact overlay cards, 2-col */
   .product-grid,
   .product-grid.cols-3,
   .product-grid.cols-4 {
     --product-cols: 2;
-    --product-media-h: 210px;
+    --product-card-h: 280px;
     gap: 12px;
   }
   .grid-density { display: none; }
@@ -1947,8 +1963,10 @@ body.nav-open { overflow: hidden; }
     justify-content: flex-end;
   }
   .product-card {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template: 1fr / 1fr;
+    height: var(--product-card-h);
+    min-height: var(--product-card-h);
     border-radius: 14px;
     min-width: 0;
     background: transparent;
@@ -1957,7 +1975,7 @@ body.nav-open { overflow: hidden; }
   }
   .product-card:hover { transform: none; }
   .product-media {
-    height: var(--product-media-h);
+    height: 100%;
     aspect-ratio: auto;
   }
   .product-tag {
@@ -1966,7 +1984,13 @@ body.nav-open { overflow: hidden; }
     font-size: 10px;
     padding: 3px 8px;
   }
-  .product-body { padding: 11px 8px 12px; background: transparent; }
+  .product-body {
+    padding: 10px 8px 12px;
+    background: rgba(10, 9, 6, 0.5);
+  }
+  [data-theme='light'] .product-body {
+    background: rgba(247, 242, 233, 0.5);
+  }
   .product-cat { font-size: 10.5px; margin-bottom: 4px; }
   .product-name {
     font-size: 13px;
@@ -2280,7 +2304,7 @@ body.nav-open { overflow: hidden; }
   .m-hero { min-height: min(72svh, 580px); }
   .m-hero .hero-h1 { font-size: 26px; }
   .m-hero .hero-lead { font-size: 13.5px; }
-  .product-media { height: var(--product-media-h, 200px); aspect-ratio: auto; }
+  .product-media { height: 100%; aspect-ratio: auto; }
   .cat-media { height: 100px; }
   .logo-name { font-size: 20px; letter-spacing: 2px; }
 }
