@@ -208,20 +208,18 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           <div className="m-hero-veil" />
         </div>
         <div className="m-hero-copy">
-          <div className="m-hero-copy-panel">
-            <div className="hero-badge">{badge}</div>
-            <h1 className="hero-h1 m-hero-title">
-              {title.map((line, i) => (
-                <span key={i}>
-                  {i > 0 && <br />}
-                  {line}
-                </span>
-              ))}
-            </h1>
-            <p className="hero-lead">{subtitle}</p>
-            <div className="hero-actions">
-              <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
-            </div>
+          <div className="hero-badge">{badge}</div>
+          <h1 className="hero-h1 m-hero-title">
+            {title.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
+          <p className="hero-lead">{subtitle}</p>
+          <div className="hero-actions">
+            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
           </div>
         </div>
       </div>

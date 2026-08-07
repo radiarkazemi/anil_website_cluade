@@ -292,6 +292,8 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
   padding: 9px 20px;
   font-size: 12.5px;
   color: var(--gold-deep);
+  width: 100%;
+  display: block;
 }
 [data-theme='light'] .top-banner {
   background: #2a1f12;
@@ -1374,9 +1376,12 @@ body.nav-open { overflow: hidden; }
   }
   .top-banner {
     font-size: 11.5px;
-    padding: 8px var(--px);
-    line-height: 1.5;
+    padding: 9px max(var(--px), 16px);
+    line-height: 1.55;
     width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
   }
   .header-inner {
     display: grid;
@@ -1533,56 +1538,56 @@ body.nav-open { overflow: hidden; }
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center 35%;
-    transform: scale(1.02);
+    object-position: center 30%;
+    transform: none;
+    filter: none;
   }
+  /* Soft bottom scrim only — keep jewelry banner visible */
   .m-hero-veil {
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(180deg, rgba(6,6,6,.35) 0%, rgba(6,6,6,.45) 32%, rgba(6,6,6,.88) 68%, var(--bg) 100%),
-      radial-gradient(ellipse 80% 50% at 50% 18%, rgba(212,175,55,.12), transparent 65%);
+      linear-gradient(
+        180deg,
+        rgba(6,6,6,.18) 0%,
+        rgba(6,6,6,.08) 28%,
+        rgba(6,6,6,.35) 55%,
+        rgba(6,6,6,.82) 78%,
+        var(--bg) 100%
+      );
     pointer-events: none;
   }
   [data-theme='light'] .m-hero-veil {
     background:
-      linear-gradient(180deg, rgba(28,20,10,.28) 0%, rgba(28,20,10,.22) 28%, rgba(247,242,233,.72) 62%, rgba(247,242,233,.96) 82%, var(--bg) 100%),
-      radial-gradient(ellipse 80% 45% at 50% 20%, rgba(212,175,55,.14), transparent 65%);
+      linear-gradient(
+        180deg,
+        rgba(20,14,6,.12) 0%,
+        rgba(20,14,6,.05) 26%,
+        rgba(20,14,6,.28) 52%,
+        rgba(20,14,6,.72) 76%,
+        var(--bg) 100%
+      );
   }
   .m-hero-copy {
     position: relative;
     z-index: 2;
     margin-top: auto;
-    padding: 20px var(--px) 28px;
+    padding: 28px var(--px) 30px;
     text-align: center;
-  }
-  .m-hero-copy-panel {
-    padding: 22px 18px 18px;
-    border-radius: 22px;
-    background: rgba(8, 6, 4, .62);
-    border: 1px solid rgba(212,175,55,.22);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 18px 40px rgba(0,0,0,.28);
-  }
-  [data-theme='light'] .m-hero-copy-panel {
-    background: rgba(250, 246, 238, .92);
-    border-color: rgba(122,90,16,.18);
-    box-shadow: 0 16px 36px rgba(40, 28, 10, .12);
   }
   .m-hero .hero-badge {
     margin-bottom: 14px;
     padding: 7px 14px;
     font-size: 12px;
     backdrop-filter: blur(8px);
-    background: rgba(0,0,0,.28);
-    border-color: rgba(212,175,55,.45);
-    color: var(--gold-light);
+    background: rgba(0,0,0,.34);
+    border-color: rgba(212,175,55,.5);
+    color: #f3e2b0;
   }
   [data-theme='light'] .m-hero .hero-badge {
-    background: rgba(255,255,255,.9);
-    color: #6b4e0e;
-    border-color: rgba(122,90,16,.28);
+    background: rgba(255,255,255,.78);
+    color: #5a4010;
+    border-color: rgba(122,90,16,.3);
   }
   .m-hero .hero-h1,
   .m-hero .m-hero-title {
@@ -1592,25 +1597,30 @@ body.nav-open { overflow: hidden; }
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
-    color: #f3e2b0;
+    color: #fff6d8;
     animation: none;
-    text-shadow: 0 2px 16px rgba(0,0,0,.45);
+    text-shadow:
+      0 1px 2px rgba(0,0,0,.55),
+      0 8px 24px rgba(0,0,0,.45);
   }
   [data-theme='light'] .m-hero .hero-h1,
   [data-theme='light'] .m-hero .m-hero-title {
-    color: #5a4010;
-    text-shadow: none;
+    color: #fff8e8;
+    text-shadow:
+      0 1px 2px rgba(0,0,0,.5),
+      0 10px 28px rgba(0,0,0,.4);
   }
   .m-hero .hero-lead {
     font-size: 14px;
     line-height: 1.8;
     margin: 0 auto 18px;
     max-width: 34ch;
-    color: rgba(245,237,226,.95);
+    color: rgba(255, 246, 230, .94);
     font-weight: 500;
+    text-shadow: 0 1px 10px rgba(0,0,0,.45);
   }
   [data-theme='light'] .m-hero .hero-lead {
-    color: #3a3124;
+    color: rgba(255, 248, 236, .95);
   }
   .m-hero .hero-actions {
     margin: 0;
