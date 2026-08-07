@@ -102,12 +102,6 @@ export function Header() {
                 <span className="live-price">{faPrice(gp)}</span>
               </div>
             )}
-            {gp > 0 && (
-              <a href="/#market" className="live-gold-mini" title="نرخ طلای ۱۸ عیار">
-                <span className="live-dot" />
-                <span>{faPrice(gp)}</span>
-              </a>
-            )}
 
             <button
               className="icon-btn header-theme-btn"
@@ -153,17 +147,20 @@ export function Header() {
           </div>
         </div>
 
+        {gp > 0 && (
+          <a href="/#market" className="mobile-gold-bar" aria-label="نرخ زنده طلای ۱۸ عیار">
+            <span className="mobile-gold-bar-live">
+              <span className="live-dot" />
+              طلای ۱۸ عیار
+            </span>
+            <strong className="mobile-gold-bar-price">{faPrice(gp)} <span>تومان</span></strong>
+          </a>
+        )}
+
         {menuOpen && (
           <>
             <button type="button" className="mobile-nav-backdrop" aria-label="بستن منو" onClick={closeMenu} />
             <nav className="mobile-nav" aria-label="منوی موبایل">
-              {gp > 0 && (
-                <div className="mobile-nav-gold">
-                  <span className="live-dot" />
-                  <span>طلای ۱۸</span>
-                  <strong>{faPrice(gp)}</strong>
-                </div>
-              )}
               {navLinks}
               <div className="mobile-nav-actions">
                 {user ? (
