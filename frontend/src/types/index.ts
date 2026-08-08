@@ -35,6 +35,17 @@ export interface Category {
   is_active?: boolean;
 }
 
+export interface HeroAlbumSlide {
+  id: string;
+  image?: string | null;
+  image_url: string | null;
+  alt_text: string;
+  caption: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string | null;
+}
+
 export interface SiteSettings {
   brand_name: string;
   brand_tagline: string;
@@ -46,6 +57,7 @@ export interface SiteSettings {
   hero_subtitle: string;
   hero_image: string | null;
   hero_image_url: string | null;
+  hero_album?: HeroAlbumSlide[];
   hero_mode: '3d' | 'image';
   hero_cta_primary: string;
   hero_cta_secondary: string;

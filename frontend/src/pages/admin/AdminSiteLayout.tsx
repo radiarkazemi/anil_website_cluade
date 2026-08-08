@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../api/endpoints';
 import { useToast } from '../../store/toastStore';
 import { PageHeader } from './adminShared';
-import type { SiteSettings } from '../../types';
+import type { HeroAlbumSlide, SiteSettings } from '../../types';
 
 const SECTION_LABELS: Record<string, string> = {
   hero: 'هیرو (تصویر / ۳بعدی)',
@@ -44,8 +44,8 @@ export function AdminSiteLayout() {
   });
   const [form, setForm] = useState<Partial<SiteSettings> | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [heroFile, setHeroFile] = useState<File | null>(null);
   const [savingSection, setSavingSection] = useState<SaveSection | null>(null);
+  const albumInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (data) {
@@ -78,19 +78,6 @@ export function AdminSiteLayout() {
     }
 
     if (section === 'hero') {
-      if (heroFile) {
-        const fd = new FormData();
-        fd.append('hero_badge', form.hero_badge || '');
-        fd.append('hero_title', form.hero_title || '');
-        fd.append('hero_subtitle', form.hero_subtitle || '');
-        fd.append('hero_mode', form.hero_mode || 'image');
-        fd.append('hero_cta_primary', form.hero_cta_primary || '');
-        fd.append('hero_cta_secondary', form.hero_cta_secondary || '');
-        fd.append('hero_cta_primary_url', form.hero_cta_primary_url || '/products');
-        fd.append('hero_cta_secondary_url', form.hero_cta_secondary_url || '#market');
-        fd.append('hero_image', heroFile);
-        return fd;
-      }
       return {
         hero_badge: form.hero_badge || '',
         hero_title: form.hero_title || '',
@@ -129,7 +116,7 @@ export function AdminSiteLayout() {
     }
 
     // all
-    if (logoFile || heroFile) {
+    if (logoFile) {
       const fd = new FormData();
       const keys: (keyof SiteSettings)[] = [
         'brand_name', 'brand_tagline', 'cart_label', 'top_banner',
@@ -149,7 +136,6 @@ export function AdminSiteLayout() {
       fd.append('show_trust', String(!!form.show_trust));
       fd.append('section_order', JSON.stringify(form.section_order || DEFAULT_ORDER));
       if (logoFile) fd.append('brand_logo', logoFile);
-      if (heroFile) fd.append('hero_image', heroFile);
       return fd;
     }
 
@@ -188,7 +174,6 @@ export function AdminSiteLayout() {
     onSuccess: (_data, section) => {
       toast('ذخیره شد');
       if (section === 'brand' || section === 'all') setLogoFile(null);
-      if (section === 'hero' || section === 'all') setHeroFile(null);
       qc.invalidateQueries({ queryKey: ['admin-site-settings'] });
       qc.invalidateQueries({ queryKey: ['site-settings'] });
     },
@@ -219,6 +204,68 @@ export function AdminSiteLayout() {
     if (j < 0 || j >= next.length) return;
     [next[idx], next[j]] = [next[j], next[idx]];
     setForm({ ...form, section_order: next });
+  };
+
+  const albumSlides = (form?.hero_album || []).filter((s) => s.id !== 'legacy') as HeroAlbumSlide[];
+
+  const refreshAlbum = () => {
+    qc.invalidateQueries({ queryKey: ['admin-site-settings'] });
+    qc.invalidateQueries({ queryKey: ['site-settings'] });
+  };
+
+  const uploadSlides = useMutation({
+    mutationFn: async (files: File[]) => {
+      for (const file of files) {
+        await api.adminUploadHeroSlide(file);
+      }
+    },
+    onSuccess: () => {
+      toast('عکس به آلبوم اضافه شد');
+      refreshAlbum();
+    },
+    onError: (err: unknown) => {
+      const anyErr = err as { response?: { data?: { detail?: string } } };
+      toast(anyErr?.response?.data?.detail || 'آپلود ناموفق');
+    },
+  });
+
+  const deleteSlide = useMutation({
+    mutationFn: (id: string) => api.adminDeleteHeroSlide(id),
+    onSuccess: () => {
+      toast('حذف شد');
+      refreshAlbum();
+    },
+    onError: () => toast('حذف ناموفق'),
+  });
+
+  const patchSlide = useMutation({
+    mutationFn: ({ id, ...data }: { id: string; caption?: string; is_active?: boolean }) =>
+      api.adminUpdateHeroSlide(id, data),
+    onSuccess: () => refreshAlbum(),
+    onError: () => toast('ذخیره اسلاید ناموفق'),
+  });
+
+  const reorderAlbum = useMutation({
+    mutationFn: (ids: string[]) => api.adminReorderHeroAlbum(ids),
+    onSuccess: () => refreshAlbum(),
+    onError: () => toast('ترتیب ذخیره نشد'),
+  });
+
+  const moveSlide = (id: string, dir: -1 | 1) => {
+    const ids = albumSlides.map((s) => s.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    const next = [...ids];
+    [next[i], next[j]] = [next[j], next[i]];
+    setForm((f) => {
+      if (!f?.hero_album) return f;
+      const map = Object.fromEntries(f.hero_album.map((s) => [s.id, s]));
+      const reordered = next.map((nid, order) => ({ ...map[nid], sort_order: order })).filter(Boolean);
+      const legacy = f.hero_album.filter((s) => s.id === 'legacy');
+      return { ...f, hero_album: [...reordered, ...legacy] as HeroAlbumSlide[] };
+    });
+    reorderAlbum.mutate(next);
   };
 
   if (isLoading || !form) {
@@ -298,7 +345,7 @@ export function AdminSiteLayout() {
       </div>
 
       <div className="admin-card" style={{ marginTop: 18 }}>
-        <h3 style={{ marginBottom: 14 }}>هیرو — متن، تصویر و دکمه‌ها</h3>
+        <h3 style={{ marginBottom: 14 }}>هیرو — متن، آلبوم عکس و دکمه‌ها</h3>
         <div className="form-grid">
           <label>
             <span>نوع هیرو</span>
@@ -351,18 +398,93 @@ export function AdminSiteLayout() {
               onChange={(e) => set({ hero_cta_secondary_url: e.target.value })}
             />
           </label>
-          <label className="full">
-            <span>تصویر هیرو (نقاشی / بنر — دسکتاپ و موبایل)</span>
-            <p className="layout-hint">اگر خالی باشد، تصویر نقاشی پیش‌فرض گالری نمایش داده می‌شود. می‌توانید تصویر دلخواه آپلود کنید.</p>
-            {(form.hero_image_url || heroFile) && (
-              <img
-                className="layout-preview-hero"
-                src={heroFile ? URL.createObjectURL(heroFile) : form.hero_image_url!}
-                alt="hero"
+          <div className="full hero-album-admin">
+            <span className="hero-album-admin-title">آلبوم هیرو — یک یا چند تصویر</span>
+            <p className="layout-hint">
+              می‌توانید فقط یک عکس بگذارید یا چند عکس اضافه کنید. روی دسکتاپ داخل قاب ثابت عوض می‌شوند؛ روی موبایل تمام‌صفحه اسلاید می‌خورند.
+              اگر آلبوم خالی باشد، تصویر پیش‌فرض گالری نمایش داده می‌شود.
+            </p>
+            <div className="hero-album-admin-grid">
+              {(form.hero_album || []).filter((s) => s.id !== 'legacy').map((slide, idx) => (
+                <div key={slide.id} className={`hero-album-admin-card${slide.is_active ? '' : ' is-off'}`}>
+                  <img src={slide.image_url || ''} alt={slide.alt_text || 'slide'} />
+                  <div className="hero-album-admin-meta">
+                    <input
+                      className="input"
+                      placeholder="عنوان کوتاه (اختیاری)"
+                      value={slide.caption || ''}
+                      onChange={(e) => {
+                        const caption = e.target.value;
+                        setForm((f) => f ? {
+                          ...f,
+                          hero_album: (f.hero_album || []).map((s) =>
+                            s.id === slide.id ? { ...s, caption } : s,
+                          ),
+                        } : f);
+                      }}
+                      onBlur={(e) => patchSlide.mutate({ id: slide.id, caption: e.target.value })}
+                    />
+                    <div className="hero-album-admin-actions">
+                      <button
+                        type="button"
+                        className="outline-btn"
+                        disabled={idx === 0 || reorderAlbum.isPending}
+                        onClick={() => moveSlide(slide.id, -1)}
+                      >
+                        بالا
+                      </button>
+                      <button
+                        type="button"
+                        className="outline-btn"
+                        disabled={idx >= (form.hero_album || []).filter((s) => s.id !== 'legacy').length - 1 || reorderAlbum.isPending}
+                        onClick={() => moveSlide(slide.id, 1)}
+                      >
+                        پایین
+                      </button>
+                      <button
+                        type="button"
+                        className="outline-btn"
+                        onClick={() => patchSlide.mutate({ id: slide.id, is_active: !slide.is_active })}
+                      >
+                        {slide.is_active ? 'مخفی' : 'نمایش'}
+                      </button>
+                      <button
+                        type="button"
+                        className="outline-btn danger-btn"
+                        onClick={() => {
+                          if (window.confirm('این عکس از آلبوم حذف شود؟')) deleteSlide.mutate(slide.id);
+                        }}
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hero-album-admin-add">
+              <input
+                ref={albumInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  e.target.value = '';
+                  if (files.length) uploadSlides.mutate(files);
+                }}
               />
-            )}
-            <input type="file" accept="image/*" onChange={(e) => setHeroFile(e.target.files?.[0] || null)} />
-          </label>
+              <button
+                type="button"
+                className="gold-btn"
+                disabled={uploadSlides.isPending}
+                onClick={() => albumInputRef.current?.click()}
+              >
+                {uploadSlides.isPending ? 'در حال آپلود…' : 'افزودن عکس به آلبوم'}
+              </button>
+            </div>
+          </div>
         </div>
         <SectionSaveBar
           label="ذخیره هیرو"

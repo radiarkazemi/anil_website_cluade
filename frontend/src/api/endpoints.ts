@@ -1,6 +1,6 @@
 import client from './client';
 import type {
-  AuthTokens, Category, ContentPage, GoldPrice, Order, PaginatedResponse, Product, SiteSettings, User,
+  AuthTokens, Category, ContentPage, GoldPrice, HeroAlbumSlide, Order, PaginatedResponse, Product, SiteSettings, User,
 } from '../types';
 
 export interface DashboardStats {
@@ -146,6 +146,22 @@ export const api = {
   adminSiteSettings: () => client.get<SiteSettings>('/admin/site-settings/'),
   adminUpdateSiteSettings: (data: FormData | Record<string, unknown>) =>
     client.patch<SiteSettings>('/admin/site-settings/', data),
+  adminHeroAlbum: () => client.get<HeroAlbumSlide[]>('/admin/site-settings/hero-album/'),
+  adminUploadHeroSlide: (file: File, meta?: { alt_text?: string; caption?: string }) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    if (meta?.alt_text) fd.append('alt_text', meta.alt_text);
+    if (meta?.caption) fd.append('caption', meta.caption);
+    return client.post<HeroAlbumSlide & { site?: SiteSettings }>('/admin/site-settings/hero-album/', fd);
+  },
+  adminUpdateHeroSlide: (
+    id: string,
+    data: FormData | { alt_text?: string; caption?: string; sort_order?: number; is_active?: boolean },
+  ) => client.patch<HeroAlbumSlide & { site?: SiteSettings }>(`/admin/site-settings/hero-album/${id}/`, data),
+  adminDeleteHeroSlide: (id: string) =>
+    client.delete<{ ok: boolean; site?: SiteSettings }>(`/admin/site-settings/hero-album/${id}/`),
+  adminReorderHeroAlbum: (ids: string[]) =>
+    client.post<SiteSettings>('/admin/site-settings/hero-album/reorder/', { order: ids }),
   adminPages: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<ContentPage> | ContentPage[]>('/admin/pages/', { params }),
   adminCreatePage: (data: Partial<ContentPage>) => client.post<ContentPage>('/admin/pages/', data),

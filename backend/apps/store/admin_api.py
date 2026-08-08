@@ -422,6 +422,178 @@ class AdminSiteSettingsView(APIView):
         return Response(ser.data)
 
 
+class AdminHeroAlbumView(APIView):
+    """Upload / list hero album slides."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def get(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer
+
+        site = SiteSettings.load()
+        slides = HeroAlbumSlide.objects.filter(settings=site).order_by("sort_order", "created_at")
+        return Response(HeroAlbumSlideSerializer(slides, many=True, context={"request": request}).data)
+
+    def post(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer, SiteSettingsSerializer
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        site = SiteSettings.load()
+        image = request.FILES.get("image")
+        if not image:
+            return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            processed, meta = process_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(
+                detail if isinstance(detail, dict) else {"detail": detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        next_order = (
+            HeroAlbumSlide.objects.filter(settings=site).order_by("-sort_order").values_list("sort_order", flat=True).first()
+        )
+        sort_order = int(request.data.get("sort_order", (next_order or -1) + 1) or 0)
+
+        try:
+            ensure_media_subdir("hero/album")
+            slide = HeroAlbumSlide.objects.create(
+                settings=site,
+                image=processed,
+                alt_text=request.data.get("alt_text", "") or "",
+                caption=request.data.get("caption", "") or "",
+                sort_order=sort_order,
+                is_active=str(request.data.get("is_active", "true")).lower() in ("1", "true", "yes", "on"),
+            )
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Keep legacy hero_image in sync with first active slide for older clients
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        data = HeroAlbumSlideSerializer(slide, context={"request": request}).data
+        data["processed"] = meta
+        data["site"] = SiteSettingsSerializer(site, context={"request": request}).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class AdminHeroAlbumDetailView(APIView):
+    """Patch / delete a single hero album slide."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def patch(self, request, slide_id):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer, SiteSettingsSerializer
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        try:
+            slide = HeroAlbumSlide.objects.select_related("settings").get(id=slide_id)
+        except HeroAlbumSlide.DoesNotExist:
+            return Response({"detail": "اسلاید یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        if "alt_text" in request.data:
+            slide.alt_text = request.data.get("alt_text") or ""
+        if "caption" in request.data:
+            slide.caption = request.data.get("caption") or ""
+        if "sort_order" in request.data:
+            try:
+                slide.sort_order = int(request.data.get("sort_order") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "is_active" in request.data:
+            slide.is_active = str(request.data.get("is_active")).lower() in ("1", "true", "yes", "on")
+
+        image = request.FILES.get("image")
+        if image:
+            try:
+                processed, _meta = process_uploaded_image(image)
+                ensure_media_subdir("hero/album")
+                slide.image = processed
+            except Exception as exc:
+                detail = getattr(exc, "detail", None) or str(exc)
+                return Response(
+                    detail if isinstance(detail, dict) else {"detail": detail},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        slide.save()
+        site = SiteSettings.load()
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        data = HeroAlbumSlideSerializer(slide, context={"request": request}).data
+        data["site"] = SiteSettingsSerializer(site, context={"request": request}).data
+        return Response(data)
+
+    def delete(self, request, slide_id):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        deleted, _ = HeroAlbumSlide.objects.filter(id=slide_id).delete()
+        if not deleted:
+            return Response({"detail": "اسلاید یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        site = SiteSettings.load()
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+        elif not HeroAlbumSlide.objects.filter(settings=site).exists():
+            # Album emptied — clear legacy pointer
+            site.hero_image = None
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        return Response(
+            {"ok": True, "site": SiteSettingsSerializer(site, context={"request": request}).data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminHeroAlbumReorderView(APIView):
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        order = request.data.get("order") or request.data.get("ids") or []
+        if not isinstance(order, list):
+            return Response({"detail": "لیست ترتیب نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        site = SiteSettings.load()
+        for idx, slide_id in enumerate(order):
+            HeroAlbumSlide.objects.filter(settings=site, id=slide_id).update(sort_order=idx)
+
+        return Response(SiteSettingsSerializer(site, context={"request": request}).data)
+
+
 class AdminContentPageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
     lookup_field = "id"

@@ -56,7 +56,13 @@ export function Account() {
   useEffect(() => {
     if (!tokens) return;
     if (!user) {
-      api.profile('client').then((r) => setUser(r.data)).catch(() => logout());
+      api.profile('client')
+        .then((r) => setUser(r.data))
+        .catch((err: { response?: { status?: number } }) => {
+          // Only hard-logout on definitive auth rejection — never on network blips
+          const status = err?.response?.status;
+          if (status === 401 || status === 403) logout();
+        });
     }
   }, [tokens, user, setUser, logout]);
 

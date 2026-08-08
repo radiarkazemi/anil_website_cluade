@@ -33,6 +33,40 @@ function readTokens(session: AuthSession) {
   }
 }
 
+/** Single in-flight refresh per session — prevents rotate/blacklist races. */
+const refreshPromises: Partial<Record<AuthSession, Promise<{ access: string; refresh: string } | null>>> = {};
+
+async function refreshSession(session: AuthSession): Promise<{ access: string; refresh: string } | null> {
+  if (refreshPromises[session]) return refreshPromises[session]!;
+
+  refreshPromises[session] = (async () => {
+    const tokens = readTokens(session);
+    if (!tokens?.refresh) return null;
+    try {
+      const res = await axios.post(`${API_BASE}/auth/token/refresh/`, {
+        refresh: tokens.refresh,
+      });
+      const newTokens = {
+        access: res.data.access as string,
+        refresh: (res.data.refresh as string) || tokens.refresh,
+      };
+      setSessionTokens(session, newTokens);
+      return newTokens;
+    } catch (err: any) {
+      const status = err?.response?.status;
+      // Only hard-logout on definitive auth rejection (not network / throttle)
+      if (status === 401 || status === 403) {
+        setSessionTokens(session, null);
+      }
+      return null;
+    } finally {
+      delete refreshPromises[session];
+    }
+  })();
+
+  return refreshPromises[session]!;
+}
+
 const client = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
@@ -45,7 +79,6 @@ client.interceptors.request.use((config) => {
   if (tokens?.access) {
     config.headers.Authorization = `Bearer ${tokens.access}`;
   }
-  // Let the browser set multipart boundary — a bare multipart/form-data header breaks Django parsing
   if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
     if (typeof config.headers.set === 'function') {
       config.headers.set('Content-Type', undefined as unknown as string);
@@ -66,23 +99,11 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && orig && !orig._retry) {
       orig._retry = true;
       const session = orig.authSession || resolveSession(orig);
-      const tokens = readTokens(session);
-      if (tokens?.refresh) {
-        try {
-          const res = await axios.post(`${API_BASE}/auth/token/refresh/`, {
-            refresh: tokens.refresh,
-          });
-          const newTokens = {
-            access: res.data.access,
-            refresh: res.data.refresh || tokens.refresh,
-          };
-          setSessionTokens(session, newTokens);
-          orig.headers = orig.headers || {};
-          orig.headers.Authorization = `Bearer ${newTokens.access}`;
-          return client(orig);
-        } catch {
-          setSessionTokens(session, null);
-        }
+      const refreshed = await refreshSession(session);
+      if (refreshed?.access) {
+        orig.headers = orig.headers || {};
+        orig.headers.Authorization = `Bearer ${refreshed.access}`;
+        return client(orig);
       }
     }
     return Promise.reject(error);

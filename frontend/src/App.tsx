@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
 import { useGoldPrice } from './hooks/useGoldPrice';
+import { api } from './api/endpoints';
+import { useStore } from './store/useStore';
 import { Home } from './pages/Home';
 import { Products } from './pages/Products';
 import { ProductDetail } from './pages/ProductDetail';
@@ -31,8 +34,39 @@ import './index.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
 
+/** Keep customer profile hydrated whenever client tokens exist. */
+function useClientSessionBootstrap() {
+  const tokens = useStore((s) => s.tokens);
+  const user = useStore((s) => s.user);
+  const setUser = useStore((s) => s.setUser);
+  const setTokens = useStore((s) => s.setTokens);
+
+  useEffect(() => {
+    if (!tokens?.access) return;
+    if (user?.id) return;
+    let cancelled = false;
+    api
+      .profile('client')
+      .then((r) => {
+        if (!cancelled) setUser(r.data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Only clear session on definitive auth failure
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          setTokens(null);
+          setUser(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tokens?.access, user?.id, setUser, setTokens]);
+}
+
 function AppInner() {
   useGoldPrice(15000);
+  useClientSessionBootstrap();
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 

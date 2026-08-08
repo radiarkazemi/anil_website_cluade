@@ -34,6 +34,21 @@ urlpatterns = [
     ),
     path("admin/site-settings/", admin_api.AdminSiteSettingsView.as_view(), name="admin-site-settings"),
     path(
+        "admin/site-settings/hero-album/",
+        admin_api.AdminHeroAlbumView.as_view(),
+        name="admin-hero-album",
+    ),
+    path(
+        "admin/site-settings/hero-album/reorder/",
+        admin_api.AdminHeroAlbumReorderView.as_view(),
+        name="admin-hero-album-reorder",
+    ),
+    path(
+        "admin/site-settings/hero-album/<uuid:slide_id>/",
+        admin_api.AdminHeroAlbumDetailView.as_view(),
+        name="admin-hero-album-detail",
+    ),
+    path(
         "admin/categories/<uuid:category_id>/image/",
         admin_api.AdminCategoryImageUploadView.as_view(),
         name="admin-category-image",

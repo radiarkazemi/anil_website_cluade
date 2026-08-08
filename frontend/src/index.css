@@ -748,6 +748,218 @@ body.nav-open { overflow: hidden; }
   text-align: center;
 }
 
+/* Hero photo album — slides live inside the fixed frame */
+.hero-album-frame {
+  padding-bottom: 14px;
+}
+.hero-album-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1a140c;
+}
+.hero-album-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  border-radius: 18px;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity .9s ease, transform 5.2s ease;
+  pointer-events: none;
+}
+.hero-album-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  z-index: 1;
+  animation: heroKen 5.2s ease-out forwards;
+}
+@keyframes heroKen {
+  from { transform: scale(1.03); }
+  to { transform: scale(1); }
+}
+.hero-album-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), transparent 28%, transparent 72%, rgba(0,0,0,.28)),
+    radial-gradient(120% 80% at 80% 0%, rgba(212,175,55,.12), transparent 55%);
+  border-radius: 18px;
+}
+.hero-album-plate {
+  position: absolute;
+  top: 22px;
+  inset-inline-start: 26px;
+  z-index: 3;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(20, 14, 8, .48);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(244, 217, 139, .28);
+  color: #f7e7b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.hero-album-plate-label {
+  opacity: .72;
+  font-weight: 600;
+}
+.hero-album-plate-count {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-display, inherit);
+}
+.hero-album-dots {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(12, 8, 4, .4);
+  backdrop-filter: blur(6px);
+}
+.hero-album-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.35);
+  cursor: pointer;
+  transition: transform .2s ease, background .2s ease, width .2s ease;
+}
+.hero-album-dot.is-active {
+  width: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4d98b, #c9a24d);
+}
+.hero-album-progress {
+  position: absolute;
+  bottom: 14px;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  z-index: 3;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255,255,255,.12);
+}
+.hero-album-progress::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: right center;
+  background: linear-gradient(90deg, transparent, #f4d98b);
+  animation: heroAlbumBar 5.2s linear infinite;
+}
+.hero-album-progress.is-paused::after {
+  animation-play-state: paused;
+}
+@keyframes heroAlbumBar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.m-hero-media {
+  position: relative;
+}
+.m-hero-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  opacity: 0;
+  transition: opacity .85s ease, transform 5.2s ease;
+  transform: scale(1.05);
+}
+.m-hero-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+.m-hero-dots {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(8, 6, 3, .45);
+}
+
+.hero-album-admin-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.hero-album-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 12px 0 16px;
+}
+.hero-album-admin-card {
+  border: 1px solid rgba(212,175,55,.28);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.hero-album-admin-card.is-off {
+  opacity: .55;
+}
+.hero-album-admin-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+.hero-album-admin-meta {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hero-album-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hero-album-admin-actions .outline-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.hero-album-admin-add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.danger-btn {
+  border-color: rgba(180, 60, 60, .45) !important;
+  color: #c44 !important;
+}
+
 .hero-ring {
   position: relative;
   height: 470px;

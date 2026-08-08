@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { IconBuyback, IconConsult, IconInsuredShip, IconShieldCheck } from '../components/icons';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
-import type { MarketRow, SiteSettings } from '../types';
+import type { HeroAlbumSlide, MarketRow, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
 const loadHeroRing3D = () =>
@@ -45,26 +45,124 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
 
 const DEFAULT_HERO = '/hero/anil-gallery.jpg';
 
-/** Framed hero artwork — fixed frame so swapping images never shifts layout. */
-function HeroPainting({ src }: { src: string }) {
+function useHeroSlides(site?: SiteSettings): { src: string; alt: string; caption: string; id: string }[] {
+  return useMemo(() => {
+    const album = (site?.hero_album || []).filter((s) => s.is_active !== false && s.image_url);
+    if (album.length) {
+      return album.map((s: HeroAlbumSlide) => ({
+        id: String(s.id),
+        src: s.image_url!,
+        alt: s.alt_text || 'گالری طلا آنیل',
+        caption: s.caption || '',
+      }));
+    }
+    const legacy = site?.hero_image_url || DEFAULT_HERO;
+    return [{ id: 'default', src: legacy, alt: 'گالری طلا آنیل', caption: '' }];
+  }, [site?.hero_album, site?.hero_image_url]);
+}
+
+function useAlbumIndex(count: number, pause: boolean) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    setIndex(0);
+  }, [count]);
+  useEffect(() => {
+    if (count <= 1 || pause) return;
+    const t = window.setInterval(() => {
+      setIndex((i) => (i + 1) % count);
+    }, 5200);
+    return () => window.clearInterval(t);
+  }, [count, pause]);
+  return [index, setIndex] as const;
+}
+
+/** Framed hero album — fixed square frame; slides crossfade inside. */
+function HeroAlbumPainting({
+  slides,
+  index,
+  onSelect,
+  paused,
+  onPause,
+}: {
+  slides: { src: string; alt: string; caption: string; id: string }[];
+  index: number;
+  onSelect: (i: number) => void;
+  paused: boolean;
+  onPause: (v: boolean) => void;
+}) {
+  const current = slides[index] || slides[0];
+  const multi = slides.length > 1;
+
   return (
-    <div className="hero-painting">
+    <div
+      className="hero-painting"
+      onMouseEnter={() => onPause(true)}
+      onMouseLeave={() => onPause(false)}
+    >
       <div className="hero-painting-glow" aria-hidden />
-      <figure className="hero-painting-frame">
-        <img
-          className="hero-painting-img"
-          src={src}
-          alt="گالری طلا آنیل"
-          decoding="async"
-          fetchPriority="high"
-        />
+      <figure className="hero-painting-frame hero-album-frame" aria-roledescription="carousel">
+        <div className="hero-album-stage">
+          {slides.map((s, i) => (
+            <img
+              key={s.id}
+              className={`hero-painting-img hero-album-slide${i === index ? ' is-active' : ''}`}
+              src={s.src}
+              alt={s.alt}
+              decoding="async"
+              fetchPriority={i === 0 ? 'high' : 'low'}
+              aria-hidden={i !== index}
+            />
+          ))}
+          <div className="hero-album-sheen" aria-hidden />
+        </div>
+        {multi && (
+          <>
+            <div className="hero-album-plate" aria-live="polite">
+              <span className="hero-album-plate-label">آلبوم</span>
+              <span className="hero-album-plate-count">
+                {faNum(index + 1)} / {faNum(slides.length)}
+              </span>
+            </div>
+            <div className="hero-album-dots" role="tablist" aria-label="اسلایدهای هیرو">
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === index}
+                  className={`hero-album-dot${i === index ? ' is-active' : ''}`}
+                  onClick={() => onSelect(i)}
+                >
+                  <span className="sr-only">اسلاید {faNum(i + 1)}</span>
+                </button>
+              ))}
+            </div>
+            <div className={`hero-album-progress${paused ? ' is-paused' : ''}`} aria-hidden />
+          </>
+        )}
       </figure>
+      {current?.caption ? (
+        <figcaption className="hero-painting-caption">{current.caption}</figcaption>
+      ) : null}
     </div>
   );
 }
 
-function HeroVisual({ site }: { site?: SiteSettings }) {
-  const heroSrc = site?.hero_image_url || DEFAULT_HERO;
+function HeroVisual({
+  site,
+  slides,
+  index,
+  onSelect,
+  paused,
+  onPause,
+}: {
+  site?: SiteSettings;
+  slides: { src: string; alt: string; caption: string; id: string }[];
+  index: number;
+  onSelect: (i: number) => void;
+  paused: boolean;
+  onPause: (v: boolean) => void;
+}) {
   const allow3d = site?.hero_mode === '3d';
   const [wants3d, setWants3d] = useState(false);
 
@@ -74,7 +172,13 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
         <Suspense
           fallback={(
             <>
-              <HeroPainting src={heroSrc} />
+              <HeroAlbumPainting
+                slides={slides}
+                index={index}
+                onSelect={onSelect}
+                paused={paused}
+                onPause={onPause}
+              />
               <div className="hero-3d-loading-badge">در حال آماده‌سازی مدل ۳بعدی…</div>
             </>
           )}
@@ -82,7 +186,7 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
           <HeroRing3D />
         </Suspense>
         <button type="button" className="hero-3d-toggle outline-btn" onClick={() => setWants3d(false)}>
-          بازگشت به تصویر
+          بازگشت به آلبوم
         </button>
       </div>
     );
@@ -90,7 +194,13 @@ function HeroVisual({ site }: { site?: SiteSettings }) {
 
   return (
     <div className="hero-visual-wrap">
-      <HeroPainting src={heroSrc} />
+      <HeroAlbumPainting
+        slides={slides}
+        index={index}
+        onSelect={onSelect}
+        paused={paused}
+        onPause={onPause}
+      />
       {allow3d && (
         <button type="button" className="hero-3d-toggle gold-btn" onClick={() => setWants3d(true)}>
           نمایش مدل ۳بعدی
@@ -118,7 +228,9 @@ function HeroCta({
 
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'زیورآلات طلا،\nبا درخشش آنیل').split('\n');
-  const heroSrc = site?.hero_image_url || DEFAULT_HERO;
+  const slides = useHeroSlides(site);
+  const [paused, setPaused] = useState(false);
+  const [index, setIndex] = useAlbumIndex(slides.length, paused);
   const subtitle = site?.hero_subtitle
     || 'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا — فاکتور رسمی و ارسال بیمه‌شده.';
   const primaryLabel = site?.hero_cta_primary || 'مشاهده‌ی محصولات';
@@ -129,11 +241,37 @@ function HeroSection({ site }: { site?: SiteSettings }) {
 
   return (
     <section className="home-hero-bleed">
-      {/* Mobile: full-bleed */}
-      <div className="m-hero">
+      {/* Mobile: full-bleed album */}
+      <div
+        className="m-hero"
+        onTouchStart={() => setPaused(true)}
+        onTouchEnd={() => setPaused(false)}
+      >
         <div className="m-hero-media">
-          <img src={heroSrc} alt="Anil Gold Gallery" decoding="async" fetchPriority="high" />
+          {slides.map((s, i) => (
+            <img
+              key={s.id}
+              className={`m-hero-slide${i === index ? ' is-active' : ''}`}
+              src={s.src}
+              alt={s.alt}
+              decoding="async"
+              fetchPriority={i === 0 ? 'high' : 'low'}
+            />
+          ))}
           <div className="m-hero-veil" />
+          {slides.length > 1 && (
+            <div className="m-hero-dots" role="tablist" aria-label="اسلایدهای هیرو">
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`hero-album-dot${i === index ? ' is-active' : ''}`}
+                  aria-selected={i === index}
+                  onClick={() => setIndex(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="m-hero-copy">
           <div className="hero-badge">{badge}</div>
@@ -152,9 +290,16 @@ function HeroSection({ site }: { site?: SiteSettings }) {
         </div>
       </div>
 
-      {/* Desktop: stable framed split layout — image swaps inside fixed frame */}
+      {/* Desktop: stable framed split — album swaps inside fixed frame */}
       <div className="container home-hero d-hero">
-        <HeroVisual site={site} />
+        <HeroVisual
+          site={site}
+          slides={slides}
+          index={index}
+          onSelect={setIndex}
+          paused={paused}
+          onPause={setPaused}
+        />
         <div className="hero-copy">
           <div className="hero-badge">{badge}</div>
           <h1 className="shimmer-text hero-h1">
@@ -339,8 +484,8 @@ export function Home() {
                   </a>
                 </li>
                 <li>
-                  <a href={`mailto:${site?.contact_email || 'info@anilgold.ir'}`} dir="ltr">
-                    {site?.contact_email || 'info@anilgold.ir'}
+                  <a href={`mailto:${site?.contact_email || 'info@goldanil.ir'}`} dir="ltr">
+                    {site?.contact_email || 'info@goldanil.ir'}
                   </a>
                 </li>
               </ul>

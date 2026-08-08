@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from .models import Category, ContentPage, GoldPrice, Product, ProductImage, SiteSettings, Wishlist
+from .models import (
+    Category,
+    ContentPage,
+    GoldPrice,
+    HeroAlbumSlide,
+    Product,
+    ProductImage,
+    SiteSettings,
+    Wishlist,
+)
 
 
 def _abs_url(request, file_field):
@@ -84,15 +93,32 @@ class CategorySerializer(serializers.ModelSerializer):
         return _abs_url(self.context.get("request"), obj.image)
 
 
+class HeroAlbumSlideSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeroAlbumSlide
+        fields = [
+            "id", "image", "image_url", "alt_text", "caption",
+            "sort_order", "is_active", "created_at",
+        ]
+        read_only_fields = ["id", "image", "created_at"]
+
+    def get_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.image)
+
+
 class SiteSettingsSerializer(serializers.ModelSerializer):
     brand_logo_url = serializers.SerializerMethodField()
     hero_image_url = serializers.SerializerMethodField()
+    hero_album = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
         fields = [
             "brand_name", "brand_tagline", "brand_logo", "brand_logo_url", "cart_label",
             "hero_badge", "hero_title", "hero_subtitle", "hero_image", "hero_image_url",
+            "hero_album",
             "hero_mode", "hero_cta_primary", "hero_cta_secondary",
             "hero_cta_primary_url", "hero_cta_secondary_url",
             "show_rates", "show_categories", "show_featured", "show_trust",
@@ -106,7 +132,43 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         return _abs_url(self.context.get("request"), obj.brand_logo)
 
     def get_hero_image_url(self, obj):
+        # Prefer first active album slide; fall back to legacy single image
+        album = getattr(obj, "hero_album", None)
+        if album is not None:
+            first = album.filter(is_active=True).order_by("sort_order", "created_at").first()
+            if first and first.image:
+                return _abs_url(self.context.get("request"), first.image)
         return _abs_url(self.context.get("request"), obj.hero_image)
+
+    def get_hero_album(self, obj):
+        request = self.context.get("request")
+        # Admin sees all slides; public only active
+        qs = obj.hero_album.all().order_by("sort_order", "created_at")
+        is_admin = bool(
+            request
+            and getattr(request, "user", None)
+            and getattr(request.user, "is_authenticated", False)
+            and getattr(request.user, "role", None) in ("admin", "staff")
+        )
+        if not is_admin:
+            qs = qs.filter(is_active=True)
+        slides = HeroAlbumSlideSerializer(qs, many=True, context=self.context).data
+        if slides:
+            return slides
+        # Legacy fallback so storefront never goes blank mid-migration
+        legacy = _abs_url(request, obj.hero_image)
+        if legacy:
+            return [{
+                "id": "legacy",
+                "image": None,
+                "image_url": legacy,
+                "alt_text": "هیرو",
+                "caption": "",
+                "sort_order": 0,
+                "is_active": True,
+                "created_at": None,
+            }]
+        return []
 
 
 class ContentPageSerializer(serializers.ModelSerializer):

@@ -201,7 +201,7 @@ class SiteSettings(models.Model):
         blank=True,
     )
     contact_phone = models.CharField(max_length=40, default="021-12345678", blank=True)
-    contact_email = models.CharField(max_length=120, default="info@anilgold.ir", blank=True)
+    contact_email = models.CharField(max_length=120, default="info@goldanil.ir", blank=True)
     contact_address = models.CharField(max_length=300, default="تهران، بازار بزرگ طلا", blank=True)
 
     top_banner = models.CharField(
@@ -224,6 +224,31 @@ class SiteSettings(models.Model):
             obj.section_order = ["hero", "rates", "categories", "featured", "trust"]
             obj.save(update_fields=["section_order"])
         return obj
+
+
+class HeroAlbumSlide(models.Model):
+    """Homepage hero photo album — one or many slides inside the fixed frame."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    settings = models.ForeignKey(
+        SiteSettings,
+        on_delete=models.CASCADE,
+        related_name="hero_album",
+    )
+    image = models.ImageField(upload_to="hero/album/")
+    alt_text = models.CharField(max_length=200, blank=True)
+    caption = models.CharField(max_length=160, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "created_at"]
+        verbose_name = "اسلاید آلبوم هیرو"
+        verbose_name_plural = "آلبوم هیرو"
+
+    def __str__(self):
+        return self.caption or self.alt_text or f"اسلاید #{self.sort_order}"
 
 
 class ContentPage(models.Model):

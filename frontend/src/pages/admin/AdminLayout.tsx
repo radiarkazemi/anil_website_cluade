@@ -59,8 +59,9 @@ export function AdminLayout() {
   useEffect(() => {
     if (!tokens) return;
     if (user) { setLoading(false); return; }
-    api.profile('admin').then((r) => { setUser(r.data); setLoading(false); }).catch(() => {
-      logout();
+    api.profile('admin').then((r) => { setUser(r.data); setLoading(false); }).catch((err: { response?: { status?: number } }) => {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) logout();
       setLoading(false);
     });
   }, [tokens, user, setUser, logout]);

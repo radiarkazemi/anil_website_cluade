@@ -113,6 +113,7 @@ export const useStore = create<AppState>()(
         cart: s.cart,
         tokens: s.tokens,
         adminTokens: s.adminTokens,
+        user: s.user,
       }),
     }
   )
@@ -124,11 +125,17 @@ export function getSessionTokens(session: 'client' | 'admin'): AuthTokens | null
 
 export function setSessionTokens(session: 'client' | 'admin', t: AuthTokens | null) {
   if (session === 'admin') {
-    writeTokens(ADMIN_TOKEN_KEY, t);
-    useStore.getState().setAdminTokens(t);
-  } else {
+    if (t) {
+      writeTokens(ADMIN_TOKEN_KEY, t);
+      useStore.getState().setAdminTokens(t);
+    } else {
+      useStore.getState().adminLogout();
+    }
+  } else if (t) {
     writeTokens(CLIENT_TOKEN_KEY, t);
     useStore.getState().setTokens(t);
+  } else {
+    useStore.getState().logout();
   }
 }
 
