@@ -155,7 +155,7 @@ export function ProductDetail() {
 
           <div className="pd-specs">
             {[
-              [faNum(w) + ' گرم', 'وزن'],
+              [faNum(w) + ' گرم', product.placeholder_label?.includes('وزن حدودی') ? 'وزن حدودی' : 'وزن'],
               [faNum(product.karat || 18), 'عیار'],
               [inStock ? faNum(product.stock ?? 0) : '۰', 'موجودی'],
               ['۱۸ ماه', 'گارانتی اصالت'],

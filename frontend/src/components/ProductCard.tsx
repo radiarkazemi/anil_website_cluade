@@ -50,7 +50,11 @@ export function ProductCard({ product }: { product: Product }) {
         <Link to={`/products/${product.slug}`} className="product-name">
           {product.name}
         </Link>
-        <div className="product-meta">وزن {faNum(w)} گرم · عیار ۱۸</div>
+        <div className="product-meta">
+          {product.placeholder_label?.includes('وزن حدودی')
+            ? <>وزن حدودی ≈ {faNum(w)} گرم · عیار ۱۸</>
+            : <>وزن {faNum(w)} گرم · عیار ۱۸</>}
+        </div>
         <div className="product-row">
           <div>
             <div className="product-price">{faPrice(total)}</div>
