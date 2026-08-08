@@ -43,71 +43,7 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
   );
 }
 
-/** Static painterly jewelry artwork — default desktop hero visual (no 3D spin). */
-function HeroPainting({ src }: { src: string }) {
-  return (
-    <div className="hero-painting">
-      <div className="hero-painting-glow" aria-hidden />
-      <figure className="hero-painting-frame">
-        <img
-          className="hero-painting-img"
-          src={src}
-          alt="نقاشی زیورآلات آنیل"
-          decoding="async"
-          fetchPriority="high"
-        />
-        <figcaption className="hero-painting-caption">گالری طلا آنیل</figcaption>
-      </figure>
-    </div>
-  );
-}
-
-/**
- * Hero visual:
- * - Default: beautiful painterly jewelry still-life (static).
- * - Admin can upload a custom hero image.
- * - Optional 3D only if admin enables it and the visitor opts in.
- */
-function HeroVisual({ site }: { site?: SiteSettings }) {
-  const heroSrc = site?.hero_image_url || '/hero/painterly.jpg';
-  const allow3d = site?.hero_mode === '3d';
-  const [wants3d, setWants3d] = useState(false);
-
-  if (allow3d && wants3d) {
-    return (
-      <div className="hero-visual-wrap">
-        <Suspense
-          fallback={(
-            <>
-              <HeroPainting src={heroSrc} />
-              <div className="hero-3d-loading-badge">در حال آماده‌سازی مدل ۳بعدی…</div>
-            </>
-          )}
-        >
-          <HeroRing3D />
-        </Suspense>
-        <button type="button" className="hero-3d-toggle outline-btn" onClick={() => setWants3d(false)}>
-          بازگشت به تصویر
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="hero-visual-wrap">
-      <HeroPainting src={heroSrc} />
-      {allow3d && (
-        <button
-          type="button"
-          className="hero-3d-toggle gold-btn"
-          onClick={() => setWants3d(true)}
-        >
-          نمایش مدل ۳بعدی
-        </button>
-      )}
-    </div>
-  );
-}
+const DEFAULT_HERO = '/hero/anil-gallery.jpg';
 
 function HeroCta({
   to,
@@ -126,47 +62,40 @@ function HeroCta({
 }
 
 function HeroSection({ site }: { site?: SiteSettings }) {
-  const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
-  const heroSrc = site?.hero_image_url || '/hero/painterly.jpg';
+  const title = (site?.hero_title || 'زیورآلات طلا،\nبا درخشش آنیل').split('\n');
+  const heroSrc = site?.hero_image_url || DEFAULT_HERO;
   const subtitle = site?.hero_subtitle
-    || 'مجموعه‌ای زنده از زیورآلات دست‌ساز، با قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا.';
+    || 'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا — فاکتور رسمی و ارسال بیمه‌شده.';
   const primaryLabel = site?.hero_cta_primary || 'مشاهده‌ی محصولات';
   const primaryUrl = site?.hero_cta_primary_url || '/products';
   const secondaryLabel = site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا';
   const secondaryUrl = site?.hero_cta_secondary_url || '#market';
-  const badge = site?.hero_badge || 'گالری طلا آنیل';
+  const allow3d = site?.hero_mode === '3d';
+  const [wants3d, setWants3d] = useState(false);
 
   return (
     <section className="home-hero-bleed">
-      {/* Phone: full-bleed gallery composition */}
-      <div className="m-hero">
-        <div className="m-hero-media">
-          <img src={heroSrc} alt="" decoding="async" fetchPriority="high" />
-          <div className="m-hero-veil" />
+      <div className="hero-full">
+        <div className="hero-full-media">
+          {allow3d && wants3d ? (
+            <Suspense fallback={<img src={heroSrc} alt="" decoding="async" />}>
+              <div className="hero-full-3d">
+                <HeroRing3D />
+              </div>
+            </Suspense>
+          ) : (
+            <img
+              src={heroSrc}
+              alt="Anil Gold Gallery"
+              decoding="async"
+              fetchPriority="high"
+            />
+          )}
+          <div className="hero-full-veil" />
         </div>
-        <div className="m-hero-copy">
-          <div className="hero-badge">{badge}</div>
-          <h1 className="hero-h1 m-hero-title">
-            {title.map((line, i) => (
-              <span key={i}>
-                {i > 0 && <br />}
-                {line}
-              </span>
-            ))}
-          </h1>
-          <p className="hero-lead">{subtitle}</p>
-          <div className="hero-actions">
-            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
-          </div>
-        </div>
-      </div>
 
-      {/* Desktop / tablet landscape: original split layout */}
-      <div className="container home-hero d-hero">
-        <HeroVisual site={site} />
-        <div className="hero-copy">
-          <div className="hero-badge">{badge}</div>
-          <h1 className="shimmer-text hero-h1">
+        <div className="hero-full-copy">
+          <h1 className="hero-full-title">
             {title.map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
@@ -174,11 +103,20 @@ function HeroSection({ site }: { site?: SiteSettings }) {
               </span>
             ))}
           </h1>
-          <p className="hero-lead">{subtitle}</p>
+          <p className="hero-full-lead">{subtitle}</p>
           <div className="hero-actions">
             <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
             <HeroCta to={secondaryUrl} className="outline-btn hero-cta-secondary">{secondaryLabel}</HeroCta>
           </div>
+          {allow3d && (
+            <button
+              type="button"
+              className="hero-3d-inline"
+              onClick={() => setWants3d((v) => !v)}
+            >
+              {wants3d ? 'بازگشت به تصویر برند' : 'نمایش مدل ۳بعدی'}
+            </button>
+          )}
         </div>
       </div>
     </section>
