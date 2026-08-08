@@ -44,7 +44,7 @@ export function CartDrawer() {
 
   const { data } = useQuery({
     queryKey: ['products-all'],
-    queryFn: () => api.products({ page_size: '200' }).then((r) => r.data.results),
+    queryFn: () => api.productsAll({ page_size: '200' }),
     staleTime: 60000,
   });
 

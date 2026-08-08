@@ -33,10 +33,10 @@ export function Products() {
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['products', category, sort],
     queryFn: () => {
-      const p: Record<string, string> = { page_size: '100' };
+      const p: Record<string, string> = { page_size: '200' };
       if (category !== 'all') p.category = category;
       if (sort) p.ordering = sort;
-      return api.products(p).then((r) => r.data.results);
+      return api.productsAll(p);
     },
   });
 

@@ -49,6 +49,26 @@ export const api = {
   pages: (params?: Record<string, string>) => client.get<ContentPage[]>('/pages/', { params }),
   page: (slug: string) => client.get<ContentPage>(`/pages/${slug}/`),
   products: (params?: Record<string, string>) => client.get<PaginatedResponse<Product>>('/products/', { params }),
+  /** Load every page so «همه» never silently truncates the catalog. */
+  productsAll: async (params?: Record<string, string>) => {
+    const base = { ...(params || {}), page_size: params?.page_size || '200' };
+    const first = await client.get<PaginatedResponse<Product>>('/products/', { params: { ...base, page: '1' } });
+    const all = [...(first.data.results || [])];
+    const total = first.data.count ?? all.length;
+    let page = 2;
+    while (all.length < total && first.data.next) {
+      const res = await client.get<PaginatedResponse<Product>>('/products/', {
+        params: { ...base, page: String(page) },
+      });
+      const batch = res.data.results || [];
+      if (!batch.length) break;
+      all.push(...batch);
+      page += 1;
+      if (!res.data.next) break;
+      if (page > 50) break;
+    }
+    return all;
+  },
   product: (slug: string) => client.get<Product>(`/products/${slug}/`),
 
   createOrder: (data: {
