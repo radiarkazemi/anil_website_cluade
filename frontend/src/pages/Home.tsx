@@ -45,6 +45,61 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
 
 const DEFAULT_HERO = '/hero/anil-gallery.jpg';
 
+/** Framed hero artwork — fixed frame so swapping images never shifts layout. */
+function HeroPainting({ src }: { src: string }) {
+  return (
+    <div className="hero-painting">
+      <div className="hero-painting-glow" aria-hidden />
+      <figure className="hero-painting-frame">
+        <img
+          className="hero-painting-img"
+          src={src}
+          alt="گالری طلا آنیل"
+          decoding="async"
+          fetchPriority="high"
+        />
+      </figure>
+    </div>
+  );
+}
+
+function HeroVisual({ site }: { site?: SiteSettings }) {
+  const heroSrc = site?.hero_image_url || DEFAULT_HERO;
+  const allow3d = site?.hero_mode === '3d';
+  const [wants3d, setWants3d] = useState(false);
+
+  if (allow3d && wants3d) {
+    return (
+      <div className="hero-visual-wrap">
+        <Suspense
+          fallback={(
+            <>
+              <HeroPainting src={heroSrc} />
+              <div className="hero-3d-loading-badge">در حال آماده‌سازی مدل ۳بعدی…</div>
+            </>
+          )}
+        >
+          <HeroRing3D />
+        </Suspense>
+        <button type="button" className="hero-3d-toggle outline-btn" onClick={() => setWants3d(false)}>
+          بازگشت به تصویر
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hero-visual-wrap">
+      <HeroPainting src={heroSrc} />
+      {allow3d && (
+        <button type="button" className="hero-3d-toggle gold-btn" onClick={() => setWants3d(true)}>
+          نمایش مدل ۳بعدی
+        </button>
+      )}
+    </div>
+  );
+}
+
 function HeroCta({
   to,
   className,
@@ -70,32 +125,19 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   const primaryUrl = site?.hero_cta_primary_url || '/products';
   const secondaryLabel = site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا';
   const secondaryUrl = site?.hero_cta_secondary_url || '#market';
-  const allow3d = site?.hero_mode === '3d';
-  const [wants3d, setWants3d] = useState(false);
+  const badge = site?.hero_badge || 'گالری طلا آنیل';
 
   return (
     <section className="home-hero-bleed">
-      <div className="hero-full">
-        <div className="hero-full-media">
-          {allow3d && wants3d ? (
-            <Suspense fallback={<img src={heroSrc} alt="" decoding="async" />}>
-              <div className="hero-full-3d">
-                <HeroRing3D />
-              </div>
-            </Suspense>
-          ) : (
-            <img
-              src={heroSrc}
-              alt="Anil Gold Gallery"
-              decoding="async"
-              fetchPriority="high"
-            />
-          )}
-          <div className="hero-full-veil" />
+      {/* Mobile: full-bleed */}
+      <div className="m-hero">
+        <div className="m-hero-media">
+          <img src={heroSrc} alt="Anil Gold Gallery" decoding="async" fetchPriority="high" />
+          <div className="m-hero-veil" />
         </div>
-
-        <div className="hero-full-copy">
-          <h1 className="hero-full-title">
+        <div className="m-hero-copy">
+          <div className="hero-badge">{badge}</div>
+          <h1 className="hero-h1 m-hero-title">
             {title.map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
@@ -103,20 +145,31 @@ function HeroSection({ site }: { site?: SiteSettings }) {
               </span>
             ))}
           </h1>
-          <p className="hero-full-lead">{subtitle}</p>
+          <p className="hero-lead">{subtitle}</p>
+          <div className="hero-actions">
+            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: stable framed split layout — image swaps inside fixed frame */}
+      <div className="container home-hero d-hero">
+        <HeroVisual site={site} />
+        <div className="hero-copy">
+          <div className="hero-badge">{badge}</div>
+          <h1 className="shimmer-text hero-h1">
+            {title.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
+          <p className="hero-lead">{subtitle}</p>
           <div className="hero-actions">
             <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
             <HeroCta to={secondaryUrl} className="outline-btn hero-cta-secondary">{secondaryLabel}</HeroCta>
           </div>
-          {allow3d && (
-            <button
-              type="button"
-              className="hero-3d-inline"
-              onClick={() => setWants3d((v) => !v)}
-            >
-              {wants3d ? 'بازگشت به تصویر برند' : 'نمایش مدل ۳بعدی'}
-            </button>
-          )}
         </div>
       </div>
     </section>
