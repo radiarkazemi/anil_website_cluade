@@ -20,9 +20,14 @@ def _abs_url(request, file_field):
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "alt", "order", "is_primary"]
+        fields = ["id", "image", "image_url", "alt", "order", "is_primary"]
+
+    def get_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.image)
 
 
 class ProductListSerializer(serializers.ModelSerializer):

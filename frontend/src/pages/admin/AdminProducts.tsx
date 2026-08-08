@@ -1,11 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
 import { bestProductSeo, suggestProductSeo, type SeoSuggestion } from '../../utils/productSeo';
 import { useToast } from '../../store/toastStore';
 import type { Product } from '../../types';
 import { PageHeader } from './adminShared';
+
+function productThumb(p: any): string | null {
+  return (
+    p?.primary_image
+    || p?.images?.[0]?.image_url
+    || p?.images?.[0]?.image
+    || null
+  );
+}
 
 const empty = {
   name: '', slug: '', category: '', weight_g: '4', karat: 18, fee_ratio: '0.20',
@@ -95,6 +105,42 @@ export function AdminProducts() {
   const [form, setForm] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState('');
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setFilePreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setFilePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    if (!form) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        toast('برای ادامه، ابتدا پنجره ویرایش را ببندید');
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [form, toast]);
+
+  const closeForm = () => {
+    setForm(null);
+    setFormError('');
+    setFile(null);
+  };
+
 
   const save = useMutation({
     mutationFn: async () => {
@@ -163,9 +209,7 @@ export function AdminProducts() {
     },
     onSuccess: () => {
       toast('محصول ذخیره شد');
-      setForm(null);
-      setFile(null);
-      setFormError('');
+      closeForm();
       qc.invalidateQueries({ queryKey: ['admin-products'] });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
@@ -199,6 +243,15 @@ export function AdminProducts() {
       qc.invalidateQueries({ queryKey: ['admin-products'] });
       qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
+  });
+
+  const applySeoAll = useMutation({
+    mutationFn: () => api.adminApplyAutoSeo(false),
+    onSuccess: (res) => {
+      toast(`سئوی هوشمند برای ${faNum(res.data.updated)} محصول اعمال شد`);
+      qc.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+    onError: () => toast('اعمال سئو ناموفق بود'),
   });
 
   const products = useMemo(() => {
@@ -261,19 +314,34 @@ export function AdminProducts() {
     <div>
       <PageHeader
         title="کاتالوگ محصولات"
-        subtitle={`${faNum(products.length)} مورد · ویرایش سریع موجودی و ویژه‌سازی`}
+        subtitle={`${faNum(products.length)} مورد · ویرایش در پنجره شناور · سئوی هوشمند`}
         actions={
-          <button
-            className="gold-btn"
-            type="button"
-            onClick={() => {
-              setFormError('');
-              setFile(null);
-              setForm({ ...empty, category: categories?.[0]?.id || '' });
-            }}
-          >
-            + محصول جدید
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="outline-btn"
+              type="button"
+              disabled={applySeoAll.isPending || !!form}
+              onClick={() => {
+                if (confirm('سئوی هوشمند برای همه محصولات اعمال شود؟ (عنوان و توضیح متا بازنویسی می‌شود)')) {
+                  applySeoAll.mutate();
+                }
+              }}
+            >
+              {applySeoAll.isPending ? 'در حال اعمال سئو…' : 'اعمال سئو روی همه'}
+            </button>
+            <button
+              className="gold-btn"
+              type="button"
+              disabled={!!form}
+              onClick={() => {
+                setFormError('');
+                setFile(null);
+                setForm({ ...empty, category: categories?.[0]?.id || '' });
+              }}
+            >
+              + محصول جدید
+            </button>
+          </div>
         }
       />
 
@@ -293,153 +361,182 @@ export function AdminProducts() {
         </button>
       </div>
 
-      {form && (
-        <div className="admin-card" style={{ marginBottom: 20 }}>
-          <h3 style={{ marginBottom: 14 }}>{form.id ? 'ویرایش محصول' : 'محصول جدید'}</h3>
-          <div className="form-grid product-form-grid">
-            <label>
-              <span>نام محصول *</span>
-              <input className="input" value={form.name} onChange={(e) => onNameChange(e.target.value)} />
-            </label>
-            <label>
-              <span>اسلاگ (اختیاری — خودکار از نام)</span>
-              <input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} dir="ltr" />
-            </label>
-            <label>
-              <span>دسته‌بندی *</span>
-              <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option value="">انتخاب دسته</option>
-                {(categories || []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>کد کالا (SKU)</span>
-              <input className="input" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
-            </label>
-            <label>
-              <span>وزن (گرم) *</span>
-              <input className="input" value={form.weight_g} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
-            </label>
-            <label>
-              <span>عیار</span>
-              <select className="input" value={form.karat ?? 18} onChange={(e) => setForm({ ...form, karat: Number(e.target.value) })}>
-                <option value={18}>۱۸ عیار</option>
-                <option value={21}>۲۱ عیار</option>
-                <option value={22}>۲۲ عیار</option>
-                <option value={24}>۲۴ عیار</option>
-              </select>
-            </label>
-            <label>
-              <span>اجرت (نسبت، مثلاً 0.22)</span>
-              <input className="input" value={form.fee_ratio} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
-            </label>
-            <label>
-              <span>ارزش سنگ / نگین (تومان)</span>
-              <input className="input" value={form.stone_value} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
-            </label>
-            <label>
-              <span>موجودی</span>
-              <input className="input" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-            </label>
-            <label>
-              <span>برچسب</span>
-              <select className="input" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
-                <option value="">بدون برچسب</option>
-                <option value="پرفروش">پرفروش</option>
-                <option value="جدید">جدید</option>
-                <option value="ویژه">ویژه</option>
-              </select>
-            </label>
-            <label>
-              <span>برچسب جایگزین تصویر</span>
-              <input className="input" value={form.placeholder_label || ''} onChange={(e) => setForm({ ...form, placeholder_label: e.target.value })} />
-            </label>
-            <label className="full">
-              <span>توضیحات کامل</span>
-              <textarea className="input" rows={4} value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </label>
-
-            <div className="full seo-smart-box">
-              <div className="seo-smart-head">
-                <div>
-                  <h4>سئوی هوشمند محصول</h4>
-                  <p>بر اساس نام، دسته، وزن و عیار، بهترین عنوان و توضیح متا پیشنهاد می‌شود.</p>
-                </div>
-                <button type="button" className="gold-btn" onClick={applyBestSeo} disabled={!seoSuggestions.length}>
-                  پیشنهاد برتر را پر کن
-                </button>
+      {form && createPortal(
+        <div className="admin-edit-lock" role="presentation">
+          <div className="admin-edit-backdrop" aria-hidden />
+          <div
+            className="admin-edit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-product-edit-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-edit-modal-head">
+              <div>
+                <h3 id="admin-product-edit-title">{form.id ? 'ویرایش محصول' : 'محصول جدید'}</h3>
+                <p className="layout-hint">تا وقتی این پنجره باز است، به بخش‌های دیگر پنل دسترسی ندارید.</p>
               </div>
-              {seoSuggestions.length > 0 ? (
-                <div className="seo-suggest-list">
-                  {seoSuggestions.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className={`seo-suggest-card${form._seoAppliedId === s.id || (form.meta_title === s.meta_title && form.meta_description === s.meta_description) ? ' on' : ''}`}
-                      onClick={() => applySeo(s)}
-                    >
-                      <div className="seo-suggest-top">
-                        <strong>{s.label}</strong>
-                        <span>امتیاز {faNum(s.score)}</span>
-                      </div>
-                      <div className="seo-suggest-title">{s.meta_title}</div>
-                      <div className="seo-suggest-desc">{s.meta_description}</div>
-                      <div className="seo-suggest-keys">
-                        {s.keywords.slice(0, 4).map((k) => (
-                          <span key={k}>{k}</span>
-                        ))}
-                      </div>
-                      <div className="seo-suggest-tip">{s.tips[0]}</div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="layout-hint">برای دیدن پیشنهادها، نام محصول را بنویسید.</p>
-              )}
+              <button type="button" className="outline-btn" onClick={closeForm}>بستن</button>
             </div>
+            <div className="admin-edit-modal-body">
+              <div className="form-grid product-form-grid">
+                <label>
+                  <span>نام محصول *</span>
+                  <input className="input" value={form.name} onChange={(e) => onNameChange(e.target.value)} />
+                </label>
+                <label>
+                  <span>اسلاگ (اختیاری — خودکار از نام)</span>
+                  <input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} dir="ltr" />
+                </label>
+                <label>
+                  <span>دسته‌بندی *</span>
+                  <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                    <option value="">انتخاب دسته</option>
+                    {(categories || []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>کد کالا (SKU)</span>
+                  <input className="input" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+                </label>
+                <label>
+                  <span>وزن (گرم) *</span>
+                  <input className="input" value={form.weight_g} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
+                </label>
+                <label>
+                  <span>عیار</span>
+                  <select className="input" value={form.karat ?? 18} onChange={(e) => setForm({ ...form, karat: Number(e.target.value) })}>
+                    <option value={18}>۱۸ عیار</option>
+                    <option value={21}>۲۱ عیار</option>
+                    <option value={22}>۲۲ عیار</option>
+                    <option value={24}>۲۴ عیار</option>
+                  </select>
+                </label>
+                <label>
+                  <span>اجرت (نسبت، مثلاً 0.22)</span>
+                  <input className="input" value={form.fee_ratio} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
+                </label>
+                <label>
+                  <span>ارزش سنگ / نگین (تومان)</span>
+                  <input className="input" value={form.stone_value} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
+                </label>
+                <label>
+                  <span>موجودی</span>
+                  <input className="input" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                </label>
+                <label>
+                  <span>برچسب</span>
+                  <select className="input" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
+                    <option value="">بدون برچسب</option>
+                    <option value="پرفروش">پرفروش</option>
+                    <option value="جدید">جدید</option>
+                    <option value="ویژه">ویژه</option>
+                  </select>
+                </label>
+                <label>
+                  <span>برچسب جایگزین تصویر</span>
+                  <input className="input" value={form.placeholder_label || ''} onChange={(e) => setForm({ ...form, placeholder_label: e.target.value })} />
+                </label>
+                <label className="full">
+                  <span>توضیحات کامل</span>
+                  <textarea className="input" rows={4} value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                </label>
 
-            <label className="full">
-              <span>
-                عنوان سئو (meta title)
-                <em className="seo-count">{faNum((form.meta_title || '').length)} / ۶۰</em>
-              </span>
-              <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value, _seoAppliedId: '' })} />
-            </label>
-            <label className="full">
-              <span>
-                توضیح سئو (meta description)
-                <em className="seo-count">{faNum((form.meta_description || '').length)} / ۱۶۰</em>
-              </span>
-              <textarea
-                className="input"
-                rows={3}
-                value={form.meta_description || ''}
-                onChange={(e) => setForm({ ...form, meta_description: e.target.value, _seoAppliedId: '' })}
-              />
-            </label>
-            <label className="full">
-              <span>تصویر اصلی</span>
-              <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            </label>
-            <label className="layout-toggle">
-              <input type="checkbox" checked={!!form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
-              ویژه / صفحه اصلی
-            </label>
-            <label className="layout-toggle">
-              <input type="checkbox" checked={form.is_active !== false} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
-              فعال در فروشگاه
-            </label>
+                <div className="full seo-smart-box">
+                  <div className="seo-smart-head">
+                    <div>
+                      <h4>سئوی هوشمند محصول</h4>
+                      <p>بر اساس نام، دسته، وزن و عیار، بهترین عنوان و توضیح متا پیشنهاد می‌شود.</p>
+                    </div>
+                    <button type="button" className="gold-btn" onClick={applyBestSeo} disabled={!seoSuggestions.length}>
+                      پیشنهاد برتر را پر کن
+                    </button>
+                  </div>
+                  {seoSuggestions.length > 0 ? (
+                    <div className="seo-suggest-list">
+                      {seoSuggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className={`seo-suggest-card${form._seoAppliedId === s.id || (form.meta_title === s.meta_title && form.meta_description === s.meta_description) ? ' on' : ''}`}
+                          onClick={() => applySeo(s)}
+                        >
+                          <div className="seo-suggest-top">
+                            <strong>{s.label}</strong>
+                            <span>امتیاز {faNum(s.score)}</span>
+                          </div>
+                          <div className="seo-suggest-title">{s.meta_title}</div>
+                          <div className="seo-suggest-desc">{s.meta_description}</div>
+                          <div className="seo-suggest-keys">
+                            {s.keywords.slice(0, 4).map((k) => (
+                              <span key={k}>{k}</span>
+                            ))}
+                          </div>
+                          <div className="seo-suggest-tip">{s.tips[0]}</div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="layout-hint">برای دیدن پیشنهادها، نام محصول را بنویسید.</p>
+                  )}
+                </div>
+
+                <label className="full">
+                  <span>
+                    عنوان سئو (meta title)
+                    <em className="seo-count">{faNum((form.meta_title || '').length)} / ۶۰</em>
+                  </span>
+                  <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value, _seoAppliedId: '' })} />
+                </label>
+                <label className="full">
+                  <span>
+                    توضیح سئو (meta description)
+                    <em className="seo-count">{faNum((form.meta_description || '').length)} / ۱۶۰</em>
+                  </span>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={form.meta_description || ''}
+                    onChange={(e) => setForm({ ...form, meta_description: e.target.value, _seoAppliedId: '' })}
+                  />
+                </label>
+                <label className="full">
+                  <span>تصویر اصلی</span>
+                  <div className="admin-image-picker">
+                    {(filePreview || form.primary_image || productThumb(form)) ? (
+                      <img
+                        className="admin-image-preview"
+                        src={filePreview || form.primary_image || productThumb(form) || ''}
+                        alt="پیش‌نمایش"
+                      />
+                    ) : (
+                      <div className="admin-image-empty">هنوز تصویری برای این محصول ثبت نشده — فایل JPG/PNG را انتخاب کنید</div>
+                    )}
+                    <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                  </div>
+                </label>
+                <label className="layout-toggle">
+                  <input type="checkbox" checked={!!form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
+                  ویژه / صفحه اصلی
+                </label>
+                <label className="layout-toggle">
+                  <input type="checkbox" checked={form.is_active !== false} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+                  فعال در فروشگاه
+                </label>
+              </div>
+              {formError && <div className="admin-form-error">{formError}</div>}
+            </div>
+            <div className="admin-edit-modal-foot">
+              <button className="gold-btn" type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+                {save.isPending ? 'در حال ذخیره…' : 'ذخیره'}
+              </button>
+              <button className="outline-btn" type="button" onClick={closeForm}>انصراف / بستن</button>
+            </div>
           </div>
-          {formError && <div className="admin-form-error">{formError}</div>}
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button className="gold-btn" type="button" disabled={save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? 'در حال ذخیره…' : 'ذخیره'}
-            </button>
-            <button className="outline-btn" type="button" onClick={() => { setForm(null); setFormError(''); }}>انصراف</button>
-          </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <div className="admin-card">
@@ -464,9 +561,9 @@ export function AdminProducts() {
                 {products.map((p: any) => (
                   <tr key={p.id}>
                     <td>
-                      {p.images?.[0]?.image || p.primary_image ? (
+                      {productThumb(p) ? (
                         <img
-                          src={p.images?.[0]?.image || p.primary_image}
+                          src={productThumb(p)!}
                           alt=""
                           style={{ width: 40, height: 71, objectFit: 'cover', borderRadius: 8 }}
                         />
@@ -519,6 +616,8 @@ export function AdminProducts() {
                             is_featured: p.is_featured,
                             meta_title: p.meta_title || '',
                             meta_description: p.meta_description || '',
+                            primary_image: productThumb(p),
+                            images: p.images || [],
                           });
                         }}
                       >

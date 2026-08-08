@@ -32,6 +32,11 @@ urlpatterns = [
         admin_api.AdminProductImageUploadView.as_view(),
         name="admin-product-images",
     ),
+    path(
+        "admin/products/apply-seo/",
+        admin_api.AdminApplyAutoSeoView.as_view(),
+        name="admin-products-apply-seo",
+    ),
     path("admin/site-settings/", admin_api.AdminSiteSettingsView.as_view(), name="admin-site-settings"),
     path(
         "admin/site-settings/hero-album/",

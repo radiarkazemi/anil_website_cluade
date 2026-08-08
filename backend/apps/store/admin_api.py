@@ -21,6 +21,7 @@ User = get_user_model()
 
 class AdminProductWriteSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    primary_image = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     category_name = serializers.CharField(source="category.name", read_only=True)
     slug = serializers.SlugField(required=False, allow_blank=True, allow_unicode=True, max_length=200)
@@ -48,14 +49,21 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
             "meta_title",
             "meta_description",
             "images",
+            "primary_image",
             "price",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "price", "created_at", "updated_at", "images"]
+        read_only_fields = ["id", "price", "created_at", "updated_at", "images", "primary_image"]
 
     def get_price(self, obj):
         return obj.price_breakdown()["total"]
+
+    def get_primary_image(self, obj):
+        from apps.store.serializers import _abs_url
+
+        img = obj.images.filter(is_primary=True).first() or obj.images.order_by("order", "id").first()
+        return _abs_url(self.context.get("request"), img.image) if img else None
 
     def _unique_slug(self, base: str, instance=None) -> str:
         root = slugify(base, allow_unicode=True) or "product"
@@ -384,6 +392,49 @@ class AdminProductImageUploadView(APIView):
         if not deleted:
             return Response({"detail": "تصویر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminApplyAutoSeoView(APIView):
+    """Bulk-fill product meta_title / meta_description."""
+
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        from apps.store.management.commands.apply_auto_seo import best_product_seo
+
+        only_empty = str(request.data.get("only_empty", "false")).lower() in ("1", "true", "yes", "on")
+        qs = Product.objects.select_related("category").all()
+        if only_empty:
+            from django.db.models import Q
+
+            qs = qs.filter(
+                Q(meta_title="")
+                | Q(meta_description="")
+                | Q(meta_title__isnull=True)
+                | Q(meta_description__isnull=True)
+            )
+
+        updated = 0
+        for p in qs.iterator():
+            title, desc = best_product_seo(
+                name=p.name,
+                category_name=p.category.name if p.category_id else "",
+                weight_g=float(p.weight_g) if p.weight_g is not None else None,
+                karat=p.karat or 18,
+                tag=p.tag or "",
+                sku=p.sku or "",
+                description=p.description or "",
+            )
+            if not title:
+                continue
+            if p.meta_title == title and p.meta_description == desc:
+                continue
+            p.meta_title = title
+            p.meta_description = desc
+            p.save(update_fields=["meta_title", "meta_description", "updated_at"])
+            updated += 1
+
+        return Response({"updated": updated, "total": Product.objects.count()})
 
 
 class AdminSiteSettingsView(APIView):

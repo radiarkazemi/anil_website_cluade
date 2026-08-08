@@ -158,6 +158,8 @@ export const api = {
     fd.append('is_primary', String(isPrimary));
     return client.post(`/admin/products/${productId}/images/`, fd);
   },
+  adminApplyAutoSeo: (onlyEmpty = false) =>
+    client.post<{ updated: number; total: number }>('/admin/products/apply-seo/', { only_empty: onlyEmpty }),
   adminCategories: () => client.get<Category[]>('/admin/categories/'),
   adminCreateCategory: (data: Partial<Category>) => client.post<Category>('/admin/categories/', data),
   adminUpdateCategory: (id: string, data: Partial<Category>) => client.patch<Category>(`/admin/categories/${id}/`, data),
