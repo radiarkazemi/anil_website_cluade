@@ -273,6 +273,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "sku", "description"]
     filterset_fields = ["category", "tag", "is_active", "is_featured"]
     ordering_fields = ["created_at", "name", "stock", "weight_g"]
+    pagination_class = None  # full catalog for ops panel
 
     def get_queryset(self):
         return Product.objects.select_related("category").prefetch_related("images").all()

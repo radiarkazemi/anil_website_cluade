@@ -142,8 +142,12 @@ export const api = {
 
   // Admin panel
   adminDashboard: () => client.get<DashboardStats>('/admin/dashboard/'),
-  adminProducts: (params?: Record<string, string>) =>
-    client.get<PaginatedResponse<Product>>('/admin/products/', { params }),
+  adminProducts: async (params?: Record<string, string>) => {
+    const res = await client.get<PaginatedResponse<Product> | Product[]>('/admin/products/', { params });
+    const data = res.data;
+    const results = Array.isArray(data) ? data : (data?.results || []);
+    return { ...res, data: { count: results.length, next: null, previous: null, results } };
+  },
   adminProduct: (id: string) => client.get<Product>(`/admin/products/${id}/`),
   adminCreateProduct: (data: Record<string, unknown>) => client.post<Product>('/admin/products/', data),
   adminUpdateProduct: (id: string, data: Record<string, unknown>) => client.patch<Product>(`/admin/products/${id}/`, data),
