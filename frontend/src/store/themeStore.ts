@@ -9,11 +9,10 @@ interface ThemeState {
   toggle: () => void;
 }
 
-/** Maison Anil — light by default (Tiffany / VCA / Bulgari quiet luxury). */
 export const useTheme = create<ThemeState>()(
   persist(
     (set, get) => ({
-      theme: 'light',
+      theme: 'dark',
       setTheme: (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
         set({ theme });
@@ -24,17 +23,15 @@ export const useTheme = create<ThemeState>()(
         set({ theme: next });
       },
     }),
-    { name: 'anil-theme-maison' }
+    { name: 'anil-theme' }
   )
 );
 
 export function initTheme() {
-  const saved = localStorage.getItem('anil-theme-maison');
-  let theme: Theme = 'light';
+  const saved = localStorage.getItem('anil-theme');
+  let theme: Theme = 'dark';
   try {
-    if (saved) theme = JSON.parse(saved).state?.theme || 'light';
-  } catch {
-    /* keep light */
-  }
+    if (saved) theme = JSON.parse(saved).state?.theme || 'dark';
+  } catch {}
   document.documentElement.setAttribute('data-theme', theme);
 }
