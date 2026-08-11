@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: anil-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-anil_gold}
+      POSTGRES_USER: ${POSTGRES_USER:-anil}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-strong-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - anil_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anil} -d ${POSTGRES_DB:-anil_gold}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: anil-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - anil_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: anil-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - anil_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: API container (set env file before use)
+  # api:
+  #   build: ./backend
+  #   env_file: ./backend/.env
+  #   ports: ["8000:8000"]
+  #   volumes:
+  #     - anil_media:/app/media
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+
+volumes:
+  anil_pg_data:
+  anil_mongo_data:
+  anil_redis_data:
+  anil_media:

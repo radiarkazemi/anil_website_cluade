@@ -1,0 +1,694 @@
+from datetime import timedelta
+
+from django.contrib.auth import get_user_model
+from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from django.utils.text import slugify
+from rest_framework import generics, parsers, serializers, status, viewsets
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from apps.accounts.permissions import IsAdminRole
+from apps.orders.models import Order, OrderItem
+from apps.orders.serializers import OrderSerializer
+from apps.store.models import Category, GoldPrice, Product, ProductImage
+from apps.store.serializers import CategorySerializer, GoldPriceSerializer, ProductImageSerializer
+from apps.store.services.gold import refresh_gold_price
+
+User = get_user_model()
+
+
+class AdminProductWriteSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
+    primary_image = serializers.SerializerMethodField()
+    price = serializers.SerializerMethodField()
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    slug = serializers.SlugField(required=False, allow_blank=True, allow_unicode=True, max_length=200)
+    sku = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=30)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "category",
+            "category_name",
+            "weight_g",
+            "karat",
+            "fee_ratio",
+            "stone_value",
+            "tag",
+            "description",
+            "placeholder_label",
+            "sku",
+            "stock",
+            "is_active",
+            "is_featured",
+            "meta_title",
+            "meta_description",
+            "images",
+            "primary_image",
+            "price",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "price", "created_at", "updated_at", "images", "primary_image"]
+
+    def get_price(self, obj):
+        return obj.price_breakdown()["total"]
+
+    def get_primary_image(self, obj):
+        from apps.store.serializers import _abs_url
+
+        img = obj.images.filter(is_primary=True).first() or obj.images.order_by("order", "id").first()
+        return _abs_url(self.context.get("request"), img.image) if img else None
+
+    def _unique_slug(self, base: str, instance=None) -> str:
+        root = slugify(base, allow_unicode=True) or "product"
+        candidate = root
+        n = 2
+        qs = Product.objects.all()
+        if instance is not None:
+            qs = qs.exclude(pk=instance.pk)
+        while qs.filter(slug=candidate).exists():
+            candidate = f"{root}-{n}"
+            n += 1
+        return candidate
+
+    def validate_sku(self, value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        return value or None
+
+    def validate(self, attrs):
+        name = attrs.get("name") or getattr(self.instance, "name", "")
+        slug = attrs.get("slug", None)
+        if slug is None or str(slug).strip() == "":
+            attrs["slug"] = self._unique_slug(name, self.instance)
+        else:
+            attrs["slug"] = str(slug).strip()
+        if "sku" in attrs and attrs["sku"] == "":
+            attrs["sku"] = None
+        return attrs
+
+class AdminUserManageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "phone",
+            "email",
+            "full_name",
+            "role",
+            "is_active",
+            "is_staff",
+            "national_code",
+            "address",
+            "city",
+            "postal_code",
+            "avatar",
+            "email_verified",
+            "phone_verified",
+            "created_at",
+        ]
+        read_only_fields = ["id", "phone", "created_at", "avatar", "is_staff"]
+
+    def update(self, instance, validated_data):
+        role = validated_data.get("role", instance.role)
+        instance = super().update(instance, validated_data)
+        instance.is_staff = role in (User.Role.ADMIN, User.Role.STAFF)
+        instance.save(update_fields=["is_staff"])
+        return instance
+
+
+class DashboardView(APIView):
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        gold = GoldPrice.current()
+        today = timezone.now().date()
+        start = today - timedelta(days=13)
+        orders_today = Order.objects.filter(created_at__date=today)
+        paid_qs = Order.objects.exclude(status=Order.Status.CANCELLED)
+
+        daily = (
+            paid_qs.filter(created_at__date__gte=start)
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(revenue=Sum("total"), orders=Count("id"))
+            .order_by("day")
+        )
+        by_day = {row["day"]: row for row in daily}
+        revenue_series = []
+        for i in range(14):
+            d = start + timedelta(days=i)
+            row = by_day.get(d)
+            revenue_series.append(
+                {
+                    "date": d.isoformat(),
+                    "label": d.strftime("%m/%d"),
+                    "revenue": int(row["revenue"] or 0) if row else 0,
+                    "orders": int(row["orders"] or 0) if row else 0,
+                }
+            )
+
+        status_counts = {
+            row["status"]: row["c"]
+            for row in Order.objects.values("status").annotate(c=Count("id"))
+        }
+        orders_by_status = [
+            {"status": key, "label": label, "count": status_counts.get(key, 0)}
+            for key, label in Order.Status.choices
+        ]
+
+        top_products = [
+            {
+                "product_name": row["product_name"],
+                "qty": int(row["sold_qty"] or 0),
+                "revenue": int(row["revenue"] or 0),
+            }
+            for row in (
+                OrderItem.objects.values("product_name")
+                .annotate(
+                    sold_qty=Sum("qty"),
+                    revenue=Sum(
+                        ExpressionWrapper(
+                            F("unit_price") * F("qty"),
+                            output_field=IntegerField(),
+                        )
+                    ),
+                )
+                .order_by("-sold_qty")[:6]
+            )
+        ]
+
+        gold_history = list(
+            GoldPrice.objects.order_by("-created_at")[:14].values(
+                "price_18k_per_gram", "created_at", "source"
+            )
+        )
+        gold_history.reverse()
+
+        role_counts = {
+            row["role"]: row["c"] for row in User.objects.values("role").annotate(c=Count("id"))
+        }
+
+        return Response(
+            {
+                "products_total": Product.objects.count(),
+                "products_active": Product.objects.filter(is_active=True).count(),
+                "products_featured": Product.objects.filter(is_featured=True).count(),
+                "categories_total": Category.objects.count(),
+                "orders_total": Order.objects.count(),
+                "orders_pending": Order.objects.filter(status=Order.Status.PENDING).count(),
+                "orders_today": orders_today.count(),
+                "revenue_total": paid_qs.aggregate(s=Sum("total"))["s"] or 0,
+                "revenue_today": orders_today.exclude(status=Order.Status.CANCELLED).aggregate(
+                    s=Sum("total")
+                )["s"]
+                or 0,
+                "avg_order_value": int(
+                    (paid_qs.aggregate(s=Sum("total"))["s"] or 0) / max(paid_qs.count(), 1)
+                ),
+                "users_total": User.objects.count(),
+                "users_by_role": role_counts,
+                "gold_price_18k": gold.price_18k_per_gram if gold else 0,
+                "gold_updated_at": gold.created_at if gold else None,
+                "revenue_series": revenue_series,
+                "orders_by_status": orders_by_status,
+                "top_products": top_products,
+                "gold_history": gold_history,
+                "recent_orders": OrderSerializer(
+                    Order.objects.prefetch_related("items")[:10], many=True
+                ).data,
+                "low_stock": AdminProductWriteSerializer(
+                    Product.objects.filter(stock__lte=2, is_active=True)[:8],
+                    many=True,
+                    context={"request": request},
+                ).data,
+                # Advanced ops intelligence
+                "orders_paid": Order.objects.filter(status=Order.Status.PAID).count(),
+                "orders_processing": Order.objects.filter(status=Order.Status.PROCESSING).count(),
+                "orders_shipped": Order.objects.filter(status=Order.Status.SHIPPED).count(),
+                "orders_delivered": Order.objects.filter(status=Order.Status.DELIVERED).count(),
+                "orders_cancelled": Order.objects.filter(status=Order.Status.CANCELLED).count(),
+                "revenue_paid": Order.objects.filter(status=Order.Status.PAID).aggregate(s=Sum("total"))["s"] or 0,
+                "pending_payment_value": Order.objects.filter(status=Order.Status.PENDING).aggregate(s=Sum("total"))["s"] or 0,
+                "payment_gateway_mix": list(
+                    Order.objects.exclude(payment_gateway="")
+                    .values("payment_gateway")
+                    .annotate(c=Count("id"), revenue=Sum("total"))
+                    .order_by("-c")
+                ),
+                "conversion": {
+                    "orders_total": Order.objects.count(),
+                    "paid_rate": round(
+                        100
+                        * Order.objects.filter(
+                            status__in=[
+                                Order.Status.PAID,
+                                Order.Status.PROCESSING,
+                                Order.Status.SHIPPED,
+                                Order.Status.DELIVERED,
+                            ]
+                        ).count()
+                        / max(Order.objects.count(), 1),
+                        1,
+                    ),
+                    "cancel_rate": round(
+                        100
+                        * Order.objects.filter(status=Order.Status.CANCELLED).count()
+                        / max(Order.objects.count(), 1),
+                        1,
+                    ),
+                },
+                "stock_health": {
+                    "out_of_stock": Product.objects.filter(stock=0, is_active=True).count(),
+                    "low_stock": Product.objects.filter(stock__lte=2, stock__gt=0, is_active=True).count(),
+                    "healthy": Product.objects.filter(stock__gt=2, is_active=True).count(),
+                },
+            }
+        )
+
+
+class AdminProductViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    serializer_class = AdminProductWriteSerializer
+    lookup_field = "id"
+    search_fields = ["name", "sku", "description"]
+    filterset_fields = ["category", "tag", "is_active", "is_featured"]
+    ordering_fields = ["created_at", "name", "stock", "weight_g"]
+    pagination_class = None  # full catalog for ops panel
+
+    def get_queryset(self):
+        return Product.objects.select_related("category").prefetch_related("images").all()
+
+
+class AdminCategoryViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+    lookup_field = "id"
+    pagination_class = None
+
+
+class AdminGoldPriceListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminRole]
+    serializer_class = GoldPriceSerializer
+    queryset = GoldPrice.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(source="admin")
+
+
+class AdminGoldRefreshView(APIView):
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        try:
+            row = refresh_gold_price(force_live=True, allow_jitter=False)
+        except Exception as exc:
+            return Response(
+                {"detail": f"خطا در دریافت نرخ زنده: {exc}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        data = GoldPriceSerializer(row).data
+        data["live"] = True
+        return Response(data)
+
+
+class AdminOrderViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    serializer_class = OrderSerializer
+    http_method_names = ["get", "patch", "head", "options"]
+    lookup_field = "order_number"
+    search_fields = ["order_number", "full_name", "phone"]
+    filterset_fields = ["status"]
+
+    def get_queryset(self):
+        return Order.objects.prefetch_related("items").all()
+
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    serializer_class = AdminUserManageSerializer
+    http_method_names = ["get", "patch", "head", "options"]
+    queryset = User.objects.all().order_by("-created_at")
+    search_fields = ["phone", "full_name", "email"]
+    filterset_fields = ["role", "is_active"]
+
+
+class AdminProductImageUploadView(APIView):
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def post(self, request, product_id):
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "محصول یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        image = request.FILES.get("image")
+        if not image:
+            return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        try:
+            processed, meta = process_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(
+                detail if isinstance(detail, dict) else {"detail": detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ensure_media_subdir("products")
+            obj = ProductImage.objects.create(
+                product=product,
+                image=processed,
+                alt=request.data.get("alt", product.name),
+                order=int(request.data.get("order", 0) or 0),
+                is_primary=str(request.data.get("is_primary", "false")).lower() in ("1", "true", "yes"),
+            )
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        if obj.is_primary:
+            ProductImage.objects.filter(product=product).exclude(id=obj.id).update(is_primary=False)
+        data = ProductImageSerializer(obj, context={"request": request}).data
+        data["processed"] = meta
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, product_id):
+        image_id = request.query_params.get("image_id")
+        deleted, _ = ProductImage.objects.filter(product_id=product_id, id=image_id).delete()
+        if not deleted:
+            return Response({"detail": "تصویر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminApplyAutoSeoView(APIView):
+    """Bulk-fill product meta_title / meta_description."""
+
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        from apps.store.management.commands.apply_auto_seo import best_product_seo
+
+        only_empty = str(request.data.get("only_empty", "false")).lower() in ("1", "true", "yes", "on")
+        qs = Product.objects.select_related("category").all()
+        if only_empty:
+            from django.db.models import Q
+
+            qs = qs.filter(
+                Q(meta_title="")
+                | Q(meta_description="")
+                | Q(meta_title__isnull=True)
+                | Q(meta_description__isnull=True)
+            )
+
+        updated = 0
+        for p in qs.iterator():
+            title, desc = best_product_seo(
+                name=p.name,
+                category_name=p.category.name if p.category_id else "",
+                weight_g=float(p.weight_g) if p.weight_g is not None else None,
+                karat=p.karat or 18,
+                tag=p.tag or "",
+                sku=p.sku or "",
+                description=p.description or "",
+            )
+            if not title:
+                continue
+            if p.meta_title == title and p.meta_description == desc:
+                continue
+            p.meta_title = title
+            p.meta_description = desc
+            p.save(update_fields=["meta_title", "meta_description", "updated_at"])
+            updated += 1
+
+        return Response({"updated": updated, "total": Product.objects.count()})
+
+
+class AdminSiteSettingsView(APIView):
+    """GET/PATCH homepage layout — Elementor-lite for Anil."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def get(self, request):
+        from apps.store.models import SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        obj = SiteSettings.load()
+        return Response(SiteSettingsSerializer(obj, context={"request": request}).data)
+
+    def patch(self, request):
+        from apps.store.models import SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        obj = SiteSettings.load()
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        # JSON field may arrive as string from multipart
+        if isinstance(data.get("section_order"), str):
+            import json
+
+            try:
+                data["section_order"] = json.loads(data["section_order"])
+            except Exception:
+                pass
+        for flag in ("show_rates", "show_categories", "show_featured", "show_trust"):
+            if flag in data:
+                val = data.get(flag)
+                data[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        ser = SiteSettingsSerializer(obj, data=data, partial=True, context={"request": request})
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class AdminHeroAlbumView(APIView):
+    """Upload / list hero album slides."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def get(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer
+
+        site = SiteSettings.load()
+        slides = HeroAlbumSlide.objects.filter(settings=site).order_by("sort_order", "created_at")
+        return Response(HeroAlbumSlideSerializer(slides, many=True, context={"request": request}).data)
+
+    def post(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer, SiteSettingsSerializer
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        site = SiteSettings.load()
+        image = request.FILES.get("image")
+        if not image:
+            return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            processed, meta = process_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(
+                detail if isinstance(detail, dict) else {"detail": detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        next_order = (
+            HeroAlbumSlide.objects.filter(settings=site).order_by("-sort_order").values_list("sort_order", flat=True).first()
+        )
+        sort_order = int(request.data.get("sort_order", (next_order or -1) + 1) or 0)
+
+        try:
+            ensure_media_subdir("hero/album")
+            slide = HeroAlbumSlide.objects.create(
+                settings=site,
+                image=processed,
+                alt_text=request.data.get("alt_text", "") or "",
+                caption=request.data.get("caption", "") or "",
+                sort_order=sort_order,
+                is_active=str(request.data.get("is_active", "true")).lower() in ("1", "true", "yes", "on"),
+            )
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Keep legacy hero_image in sync with first active slide for older clients
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        data = HeroAlbumSlideSerializer(slide, context={"request": request}).data
+        data["processed"] = meta
+        data["site"] = SiteSettingsSerializer(site, context={"request": request}).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class AdminHeroAlbumDetailView(APIView):
+    """Patch / delete a single hero album slide."""
+
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def patch(self, request, slide_id):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import HeroAlbumSlideSerializer, SiteSettingsSerializer
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        try:
+            slide = HeroAlbumSlide.objects.select_related("settings").get(id=slide_id)
+        except HeroAlbumSlide.DoesNotExist:
+            return Response({"detail": "اسلاید یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        if "alt_text" in request.data:
+            slide.alt_text = request.data.get("alt_text") or ""
+        if "caption" in request.data:
+            slide.caption = request.data.get("caption") or ""
+        if "sort_order" in request.data:
+            try:
+                slide.sort_order = int(request.data.get("sort_order") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "is_active" in request.data:
+            slide.is_active = str(request.data.get("is_active")).lower() in ("1", "true", "yes", "on")
+
+        image = request.FILES.get("image")
+        if image:
+            try:
+                processed, _meta = process_uploaded_image(image)
+                ensure_media_subdir("hero/album")
+                slide.image = processed
+            except Exception as exc:
+                detail = getattr(exc, "detail", None) or str(exc)
+                return Response(
+                    detail if isinstance(detail, dict) else {"detail": detail},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        slide.save()
+        site = SiteSettings.load()
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        data = HeroAlbumSlideSerializer(slide, context={"request": request}).data
+        data["site"] = SiteSettingsSerializer(site, context={"request": request}).data
+        return Response(data)
+
+    def delete(self, request, slide_id):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        deleted, _ = HeroAlbumSlide.objects.filter(id=slide_id).delete()
+        if not deleted:
+            return Response({"detail": "اسلاید یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        site = SiteSettings.load()
+        first = (
+            HeroAlbumSlide.objects.filter(settings=site, is_active=True)
+            .order_by("sort_order", "created_at")
+            .first()
+        )
+        if first and first.image:
+            site.hero_image = first.image
+            site.save(update_fields=["hero_image", "updated_at"])
+        elif not HeroAlbumSlide.objects.filter(settings=site).exists():
+            # Album emptied — clear legacy pointer
+            site.hero_image = None
+            site.save(update_fields=["hero_image", "updated_at"])
+
+        return Response(
+            {"ok": True, "site": SiteSettingsSerializer(site, context={"request": request}).data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminHeroAlbumReorderView(APIView):
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        from apps.store.models import HeroAlbumSlide, SiteSettings
+        from apps.store.serializers import SiteSettingsSerializer
+
+        order = request.data.get("order") or request.data.get("ids") or []
+        if not isinstance(order, list):
+            return Response({"detail": "لیست ترتیب نامعتبر است."}, status=status.HTTP_400_BAD_REQUEST)
+
+        site = SiteSettings.load()
+        for idx, slide_id in enumerate(order):
+            HeroAlbumSlide.objects.filter(settings=site, id=slide_id).update(sort_order=idx)
+
+        return Response(SiteSettingsSerializer(site, context={"request": request}).data)
+
+
+class AdminContentPageViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminRole]
+    lookup_field = "id"
+    search_fields = ["title", "slug", "excerpt"]
+    filterset_fields = ["page_type", "is_published", "show_in_nav"]
+
+    def get_queryset(self):
+        from apps.store.models import ContentPage
+
+        return ContentPage.objects.all()
+
+    def get_serializer_class(self):
+        from apps.store.serializers import ContentPageSerializer
+
+        return ContentPageSerializer
+
+
+class AdminCategoryImageUploadView(APIView):
+    permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def post(self, request, category_id):
+        try:
+            cat = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            return Response({"detail": "دسته یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+        image = request.FILES.get("image")
+        if not image:
+            return Response({"detail": "فایل تصویر الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.store.uploads import ensure_media_subdir, process_uploaded_image
+
+        try:
+            processed, _meta = process_uploaded_image(image)
+        except Exception as exc:
+            detail = getattr(exc, "detail", None) or str(exc)
+            return Response(detail if isinstance(detail, dict) else {"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            ensure_media_subdir("categories")
+            cat.image = processed
+            cat.save(update_fields=["image"])
+        except OSError:
+            return Response(
+                {"detail": "ذخیره تصویر روی سرور ممکن نشد. دسترسی پوشه media را بررسی کنید."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return Response(CategorySerializer(cat, context={"request": request}).data)

@@ -1,82 +1,230 @@
-# گالری طلا آنیل — Anil Gold Gallery · Project Handoff
+# گالری طلا آنیل — Anil Gold Gallery
 
-> **How to use this package:** Upload this whole folder into a Claude Project (claude.ai). It is
-> self-sufficient. Claude should read `README.md` first, then `BACKEND_SPEC_DJANGO.md`,
-> then `FRONTEND_INTEGRATION.md`. `Anil Gold Home.dc.html` is the **design reference**, and
-> `data/seed.json` is the exact catalog + market data the design uses.
+Production-grade e-commerce platform for a Persian gold & jewelry shop with **live dynamic pricing**.
 
----
-
-## 1. What this is
-
-A Persian (Farsi, RTL) e-commerce storefront for a gold & jewelry shop, **گالری طلا آنیل**.
-The signature feature is **live, dynamic pricing**: every product's price is computed in real time
-from the current gold spot price, so nothing has to be re-priced by hand.
-
-The bundled front-end (`Anil Gold Home.dc.html`) is a **working design prototype** built in HTML/JS.
-It demonstrates the intended look, motion, and behavior with mock data. It is **not** the production
-codebase — the task is to build a **real Django REST backend + admin panel**, then serve/consume the
-same UI against real data.
-
-## 2. Goal / definition of done
-
-1. **Django + Django REST Framework backend** exposing the catalog, categories, live gold price, and orders.
-2. **Django Admin** so the shop owner can manage *everything* — products, photos, categories, texts,
-   making-fees, tags, and the gold price — with no code.
-3. The storefront UI (recreated from the design, or served as-is and pointed at the API) fetches the
-   **live gold price** on an interval and recomputes all prices client-side using the exact formula below.
-4. Cart + checkout + order creation.
-5. Easy to deploy and publish (standard Django project, Postgres or SQLite, env-based config).
-
-## 3. Tech expectations
-
-- **Backend:** Python 3.12+, Django 5.x, Django REST Framework, `django-cors-headers`.
-- **DB:** SQLite for dev, Postgres for production.
-- **Media:** Django `ImageField` for product photos (served via `MEDIA_URL`; use S3/whatever in prod).
-- **Frontend:** you may (a) recreate the design in React/Next.js consuming the API, or
-  (b) keep the existing single-file UI and replace its mock data layer with `fetch()` calls.
-  Either way, **preserve the visual design exactly** — see `FRONTEND_INTEGRATION.md`.
-- **Language/RTL:** all UI is Farsi, `dir="rtl"`. Numbers display with Persian digits (`toLocaleString('fa-IR')`).
-- **Currency:** Iranian Toman (تومان).
-
-## 4. The pricing model (most important part)
-
-Every product stores a **weight (grams)**, a **making-fee ratio** (اجرت, e.g. 0.22 = 22%), and an
-optional **stone value** (سنگ, fixed Toman). Given the live 18k gold price per gram `gp`:
+## Architecture
 
 ```
-gold_value   = weight * gp
-making_fee   = gold_value * fee_ratio
-tax          = making_fee * 0.09          # 9% VAT on the making-fee (مالیات بر ارزش افزوده)
+/
+├── backend/           Django REST API (Python 3.12+)
+│   ├── config/        Django settings, URLs, WSGI
+│   ├── apps/
+│   │   ├── accounts/  Custom User (UUID, phone-auth, JWT)
+│   │   ├── store/     Products, Categories, GoldPrice, Wishlist
+│   │   ├── orders/    Orders, OrderItems (server-side pricing)
+│   │   └── analytics/ MongoDB: price history, page views, audit
+│   └── manage.py
+├── frontend/          React SPA (Vite + TypeScript)
+│   ├── src/
+│   │   ├── api/       Axios client + API endpoints
+│   │   ├── components/ Header, ProductCard, CartDrawer, Toast
+│   │   ├── hooks/     useGoldPrice (polling)
+│   │   ├── pages/     Home, Products, ProductDetail, Login, Register
+│   │   ├── store/     Zustand (cart, auth, UI, toast)
+│   │   ├── types/     TypeScript interfaces
+│   │   └── utils/     Formatting + price calculation
+│   └── vite.config.ts (proxy /api → backend)
+└── data/              Seed catalog (seed.json)
+```
+
+## Databases
+
+| Database   | Purpose                                                  |
+|------------|----------------------------------------------------------|
+| PostgreSQL | Users, products, categories, orders, gold prices (ACID)  |
+| MongoDB    | Price history time-series, product view analytics, audit |
+
+## Authentication
+
+- **JWT** via `djangorestframework-simplejwt`
+- Separate sessions: **customer** (`/login`) vs **admin/staff** (`/panel/login`)
+- Custom claims: `role`, `full_name`, `phone`, `panel`
+- Phone-based login (custom user model, no username)
+
+## Pricing Formula
+
+```
+gold_value   = weight_g × gold_price_18k
+making_fee   = gold_value × fee_ratio
+tax          = making_fee × 0.09
 final_price  = gold_value + making_fee + stone_value + tax
 ```
 
-This formula lives in BOTH the backend (authoritative, for orders) and the frontend (for live display).
-**The gold price is the single source of truth** — change it once and the whole catalog re-prices.
+Computed on both server (authoritative, for orders) and client (live display).
 
-## 5. What's in this folder
+## Quick Start — new Windows machine (`D:\anil_website_cluade`)
 
-| File | Purpose |
-|------|---------|
-| `README.md` | This brief. |
-| `BACKEND_SPEC_DJANGO.md` | Data models, DRF endpoints, admin config, gold-price service. |
-| `FRONTEND_INTEGRATION.md` | Design system tokens, screens, interactions, and how to swap mock→API. |
-| `Anil Gold Home.dc.html` | The working design prototype (homepage + product list + product detail + cart). |
-| `data/seed.json` | Exact product catalog, categories, and market rows used in the design. |
+Use **Git Bash**. SQLite works without Docker (recommended for a quick local setup).
 
-## 6. Product catalog scope
+### 0) Clone / update
 
-Categories (دسته‌بندی): انگشتر · گردنبند و زنجیر · دستبند و النگو · گوشواره · سکه و شمش · ست کامل.
-Market rows shown in the live ticker: طلای ۱۸ عیار، طلای ۲۴ عیار، مثقال طلا، سکه امامی، نیم سکه،
-ربع سکه، دلار، انس جهانی. See `data/seed.json` for exact values.
+```bash
+# First time on this PC:
+cd /d/
+git clone https://github.com/radiarkazemi/anil_website_cluade.git
+cd anil_website_cluade
+git checkout cursor/anil-gold-product-site-9af9
 
-## 7. Suggested build order
+# If the folder already exists:
+cd /d/anil_website_cluade
+git fetch origin
+git checkout cursor/anil-gold-product-site-9af9
+git pull origin cursor/anil-gold-product-site-9af9
+```
 
-1. Scaffold Django project + app `store`, models from the spec, migrations.
-2. Seed the DB from `data/seed.json` (write a management command `seed`).
-3. DRF serializers + viewsets + URLs. Verify `/api/products/` returns live-priced items.
-4. Configure Django Admin for full content management (image uploads, inline gallery, gold-price editor).
-5. Gold-price source: a `GoldPrice` singleton + a management command / Celery task to refresh it.
-6. Wire the frontend to the API (`FRONTEND_INTEGRATION.md`), keeping the design identical.
-7. Cart → checkout → `Order` creation with server-side price recomputation (never trust client prices).
-8. Deploy.
+### 1) Backend `:8000` (ASGI + live gold WebSocket)
+
+**Recommended (fixes Pillow / missing tables in one go):**
+
+```bash
+cd /d/anil_website_cluade/backend
+bash setup_local.sh
+uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+```
+
+**Manual steps:**
+
+```bash
+cd /d/anil_website_cluade/backend
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+# If ImageField errors appear later:  python -m pip install --upgrade Pillow
+# Optional: copy .env.example → .env  (leave DATABASE_URL unset for SQLite)
+python manage.py migrate
+python manage.py seed
+python manage.py seed_images
+python manage.py seed_layout
+python manage.py create_admin
+# Prefer uvicorn on Windows (more reliable than Daphne + cryptography wheels)
+uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+# Alternative: daphne -b 0.0.0.0 -p 8000 config.asgi:application
+```
+
+> `seed_layout` loads the 9 jewelry categories with images, homepage layout (hero/logo), and pages **راهنمای خرید** + **بلاگ**.
+>
+> Use **uvicorn** or **Daphne** (not plain `runserver`) so `/ws/gold/` works for live Faraz prices.
+>
+> **DB out of date** (`no such table: store_sitesettings` / `no such column: …payment_gateway`):
+> stop the server, then run `bash setup_local.sh` (or `migrate` + `seed_layout` after Pillow works).
+> Nuclear reset (deletes local SQLite data):
+> ```bash
+> rm -f db.sqlite3
+> bash setup_local.sh
+> ```
+>
+> **Pillow missing / broken** (`Cannot use ImageField` or `cannot import name '_imaging'`):
+> ```bash
+> python -m pip uninstall -y Pillow pillow PIL
+> python -m pip install --upgrade --force-reinstall --no-cache-dir Pillow
+> python -c "from PIL import Image; print('Pillow OK')"
+> python manage.py migrate
+> python manage.py seed_layout
+> ```
+> Or just re-run: `bash setup_local.sh`
+>
+> **Windows fix** if Daphne crashes with `No module named '_cffi_backend'`:
+> ```bash
+> pip install --upgrade --force-reinstall cffi cryptography
+> # then either retry daphne, or use uvicorn (recommended on Windows):
+> uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+> ```
+
+### 2) Frontend `:5180`
+
+```bash
+cd /d/anil_website_cluade/frontend
+npm install
+npm run dev
+# → http://localhost:5180
+```
+
+| Service | URL |
+|---------|-----|
+| Shop | http://localhost:5180/ |
+| Customer login | http://localhost:5180/login |
+| **Admin login** | http://localhost:5180/panel/login |
+| Admin panel | http://localhost:5180/panel |
+
+Default admin: login `radiar9841` / password set on server (not stored in repo)  
+(Customer and admin logins are separate.)
+
+Need Postgres/Mongo? See `DATABASE.md`.
+
+## API Endpoints
+
+```
+Auth:
+  POST /api/v1/auth/register/          Customer register + JWT
+  POST /api/v1/auth/login/             Customer login (rejects staff/admin)
+  POST /api/v1/auth/admin/login/       Ops panel login (staff/admin only)
+  POST /api/v1/auth/token/refresh/     Refresh access token
+  POST /api/v1/auth/logout/            Blacklist refresh token
+  GET/PATCH /api/v1/auth/profile/      User profile
+
+Store:
+  GET  /api/v1/gold-price/             Current gold + market rates
+  WS   /ws/gold/                       Live Faraz price stream
+  GET  /api/v1/categories/             Category list
+  GET  /api/v1/products/               Paginated, filterable, sortable
+  GET  /api/v1/products/<slug>/        Product detail + breakdown
+  GET  /api/v1/wishlist/               User wishlist
+  POST /api/v1/wishlist/               Add to wishlist
+
+Orders:
+  POST /api/v1/orders/                 Create order (server-side pricing)
+  GET  /api/v1/orders/mine/            User's orders
+  GET  /api/v1/orders/<number>/        Order detail
+
+Analytics (MongoDB):
+  GET  /api/v1/analytics/price-history/    Gold price time-series
+  POST /api/v1/analytics/product-view/     Log a product view
+  GET  /api/v1/analytics/popular/          Popular products
+```
+
+## Deploy
+
+See **[DEPLOY.md](./DEPLOY.md)** for the full VPS checklist (security, media, Redis, payments, Nginx).
+
+### Backend (ASGI — required for live gold WebSocket)
+
+```bash
+docker build -t anil-gold-api ./backend
+docker run -p 8000:8000 \
+  -e DEBUG=False \
+  -e SECRET_KEY=... \
+  -e ALLOWED_HOSTS=anil.example.com \
+  -e DATABASE_URL=postgres://... \
+  -e REDIS_URL=redis://... \
+  -e PAYMENT_SANDBOX=False \
+  -v anil_media:/app/media \
+  anil-gold-api
+
+# Pre-flight:
+# python manage.py check_prod --strict
+```
+
+### Frontend
+
+```bash
+cd frontend
+cp .env.example .env.production   # set VITE_API_URL=https://your-domain/api/v1
+npm ci && npm run build
+# Serve dist/ with Nginx — see deploy/nginx.conf.example
+```
+
+## Gold Price Updates
+
+Live rates from **Faraz.io** (`abshodeNaghdi` → مثقال ۱۷ → گرم ۱۸ via `/ws/gold/`).
+
+```bash
+cd backend && python manage.py refresh_gold
+
+GET  /api/v1/gold-price/          # latest (memory cache / DB)
+GET  /api/v1/gold-price/live/     # fetch live + persist
+POST /api/v1/gold-price/live/     # force live refresh
+POST /api/v1/admin/gold-price/refresh/
+WS   /ws/gold/                    # streamed quotes (Daphne)
+```
+
+See `backend/.env.example` for `FARAZ_BASE_URL`, `GOLD_POLL_SECONDS`, etc.
