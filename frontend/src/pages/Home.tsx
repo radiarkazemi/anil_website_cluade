@@ -23,6 +23,7 @@ function RatesBoard({ rows }: { rows: MarketRow[] }) {
               <span className="live-dot" />
               به‌روزرسانی زنده
             </div>
+            <div className="section-eyebrow" style={{ marginTop: 8 }}>Market Atelier</div>
             <h2>نرخ طلا و سکه</h2>
           </div>
           <p className="rates-note">قیمت محصولات گالری بر اساس طلای ۱۸ عیار محاسبه می‌شود.</p>
@@ -300,7 +301,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           paused={paused}
           onPause={setPaused}
         />
-        <div className="hero-copy">
+        <div className="hero-copy maison-hero-copy">
           <div className="hero-badge">{badge}</div>
           <h1 className="shimmer-text hero-h1">
             {title.map((line, i) => (
@@ -352,8 +353,12 @@ export function Home() {
       ? <RatesBoard key="rates" rows={goldPrice.market_rows} />
       : null,
     categories: site?.show_categories !== false ? (
-      <section key="categories" className="container section-pad">
-        <h2 className="section-title">دسته‌بندی محصولات</h2>
+      <section key="categories" className="container section-pad maison-section">
+        <div className="maison-head">
+          <div className="section-eyebrow">Maison Collections</div>
+          <h2 className="section-title">دسته‌بندی محصولات</h2>
+          <span className="section-rule" aria-hidden />
+        </div>
         <div className="cat-grid">
           {categories.map((c) => (
             <Link key={c.id} to={`/products?category=${c.slug}`} className="cat-card">
@@ -372,11 +377,12 @@ export function Home() {
       </section>
     ) : null,
     featured: site?.show_featured !== false ? (
-      <section key="featured" className="container section-pad">
+      <section key="featured" className="container section-pad maison-section">
         <div className="section-row">
-          <div>
+          <div className="maison-head" style={{ marginBottom: 0 }}>
             <div className="section-eyebrow">منتخب گالری</div>
             <h2 className="section-title tight">پرفروش‌ترین‌ها</h2>
+            <span className="section-rule" aria-hidden />
           </div>
           <Link to="/products" className="text-link">مشاهده‌ی همه</Link>
         </div>
@@ -407,7 +413,11 @@ export function Home() {
             </div>
           </div>
         </div>
-        <h2 className="section-title trust-heading">{site?.trust_heading || 'چرا آنیل؟'}</h2>
+        <div className="maison-head">
+          <div className="section-eyebrow">Heritage & Care</div>
+          <h2 className="section-title trust-heading">{site?.trust_heading || 'چرا آنیل؟'}</h2>
+          <span className="section-rule" aria-hidden />
+        </div>
         <div className="trust-grid">
           {[
             { key: 'authenticity', title: 'ضمانت اصالت', desc: 'فاکتور رسمی و ضمانت کتبی', Icon: IconShieldCheck },
