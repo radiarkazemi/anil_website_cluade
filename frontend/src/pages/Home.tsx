@@ -445,7 +445,34 @@ export function Home() {
 
   return (
     <div className="home">
-      {order.map((key) => sections[key]).filter(Boolean)}
+      {order.map((key) => {
+        const node = sections[key];
+        if (!node) return null;
+        if (key !== 'hero') return node;
+        return (
+          <div key="hero-block">
+            {node}
+            <section className="maison-brand-strip" aria-label="الهام از خانه‌های بزرگ جواهر">
+              <article>
+                <strong>Tiffany</strong>
+                <span>آرامش فیروزه‌ای و خلوص نور</span>
+              </article>
+              <article>
+                <strong>Van Cleef</strong>
+                <span>طلای رمانتیک آلهامبرا</span>
+              </article>
+              <article>
+                <strong>Versace</strong>
+                <span>سیاه و طلای باشکوه</span>
+              </article>
+              <article>
+                <strong>Bulgari</strong>
+                <span>قدرت ادیتوریال و کنتراست</span>
+              </article>
+            </section>
+          </div>
+        );
+      })}
 
       <footer className="site-footer">
         <div className="container footer-inner">

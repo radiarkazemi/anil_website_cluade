@@ -31,6 +31,7 @@ import { AdminSiteLayout } from './pages/admin/AdminSiteLayout';
 import { AdminPages } from './pages/admin/AdminPages';
 import './fonts.css';
 import './index.css';
+import './maison.css';
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1 } } });
 

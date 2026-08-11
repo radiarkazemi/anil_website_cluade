@@ -83,6 +83,9 @@ export function Header() {
 
   return (
     <>
+      <div className="maison-ribbon" aria-hidden>
+        ANIL GOLD · TIFFANY TEAL · VAN CLEEF GOLD · VERSACE BLACK · BULGARI
+      </div>
       {banner && <div className="top-banner">{banner}</div>}
       <header className="site-header">
         <div className="container header-inner">
