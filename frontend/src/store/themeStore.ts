@@ -26,7 +26,7 @@ interface ThemeState {
   theme: Theme;
   setTheme: (t: Theme) => void;
   cycle: () => void;
-  /** @deprecated use setTheme / cycle — kept for older call sites */
+  /** @deprecated use setTheme / cycle */
   toggle: () => void;
 }
 
