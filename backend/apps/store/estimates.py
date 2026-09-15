@@ -119,34 +119,22 @@ def estimated_weight_g(product: Product) -> Optional[Decimal]:
 def estimated_price_breakdown(product: Product, gp: int | None = None) -> dict:
     """Price using confirmed or estimated weight. total may still be None if no estimate."""
     from .models import GoldPrice
+    from .pricing import compute_breakdown
 
     w = estimated_weight_g(product)
-    if w is None:
-        return {
-            "gold": 0,
-            "fee": 0,
-            "stone": int(product.stone_value or 0),
-            "tax": 0,
-            "total": None,
-            "weight_g": None,
-        }
-
     if gp is None:
         current = GoldPrice.current()
         gp = current.price_18k_per_gram if current else 0
 
-    gold = float(w) * float(gp)
-    fee = gold * float(product.fee_ratio)
-    tax = fee * 0.09
-    total = gold + fee + float(product.stone_value) + tax
-    return {
-        "gold": round(gold),
-        "fee": round(fee),
-        "stone": int(product.stone_value),
-        "tax": round(tax),
-        "total": round(total),
-        "weight_g": float(w),
-    }
+    bd = compute_breakdown(
+        float(w) if w is not None else None,
+        gp,
+        float(product.fee_ratio),
+        product.stone_value,
+        include_profit=False,
+    )
+    bd["weight_g"] = float(w) if w is not None else None
+    return bd
 
 
 def deposit_amount_for(product: Product, gp: int | None = None) -> int:
@@ -154,9 +142,8 @@ def deposit_amount_for(product: Product, gp: int | None = None) -> int:
     Reserve payment for made-to-order / no-weight products.
 
     Customer-facing amount is a percent of the estimated final price
-    (gold + اجرت + سود embedded in fee + مالیات). Fee/profit/tax lines
-    are never returned to the client — only the rounded reserve amount.
-    Default: 20% of estimated total.
+    (طلا + اجرت + سود ۷٪ + مالیات). Profit is never shown to the client —
+    only the rounded reserve amount. Default: 20% of estimated total.
     """
     settings = SiteSettings.load()
     percent = float(getattr(settings, "made_to_order_deposit_percent", 20) or 20)

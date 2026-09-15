@@ -66,18 +66,38 @@ class ApiSmokeTests(TestCase):
         self.assertEqual(r.status_code, 200)
         results = r.json()["results"]
         self.assertEqual(len(results), 1)
-        gold = 4.2 * 3_850_000
-        fee = gold * 0.22
-        tax = fee * 0.09
-        expected = round(gold + fee + 8_500_000 + tax)
+        from apps.store.pricing import compute_breakdown
+
+        expected = compute_breakdown(4.2, 3_850_000, 0.22, 8_500_000)["total"]
         self.assertEqual(results[0]["price"], expected)
+        detail = self.client.get(f"/api/v1/products/{self.product.slug}/").json()
+        self.assertNotIn("profit", detail["breakdown"])
+        self.assertEqual(detail["breakdown"]["total"], expected)
 
     def test_product_detail(self):
         self.product.refresh_from_db()
         slug = self.product.slug
         r = self.client.get(f"/api/v1/products/{slug}/")
         self.assertEqual(r.status_code, 200)
-        self.assertIn("breakdown", r.json())
+        body = r.json()
+        self.assertIn("breakdown", body)
+        self.assertNotIn("profit", body["breakdown"])
+
+    def test_price_formula_includes_hidden_profit(self):
+        from apps.store.pricing import compute_breakdown
+
+        # User example: 14.09g, fee 14%, gold value 326_233_308
+        gp = round(326_233_308 / 14.09)
+        pub = compute_breakdown(14.09, gp, 0.14, 0, include_profit=False)
+        full = compute_breakdown(14.09, gp, 0.14, 0, include_profit=True)
+        self.assertNotIn("profit", pub)
+        self.assertIn("profit", full)
+        self.assertEqual(full["total"], pub["total"])
+        # profit = (gold + fee) * 7%; tax = (fee + profit) * 9%
+        gold, fee, profit = full["gold"], full["fee"], full["profit"]
+        self.assertEqual(profit, round((gold + fee) * 0.07))
+        self.assertEqual(full["tax"], round((fee + profit) * 0.09))
+        self.assertEqual(full["total"], gold + fee + profit + full["tax"])
 
     def test_create_order(self):
         r = self.client.post(
