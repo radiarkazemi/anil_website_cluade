@@ -239,13 +239,13 @@ class SiteSettings(models.Model):
     )
     made_to_order_deposit = models.BigIntegerField(
         default=5_000_000,
-        help_text="بیعانه رزرو برای محصولات بدون وزن تأییدشده (تومان)",
+        help_text="مبلغ رزرو جایگزین وقتی تخمین قیمت ممکن نیست (تومان)",
     )
     made_to_order_deposit_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=0,
-        help_text="درصد بیعانه از قیمت تقریبی (۰ = فقط مبلغ ثابت)",
+        default=20,
+        help_text="درصد مبلغ رزرو از قیمت تقریبی (شامل اجرت/سود/مالیات — فقط مبلغ نهایی به مشتری)",
     )
     updated_at = models.DateTimeField(auto_now=True)
 

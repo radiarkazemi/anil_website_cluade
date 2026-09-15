@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
+import { ReserveModal } from '../components/ReserveModal';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
@@ -20,7 +21,7 @@ export function ProductDetail() {
   const nav = useNavigate();
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
-  const [reserving, setReserving] = useState(false);
+  const [reserveOpen, setReserveOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -46,6 +47,7 @@ export function ProductDetail() {
   useEffect(() => {
     setImgIdx(0);
     setQty(1);
+    setReserveOpen(false);
   }, [slug]);
 
   useEffect(() => {
@@ -86,10 +88,6 @@ export function ProductDetail() {
   const w = hasWeight ? Number(product.weight_g) : estW;
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
-  const estBd = !hasWeight
-    ? (product.estimated_breakdown || (w > 0 ? calcPrice(w, gp, fee, product.stone_value) : null))
-    : null;
-  const deposit = product.deposit_amount ?? null;
   const images = product.images?.length
     ? product.images.map((i) => i.image)
     : product.primary_image
@@ -114,33 +112,6 @@ export function ProductDetail() {
     return true;
   };
 
-  const reserveWithDeposit = async () => {
-    if (reserving || !madeToOrder) return;
-    if (!ensureAuth()) return;
-    setReserving(true);
-    try {
-      const { data: order } = await api.createOrderFromProfile({
-        items: [{ product_id: product.id, qty }],
-        order_kind: 'deposit',
-        note: 'رزرو با بیعانه — تهیه بر اساس وزن تقریبی مدل‌های مشابه',
-      });
-      toast(`رزرو ${order.order_number} ثبت شد — پرداخت بیعانه`);
-      nav(`/payment/demo/${order.order_number}`);
-    } catch (e: any) {
-      const data = e?.response?.data;
-      const detail = typeof data?.detail === 'string'
-        ? data.detail
-        : typeof data?.items === 'string'
-          ? data.items
-          : Array.isArray(data?.items)
-            ? data.items.join('، ')
-            : 'ثبت رزرو ناموفق بود.';
-      toast(detail);
-    } finally {
-      setReserving(false);
-    }
-  };
-
   return (
     <section className="container product-detail-page">
       <div className="pd-breadcrumb">
@@ -161,12 +132,15 @@ export function ProductDetail() {
             ) : (
               <span className="pd-placeholder">{product.placeholder_label || product.name}</span>
             )}
-            {(madeToOrder || !physicallyAvailable) && (
+            {madeToOrder ? (
+              <div className="pd-avail-badges">
+                <span className="pd-orderable">قابل سفارش</span>
+              </div>
+            ) : !physicallyAvailable ? (
               <div className="pd-avail-badges">
                 <span className="pd-oos">ناموجود</span>
-                {madeToOrder && <span className="pd-orderable">قابل سفارش</span>}
               </div>
-            )}
+            ) : null}
           </div>
           {images.length > 1 && (
             <div className="pd-thumbs">
@@ -189,7 +163,7 @@ export function ProductDetail() {
             <span className="pd-cat">{product.category_name}</span>
             {product.tag && <span className="pd-tag">{product.tag}</span>}
             {product.is_featured && <span className="pd-tag">ویژه</span>}
-            {madeToOrder && <span className="pd-tag pd-tag-mto">قابل سفارش با بیعانه</span>}
+            {madeToOrder && <span className="pd-tag pd-tag-mto">قابل سفارش</span>}
           </div>
           <h1>{product.name}</h1>
           {product.description && <p className="pd-desc">{product.description}</p>}
@@ -197,13 +171,7 @@ export function ProductDetail() {
           <div className="pd-price-row">
             <div className="pd-price">
               {madeToOrder ? (
-                deposit != null ? (
-                  <>
-                    بیعانه {faPrice(deposit)} <small>تومان</small>
-                  </>
-                ) : (
-                  <>رزرو با بیعانه</>
-                )
+                <>قابل سفارش</>
               ) : bd ? (
                 <>
                   {faPrice(bd.total)} <small>تومان</small>
@@ -213,7 +181,7 @@ export function ProductDetail() {
               )}
             </div>
             <div className="pd-live">
-              <span className="live-dot" /> {madeToOrder ? 'سفارش ساخت / رزرو' : 'قیمت زنده'}
+              <span className="live-dot" /> {madeToOrder ? 'ناموجود · قابل سفارش' : 'قیمت زنده'}
             </div>
           </div>
 
@@ -226,33 +194,11 @@ export function ProductDetail() {
               <div className="pd-breakdown-row"><span>مالیات ۹٪ اجرت</span><span>{faPrice(bd.tax)}</span></div>
               <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>
             </div>
-          ) : (
-            <div className="pd-breakdown">
-              <div className="pd-breakdown-title">ناموجود · قابل سفارش</div>
-              <p className="pd-desc" style={{ margin: 0 }}>
-                این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت بیعانه آن را رزرو کنید؛
-                گالری بر اساس وزن تقریبی مدل‌های مشابه قبلی، قطعه را برای شما تهیه می‌کند.
-              </p>
-              {w > 0 && (
-                <div className="pd-breakdown-row" style={{ marginTop: 12 }}>
-                  <span>وزن تقریبی (میانگین مدل‌های مشابه)</span>
-                  <span>≈ {faNum(w)} گرم</span>
-                </div>
-              )}
-              {estBd && (
-                <div className="pd-breakdown-row">
-                  <span>تخمین قیمت نهایی</span>
-                  <span>≈ {faPrice(estBd.total)} تومان</span>
-                </div>
-              )}
-              {deposit != null && (
-                <div className="pd-breakdown-total">
-                  <span>بیعانه قابل پرداخت</span>
-                  <span>{faPrice(deposit)} تومان</span>
-                </div>
-              )}
+          ) : madeToOrder ? (
+            <div className="pd-mto-hint">
+              این مدل هم‌اکنون در ویترین موجود نیست. با «رزرو محصول» مبلغ رزرو را ببینید و سفارش ساخت ثبت کنید.
             </div>
-          )}
+          ) : null}
 
           <div className="pd-specs">
             {[
@@ -278,17 +224,8 @@ export function ProductDetail() {
               <button type="button" onClick={() => setQty(Math.min(maxQty, qty + 1))}>+</button>
             </div>
             {madeToOrder ? (
-              <button
-                type="button"
-                className="gold-btn"
-                disabled={reserving}
-                onClick={reserveWithDeposit}
-              >
-                {reserving
-                  ? 'در حال ثبت رزرو…'
-                  : deposit != null
-                    ? `رزرو با بیعانه ${faPrice(deposit)}`
-                    : 'رزرو با بیعانه'}
+              <button type="button" className="gold-btn" onClick={() => setReserveOpen(true)}>
+                رزرو محصول
               </button>
             ) : (
               <button
@@ -311,7 +248,7 @@ export function ProductDetail() {
             <li>فاکتور رسمی و ضمانت اصالت</li>
             <li>ارسال بیمه‌شده به سراسر کشور</li>
             {madeToOrder ? (
-              <li>بیعانه بابت رزرو؛ مابه‌تفاوت هنگام تحویل بر اساس وزن واقعی</li>
+              <li>مبلغ رزرو هنگام سفارش؛ تسویه نهایی بر اساس وزن واقعی</li>
             ) : (
               <li>امکان بازخرید طبق نرخ روز</li>
             )}
@@ -326,6 +263,15 @@ export function ProductDetail() {
             {related.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         </div>
+      )}
+
+      {madeToOrder && (
+        <ReserveModal
+          product={product}
+          qty={qty}
+          open={reserveOpen}
+          onClose={() => setReserveOpen(false)}
+        />
       )}
     </section>
   );

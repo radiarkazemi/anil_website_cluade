@@ -151,19 +151,25 @@ def estimated_price_breakdown(product: Product, gp: int | None = None) -> dict:
 
 def deposit_amount_for(product: Product, gp: int | None = None) -> int:
     """
-    بیعانه for made-to-order / no-weight products.
-    Uses site fixed deposit, or percent of estimated price if that is higher.
+    Reserve payment for made-to-order / no-weight products.
+
+    Customer-facing amount is a percent of the estimated final price
+    (gold + اجرت + سود embedded in fee + مالیات). Fee/profit/tax lines
+    are never returned to the client — only the rounded reserve amount.
+    Default: 20% of estimated total.
     """
     settings = SiteSettings.load()
-    fixed = int(getattr(settings, "made_to_order_deposit", 5_000_000) or 5_000_000)
-    percent = float(getattr(settings, "made_to_order_deposit_percent", 0) or 0)
+    percent = float(getattr(settings, "made_to_order_deposit_percent", 20) or 20)
+    if percent <= 0:
+        percent = 20
 
-    amount = fixed
-    if percent > 0:
-        bd = estimated_price_breakdown(product, gp)
-        if bd["total"]:
-            amount = max(amount, int(round(bd["total"] * percent / 100)))
-    return max(amount, 100_000)
+    bd = estimated_price_breakdown(product, gp)
+    if bd["total"]:
+        return max(int(round(bd["total"] * percent / 100)), 100_000)
+
+    # Fallback when no weight estimate exists yet
+    fixed = int(getattr(settings, "made_to_order_deposit", 5_000_000) or 5_000_000)
+    return max(fixed, 100_000)
 
 
 def category_avg_weight(category_id) -> Optional[float]:
