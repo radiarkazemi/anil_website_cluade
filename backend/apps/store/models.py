@@ -81,7 +81,13 @@ class Product(models.Model):
     name = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=200, unique=True, allow_unicode=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
-    weight_g = models.DecimalField(max_digits=8, decimal_places=2, help_text="وزن به گرم")
+    weight_g = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="وزن به گرم — خالی تا زمان تأیید وزن واقعی",
+    )
     karat = models.PositiveSmallIntegerField(default=18)
     fee_ratio = models.DecimalField(max_digits=5, decimal_places=3, default=0.200, help_text="اجرت — نسبت")
     stone_value = models.BigIntegerField(default=0, help_text="ارزش سنگ/نگین — تومان")
@@ -89,6 +95,11 @@ class Product(models.Model):
     description = models.TextField(blank=True)
     placeholder_label = models.CharField(max_length=40, blank=True)
     sku = models.CharField(max_length=30, blank=True, unique=True, null=True)
+    needs_review = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="وزن/نام/توضیحات نیاز به بازبینی ادمین دارد",
+    )
     stock = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
@@ -111,6 +122,8 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     def price_breakdown(self, gp=None):
+        if self.weight_g is None:
+            return {"gold": 0, "fee": 0, "stone": int(self.stone_value or 0), "tax": 0, "total": None}
         if gp is None:
             current = GoldPrice.current()
             gp = current.price_18k_per_gram if current else 0
@@ -125,6 +138,10 @@ class Product(models.Model):
             "tax": round(tax),
             "total": round(total),
         }
+
+    @property
+    def has_weight(self):
+        return self.weight_g is not None and float(self.weight_g) > 0
 
     @property
     def price(self):

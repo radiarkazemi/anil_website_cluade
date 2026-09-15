@@ -26,6 +26,9 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     slug = serializers.SlugField(required=False, allow_blank=True, allow_unicode=True, max_length=200)
     sku = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=30)
+    weight_g = serializers.DecimalField(
+        max_digits=8, decimal_places=2, required=False, allow_null=True
+    )
 
     class Meta:
         model = Product
@@ -46,6 +49,7 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
             "stock",
             "is_active",
             "is_featured",
+            "needs_review",
             "meta_title",
             "meta_description",
             "images",
@@ -92,6 +96,8 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
             attrs["slug"] = str(slug).strip()
         if "sku" in attrs and attrs["sku"] == "":
             attrs["sku"] = None
+        if "weight_g" in attrs and attrs["weight_g"] in ("", None):
+            attrs["weight_g"] = None
         return attrs
 
 class AdminUserManageSerializer(serializers.ModelSerializer):

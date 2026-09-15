@@ -15,11 +15,17 @@ export function ProductCard({ product }: { product: Product }) {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
 
-  const w = Number(product.weight_g);
+  const hasWeight =
+    product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
+  const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
-  const { total } = calcPrice(w, gp, fee, product.stone_value);
+  const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
 
   const tryAdd = () => {
+    if (!hasWeight) {
+      toast('وزن این قطعه هنوز تأیید نشده؛ از مشاور هوشمند کمک بگیرید یا با گالری تماس بگیرید.');
+      return;
+    }
     if (!tokens || !user) {
       toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
       nav('/register');
@@ -51,16 +57,24 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </Link>
         <div className="product-meta">
-          {product.placeholder_label?.includes('وزن حدودی')
-            ? <>وزن حدودی ≈ {faNum(w)} گرم · عیار ۱۸</>
-            : <>وزن {faNum(w)} گرم · عیار ۱۸</>}
+          {hasWeight ? (
+            product.placeholder_label?.includes('وزن حدودی') ? (
+              <>وزن حدودی ≈ {faNum(w)} گرم · عیار ۱۸</>
+            ) : (
+              <>وزن {faNum(w)} گرم · عیار ۱۸</>
+            )
+          ) : (
+            <>وزن پس از تأیید · عیار ۱۸</>
+          )}
         </div>
         <div className="product-row">
           <div>
-            <div className="product-price">{faPrice(total)}</div>
-            <div className="product-price-note">تومان · قیمت پویا</div>
+            <div className="product-price">{total != null ? faPrice(total) : 'قیمت پس از تأیید وزن'}</div>
+            <div className="product-price-note">
+              {total != null ? 'تومان · قیمت پویا' : 'با مشاور یا گالری هماهنگ کنید'}
+            </div>
           </div>
-          <button type="button" className="add-btn" aria-label="افزودن به سبد" onClick={tryAdd}>
+          <button type="button" className="add-btn" aria-label="افزودن به سبد" onClick={tryAdd} disabled={!hasWeight}>
             +
           </button>
         </div>

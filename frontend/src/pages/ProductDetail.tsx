@@ -79,9 +79,10 @@ export function ProductDetail() {
     );
   }
 
-  const w = Number(product.weight_g);
+  const hasWeight = product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
+  const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
-  const bd = product.breakdown || calcPrice(w, gp, fee, product.stone_value);
+  const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
   const images = product.images?.length
     ? product.images.map((i) => i.image)
     : product.primary_image
@@ -136,26 +137,43 @@ export function ProductDetail() {
             {product.is_featured && <span className="pd-tag">ویژه</span>}
           </div>
           <h1>{product.name}</h1>
-          {product.sku && <div className="pd-sku">کد کالا: <b dir="ltr">{product.sku}</b></div>}
           {product.description && <p className="pd-desc">{product.description}</p>}
 
           <div className="pd-price-row">
-            <div className="pd-price">{faPrice(bd.total)} <small>تومان</small></div>
-            <div className="pd-live"><span className="live-dot" /> قیمت زنده</div>
+            <div className="pd-price">
+              {bd ? (
+                <>
+                  {faPrice(bd.total)} <small>تومان</small>
+                </>
+              ) : (
+                <>قیمت پس از تأیید وزن</>
+              )}
+            </div>
+            <div className="pd-live"><span className="live-dot" /> {bd ? 'قیمت زنده' : 'در انتظار وزن'}</div>
           </div>
 
-          <div className="pd-breakdown">
-            <div className="pd-breakdown-title">تفکیک قیمت</div>
-            <div className="pd-breakdown-row"><span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span><span>{faPrice(bd.gold)}</span></div>
-            <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faNum(Math.round(fee * 100))})</span><span>{faPrice(bd.fee)}</span></div>
-            {bd.stone > 0 && <div className="pd-breakdown-row"><span>سنگ و نگین</span><span>{faPrice(bd.stone)}</span></div>}
-            <div className="pd-breakdown-row"><span>مالیات ۹٪ اجرت</span><span>{faPrice(bd.tax)}</span></div>
-            <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>
-          </div>
+          {bd ? (
+            <div className="pd-breakdown">
+              <div className="pd-breakdown-title">تفکیک قیمت</div>
+              <div className="pd-breakdown-row"><span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span><span>{faPrice(bd.gold)}</span></div>
+              <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faNum(Math.round(fee * 100))})</span><span>{faPrice(bd.fee)}</span></div>
+              {bd.stone > 0 && <div className="pd-breakdown-row"><span>سنگ و نگین</span><span>{faPrice(bd.stone)}</span></div>}
+              <div className="pd-breakdown-row"><span>مالیات ۹٪ اجرت</span><span>{faPrice(bd.tax)}</span></div>
+              <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>
+            </div>
+          ) : (
+            <div className="pd-breakdown">
+              <div className="pd-breakdown-title">وزن و قیمت</div>
+              <p className="pd-desc" style={{ margin: 0 }}>
+                وزن این قطعه در حال بازبینی است. از «مشاور هوشمند» بخواهید مشابه آن را با وزن/اجرت دلخواه پیدا کند،
+                یا برای اعلام وزن دقیق با گالری تماس بگیرید.
+              </p>
+            </div>
+          )}
 
           <div className="pd-specs">
             {[
-              [faNum(w) + ' گرم', product.placeholder_label?.includes('وزن حدودی') ? 'وزن حدودی' : 'وزن'],
+              [hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید', hasWeight && product.placeholder_label?.includes('وزن حدودی') ? 'وزن حدودی' : 'وزن'],
               [faNum(product.karat || 18), 'عیار'],
               [inStock ? faNum(product.stock ?? 0) : '۰', 'موجودی'],
               ['۱۸ ماه', 'گارانتی اصالت'],
@@ -176,8 +194,12 @@ export function ProductDetail() {
             <button
               type="button"
               className="gold-btn"
-              disabled={!inStock}
+              disabled={!inStock || !hasWeight}
               onClick={() => {
+                if (!hasWeight) {
+                  toast('تا تأیید وزن، امکان افزودن به سبد نیست.');
+                  return;
+                }
                 if (!tokens || !user) {
                   toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
                   nav('/register');
@@ -193,7 +215,7 @@ export function ProductDetail() {
                 openCart();
               }}
             >
-              {inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
+              {!hasWeight ? 'منتظر تأیید وزن' : inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
             </button>
           </div>
 

@@ -35,14 +35,18 @@ class ProductListSerializer(serializers.ModelSerializer):
     category_slug = serializers.CharField(source="category.slug", read_only=True)
     price = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
+    has_weight = serializers.SerializerMethodField()
+
+    def get_has_weight(self, obj):
+        return bool(getattr(obj, "has_weight", False))
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
-            "weight_g", "karat", "fee_ratio", "stone_value", "tag",
+            "weight_g", "has_weight", "karat", "fee_ratio", "stone_value", "tag",
             "placeholder_label", "price", "primary_image", "in_stock",
-            "is_featured",
+            "is_featured", "needs_review",
         ]
 
     def get_price(self, obj):
@@ -62,14 +66,18 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     category_slug = serializers.CharField(source="category.slug", read_only=True)
     price = serializers.SerializerMethodField()
     breakdown = serializers.SerializerMethodField()
+    has_weight = serializers.SerializerMethodField()
+
+    def get_has_weight(self, obj):
+        return bool(getattr(obj, "has_weight", False))
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
-            "weight_g", "karat", "fee_ratio", "stone_value", "tag",
-            "description", "placeholder_label", "sku", "stock", "in_stock",
-            "images", "price", "breakdown", "is_featured",
+            "weight_g", "has_weight", "karat", "fee_ratio", "stone_value", "tag",
+            "description", "placeholder_label", "stock", "in_stock",
+            "images", "price", "breakdown", "is_featured", "needs_review",
             "meta_title", "meta_description", "created_at",
         ]
 

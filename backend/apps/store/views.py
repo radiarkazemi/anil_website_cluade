@@ -141,6 +141,22 @@ class ProductListView(generics.ListAPIView):
         category = self.request.query_params.get("category")
         if category and category != "all":
             qs = qs.filter(Q(category__slug=category) | Q(category__name=category))
+        wmin = self.request.query_params.get("weight_min")
+        wmax = self.request.query_params.get("weight_max")
+        fee_max = self.request.query_params.get("fee_max")
+        try:
+            if wmin not in (None, ""):
+                qs = qs.filter(weight_g__gte=wmin)
+            if wmax not in (None, ""):
+                qs = qs.filter(weight_g__lte=wmax)
+            if fee_max not in (None, ""):
+                # accept percent (7) or ratio (0.07)
+                f = float(fee_max)
+                if f > 1:
+                    f = f / 100.0
+                qs = qs.filter(fee_ratio__lte=f)
+        except (TypeError, ValueError):
+            pass
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -215,3 +231,53 @@ class ContentPageDetailView(generics.RetrieveAPIView):
     serializer_class = ContentPageSerializer
     lookup_field = "slug"
     queryset = ContentPage.objects.filter(is_published=True)
+
+
+class ConsultantView(APIView):
+    """Inventory AI consultant — weight / اجرت / shape → product suggestions."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "consultant"
+
+    def get_throttles(self):
+        from rest_framework.throttling import AnonRateThrottle
+
+        class ConsultantThrottle(AnonRateThrottle):
+            rate = "30/min"
+
+        return [ConsultantThrottle()]
+
+    def post(self, request):
+        from apps.store.consultant import suggest_products
+
+        data = request.data if isinstance(request.data, dict) else {}
+        message = str(data.get("message") or data.get("q") or "").strip()
+
+        def _f(key):
+            v = data.get(key)
+            if v in (None, ""):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        limit = data.get("limit", 6)
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 6
+
+        result = suggest_products(
+            message=message,
+            weight_min=_f("weight_min"),
+            weight_max=_f("weight_max"),
+            weight=_f("weight"),
+            fee_max_pct=_f("fee_max_pct") if data.get("fee_max_pct") not in (None, "") else _f("fee_max"),
+            fee_min_pct=_f("fee_min_pct"),
+            category=(str(data.get("category") or "").strip() or None),
+            budget_toman=_f("budget_toman") or _f("budget"),
+            limit=limit,
+        )
+        return Response(result)

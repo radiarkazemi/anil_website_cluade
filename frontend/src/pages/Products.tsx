@@ -12,6 +12,9 @@ export function Products() {
   const [params, setParams] = useSearchParams();
   const category = params.get('category') || 'all';
   const sort = params.get('sort') || '';
+  const weightMin = params.get('weight_min') || '';
+  const weightMax = params.get('weight_max') || '';
+  const feeMax = params.get('fee_max') || '';
   const [cols, setCols] = useState<GridCols>(() => {
     try {
       const saved = Number(localStorage.getItem(GRID_KEY));
@@ -31,11 +34,14 @@ export function Products() {
 
   const { data: categoriesData } = useQuery({ queryKey: ['categories'], queryFn: () => api.categories().then((r) => r.data) });
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ['products', category, sort],
+    queryKey: ['products', category, sort, weightMin, weightMax, feeMax],
     queryFn: () => {
       const p: Record<string, string> = { page_size: '200' };
       if (category !== 'all') p.category = category;
       if (sort) p.ordering = sort;
+      if (weightMin) p.weight_min = weightMin;
+      if (weightMax) p.weight_max = weightMax;
+      if (feeMax) p.fee_max = feeMax;
       return api.productsAll(p);
     },
   });
@@ -72,6 +78,14 @@ export function Products() {
               </button>
             );
           })}
+        </div>
+        <div className="products-smart-filters">
+          <input className="input" style={{width:100}} placeholder="وزن از" value={weightMin}
+            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('weight_min', v); else p.delete('weight_min'); return p; })} />
+          <input className="input" style={{width:100}} placeholder="وزن تا" value={weightMax}
+            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('weight_max', v); else p.delete('weight_max'); return p; })} />
+          <input className="input" style={{width:110}} placeholder="اجرت تا ٪" value={feeMax}
+            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('fee_max', v); else p.delete('fee_max'); return p; })} />
         </div>
         <div className="products-toolbar-end">
           <div className="grid-density" role="group" aria-label="تعداد ستون">

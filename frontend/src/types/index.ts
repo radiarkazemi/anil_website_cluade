@@ -107,14 +107,16 @@ export interface Product {
   slug: string;
   category_name: string;
   category_slug: string;
-  weight_g: string;
+  weight_g: string | null;
+  has_weight?: boolean;
+  needs_review?: boolean;
   karat: number;
   fee_ratio: string;
   stone_value: number;
   tag: string;
   description?: string;
   placeholder_label: string;
-  price: number;
+  price: number | null;
   primary_image: string | null;
   in_stock: boolean;
   is_featured: boolean;

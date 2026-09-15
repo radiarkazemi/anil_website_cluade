@@ -70,6 +70,23 @@ export const api = {
     return all;
   },
   product: (slug: string) => client.get<Product>(`/products/${slug}/`),
+  consultant: (data: Record<string, unknown>) =>
+    client.post<{
+      reply: string;
+      suggestions: {
+        id: string;
+        name: string;
+        slug: string;
+        category_name: string;
+        weight_g: string | null;
+        fee_pct: number;
+        price: number | null;
+        primary_image: string | null;
+        reasons: string[];
+        description?: string;
+      }[];
+      count: number;
+    }>('/consultant/', data),
 
   createOrder: (data: {
     full_name: string;

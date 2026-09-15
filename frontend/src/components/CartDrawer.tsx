@@ -58,7 +58,9 @@ export function CartDrawer() {
     .map((c) => {
       const p = products.find((x) => x.id === c.productId);
       if (!p) return null;
-      const pr = calcPrice(Number(p.weight_g), gp, Number(p.fee_ratio), p.stone_value);
+      const w = p.weight_g != null ? Number(p.weight_g) : 0;
+      if (!w) return null;
+      const pr = calcPrice(w, gp, Number(p.fee_ratio), p.stone_value);
       return { ...c, product: p, price: pr.total };
     })
     .filter(Boolean) as { productId: string; qty: number; product: Product; price: number }[];
@@ -204,7 +206,7 @@ export function CartDrawer() {
                   <div className="goldbox-item-body">
                     <div className="goldbox-item-name">{c.product.name}</div>
                     <div className="goldbox-item-meta">
-                      {c.product.category_name} · {faNum(Number(c.product.weight_g))} گرم
+                      {c.product.category_name} · {c.product.weight_g != null ? `${faNum(Number(c.product.weight_g))} گرم` : 'وزن نامشخص'}
                     </div>
                     <div className="goldbox-item-row">
                       <div className="pd-qty compact">

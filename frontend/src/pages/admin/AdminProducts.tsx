@@ -152,9 +152,10 @@ export function AdminProducts() {
         throw { response: { data: { category: ['دسته‌بندی را انتخاب کنید.'] } } };
       }
 
-      const weight = parseNumber(form.weight_g, NaN);
-      if (!Number.isFinite(weight) || weight <= 0) {
-        throw { response: { data: { weight_g: ['وزن معتبر وارد کنید.'] } } };
+      const weightRaw = String(form.weight_g ?? '').trim();
+      const weight = weightRaw === '' ? null : parseNumber(form.weight_g, NaN);
+      if (weight != null && (!Number.isFinite(weight) || weight <= 0)) {
+        throw { response: { data: { weight_g: ['وزن معتبر وارد کنید یا خالی بگذارید.'] } } };
       }
 
       const autoSlug = slugifyName(form.name);
@@ -162,7 +163,7 @@ export function AdminProducts() {
       const seoFallback = bestProductSeo({
         name: form.name,
         categoryName,
-        weight_g: weight,
+        weight_g: weight ?? undefined,
         karat: Number(form.karat) || 18,
         tag: form.tag || '',
         sku: form.sku || '',

@@ -21,6 +21,7 @@ urlpatterns = [
     path("pages/<str:slug>/", views.ContentPageDetailView.as_view(), name="page-detail"),
     path("products/", views.ProductListView.as_view(), name="products"),
     path("products/<str:slug>/", views.ProductDetailView.as_view(), name="product-detail"),
+    path("consultant/", views.ConsultantView.as_view(), name="consultant"),
     path("wishlist/", views.WishlistListCreateView.as_view(), name="wishlist"),
     path("wishlist/<uuid:pk>/", views.WishlistDeleteView.as_view(), name="wishlist-delete"),
     # Admin panel API

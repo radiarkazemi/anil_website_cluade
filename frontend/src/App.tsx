@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
+import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
 import { api } from './api/endpoints';
 import { useStore } from './store/useStore';
@@ -100,6 +101,7 @@ function AppInner() {
       </Routes>
       {!isPanel && <CartDrawer />}
       {!isPanel && <MobileBuyBar />}
+      {!isPanel && <GoldConsultant />}
       <Toast />
     </>
   );
