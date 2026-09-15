@@ -4,6 +4,11 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
   const theme = useTheme((s) => s.theme);
   const setTheme = useTheme((s) => s.setTheme);
 
+  const apply = (t: Theme) => {
+    setTheme(t);
+    document.documentElement.setAttribute('data-theme', t);
+  };
+
   return (
     <div
       className={`theme-swatches${compact ? ' is-compact' : ''}`}
@@ -26,9 +31,16 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
               aria-checked={active}
               aria-label={meta.label}
               title={`${meta.label} — ${meta.hint}`}
-              className={`theme-swatch${active ? ' active' : ''}`}
+              className={`theme-swatch theme-swatch-${t}${active ? ' active' : ''}`}
               style={{ background: meta.swatch }}
-              onClick={() => setTheme(t as Theme)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                apply(t);
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                apply(t);
+              }}
             />
           );
         })}
