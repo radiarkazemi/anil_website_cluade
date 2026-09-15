@@ -106,6 +106,7 @@ export function AdminProducts() {
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState('');
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [enhanceImage, setEnhanceImage] = useState(true);
 
   useEffect(() => {
     if (!file) {
@@ -139,6 +140,7 @@ export function AdminProducts() {
     setForm(null);
     setFormError('');
     setFile(null);
+    setEnhanceImage(true);
   };
 
 
@@ -196,7 +198,7 @@ export function AdminProducts() {
       }
       if (file) {
         try {
-          await api.adminUploadImage(product.id, file, true);
+          await api.adminUploadImage(product.id, file, true, enhanceImage);
         } catch (uploadErr: any) {
           const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
           throw Object.assign(new Error(msg), {
@@ -507,15 +509,33 @@ export function AdminProducts() {
                   <span>تصویر اصلی</span>
                   <div className="admin-image-picker">
                     {(filePreview || form.primary_image || productThumb(form)) ? (
-                      <img
-                        className="admin-image-preview"
-                        src={filePreview || form.primary_image || productThumb(form) || ''}
-                        alt="پیش‌نمایش"
-                      />
+                      <div className="admin-image-preview-wrap">
+                        <img
+                          className={`admin-image-preview${file && enhanceImage ? ' is-enhanced' : ''}`}
+                          src={filePreview || form.primary_image || productThumb(form) || ''}
+                          alt="پیش‌نمایش"
+                        />
+                        {file && enhanceImage && (
+                          <span className="admin-image-enhance-badge">بهبود خودکار</span>
+                        )}
+                      </div>
                     ) : (
                       <div className="admin-image-empty">هنوز تصویری برای این محصول ثبت نشده — فایل JPG/PNG را انتخاب کنید</div>
                     )}
                     <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    <label className="layout-toggle admin-image-enhance-toggle">
+                      <input
+                        type="checkbox"
+                        checked={enhanceImage}
+                        onChange={(e) => setEnhanceImage(e.target.checked)}
+                      />
+                      بهبود کیفیت و وضوح تصویر (مناسب جواهرات)
+                    </label>
+                    {file && enhanceImage && (
+                      <p className="admin-image-enhance-hint">
+                        پس از ذخیره، تصویر در همین کادر با وضوح و رنگ بهتر برای طلا ذخیره می‌شود.
+                      </p>
+                    )}
                   </div>
                 </label>
                 <label className="layout-toggle">

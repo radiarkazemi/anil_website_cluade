@@ -169,10 +169,11 @@ export const api = {
   adminCreateProduct: (data: Record<string, unknown>) => client.post<Product>('/admin/products/', data),
   adminUpdateProduct: (id: string, data: Record<string, unknown>) => client.patch<Product>(`/admin/products/${id}/`, data),
   adminDeleteProduct: (id: string) => client.delete(`/admin/products/${id}/`),
-  adminUploadImage: (productId: string, file: File, isPrimary = true) => {
+  adminUploadImage: (productId: string, file: File, isPrimary = true, enhance = true) => {
     const fd = new FormData();
     fd.append('image', file);
     fd.append('is_primary', String(isPrimary));
+    fd.append('enhance', String(enhance));
     return client.post(`/admin/products/${productId}/images/`, fd);
   },
   adminApplyAutoSeo: (onlyEmpty = false) =>
