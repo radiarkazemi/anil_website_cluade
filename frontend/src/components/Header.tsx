@@ -99,8 +99,6 @@ export function Header() {
             {navLinks}
           </nav>
 
-          <SiteSearch className="header-search desktop-search" />
-
           <div className="header-actions">
             {gp > 0 && (
               <div className="live-gold" title="نرخ طلای ۱۸ عیار">
@@ -157,8 +155,8 @@ export function Header() {
           </div>
         </div>
 
-        <div className="container header-search-mobile-wrap">
-          <SiteSearch className="header-search mobile-search" />
+        <div className="container header-search-bar">
+          <SiteSearch className="header-search" />
         </div>
 
         {gp > 0 && (

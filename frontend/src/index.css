@@ -420,35 +420,49 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
   align-items: center;
   gap: 6px;
   min-width: 0;
-  flex: 1 1 220px;
-  max-width: 320px;
+  width: 100%;
+  max-width: none;
 }
 .site-search-input {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 42px;
   border-radius: 12px;
-  border: 1px solid var(--border-gold, rgba(212,175,55,.35));
+  border: 1px solid var(--border-gold, rgba(212,175,55,.45));
   background: var(--input-bg, var(--surface));
   color: var(--text);
-  padding: 0 12px;
-  font-size: 13px;
-}
-.site-search-input::placeholder { color: var(--text-dim); opacity: .85; }
-.site-search-btn {
-  height: 40px;
   padding: 0 14px;
+  font-size: 14px;
+}
+.site-search-input::placeholder { color: var(--text-dim); opacity: .9; }
+.site-search-btn {
+  height: 42px;
+  padding: 0 18px;
   border-radius: 12px;
   border: 0;
   cursor: pointer;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
   color: #1a1206;
   background: linear-gradient(135deg, #f0d78a, #c9a24b);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+/* Always-visible search under the top menu (all screen sizes) */
+.header-search-bar {
+  display: block !important;
+  padding: 0 0 14px;
+  width: 100%;
+}
+.header-search-bar .site-search {
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
 }
 .header-search-mobile-wrap,
-.desktop-search { display: none; }
+.desktop-search {
+  display: none !important;
+}
 .mobile-nav-search { padding: 0 16px 12px; }
 .mobile-nav-search .site-search { max-width: none; width: 100%; }
 
@@ -2025,14 +2039,13 @@ body.nav-open { overflow: hidden; }
     max-width: 100%;
   }
   .desktop-nav { display: none; }
-  .desktop-search { display: none !important; }
-  .header-search-mobile-wrap {
+  .desktop-search-inline { display: none !important; }
+  .header-search-bar {
     display: block;
     padding: 0 0 10px;
   }
-  .header-search-mobile-wrap .site-search {
+  .header-search-bar .site-search {
     max-width: none;
-    width: 100%;
   }
   .header-panel,
   .header-account,
