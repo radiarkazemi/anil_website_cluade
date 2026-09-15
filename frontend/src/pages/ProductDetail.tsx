@@ -244,6 +244,29 @@ export function ProductDetail() {
             )}
           </div>
 
+          {/* Sticky mobile CTA — detail gallery is tall; keep action always reachable */}
+          <div className="pd-mobile-cta">
+            {madeToOrder ? (
+              <button type="button" className="gold-btn" onClick={() => setReserveOpen(true)}>
+                رزرو محصول
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="gold-btn"
+                disabled={!physicallyAvailable}
+                onClick={() => {
+                  if (!ensureAuth()) return;
+                  addToCart(product.id, qty);
+                  toast(`«${product.name}» به گلد باکس افزوده شد`);
+                  openCart();
+                }}
+              >
+                {physicallyAvailable ? 'افزودن به گلد باکس' : 'ناموجود'}
+              </button>
+            )}
+          </div>
+
           <ul className="pd-trust">
             <li>فاکتور رسمی و ضمانت اصالت</li>
             <li>ارسال بیمه‌شده به سراسر کشور</li>

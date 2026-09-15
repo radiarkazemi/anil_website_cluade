@@ -35,11 +35,16 @@ export function ReserveModal({ product, qty = 1, open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -97,59 +102,61 @@ export function ReserveModal({ product, qty = 1, open, onClose }: Props) {
         aria-label="رزرو محصول"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="reserve-modal-head">
-          <div>
-            <div className="reserve-modal-eyebrow">قابل سفارش</div>
-            <h3>{product.name}</h3>
-          </div>
-          <button type="button" className="reserve-modal-close" onClick={onClose} aria-label="بستن">
-            ✕
-          </button>
-        </header>
-
-        <p className="reserve-modal-copy">
-          این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت بیعانه، سفارش ساخت ثبت می‌شود و مبلغ به‌صورت طلایی برای شما منظور می‌گردد.
-        </p>
-
-        <div className="reserve-modal-rows">
-          <div className="reserve-modal-row">
-            <span>وزن تقریبی قطعه</span>
-            <strong>{weight > 0 ? `≈ ${faNum(weight * qty)} گرم` : 'بر اساس مدل‌های مشابه'}</strong>
-          </div>
-          <div className="reserve-modal-row">
-            <span>مبلغ بیعانه (٪۲۰)</span>
-            <strong>{deposit != null ? `${faPrice(deposit * qty)} تومان` : '—'}</strong>
-          </div>
-          <div className="reserve-modal-row highlight">
-            <span>معادل طلایی بیعانه</span>
-            <strong>
-              {depositGold != null ? `≈ ${faNum(Number(depositGold.toFixed(3)))} گرم ۱۸ عیار` : '—'}
-            </strong>
-          </div>
-          {remainingGold != null && remainingGold > 0 && (
-            <div className="reserve-modal-row">
-              <span>باقیمانده تقریبی</span>
-              <strong>≈ {faNum(Number(remainingGold.toFixed(3)))} گرم</strong>
+        <div className="reserve-modal-scroll">
+          <header className="reserve-modal-head">
+            <div>
+              <div className="reserve-modal-eyebrow">قابل سفارش</div>
+              <h3>{product.name}</h3>
             </div>
-          )}
-        </div>
+            <button type="button" className="reserve-modal-close" onClick={onClose} aria-label="بستن">
+              ✕
+            </button>
+          </header>
 
-        <div className="reserve-rules">
-          <div className="reserve-rules-title">قوانین رزرو</div>
-          <ul>
-            <li>مبلغ بیعانه به‌صورت طلایی از شما دریافت شده و برای شما اعمال می‌شود.</li>
-            <li>
-              مبلغ بیعانه با نرخ روز طلا به گرم ۱۸ عیار تبدیل می‌شود
-              {gp > 0 ? ` (نرخ فعلی: ${faPrice(gp)} تومان)` : ''}
-              و به‌عنوان طلب طلایی شما در حساب ثبت می‌گردد.
-            </li>
-            <li>
-              باقیمانده وزن قطعه هنگام تحویل، با نرخ لحظه‌ای طلا محاسبه و تسویه می‌شود.
-            </li>
-            <li>
-              جزئیات سفارش، گرم طلای بستانکار شما، و وضعیت رزرو در پروفایل قابل مشاهده است.
-            </li>
-          </ul>
+          <p className="reserve-modal-copy">
+            این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت بیعانه، سفارش ساخت ثبت می‌شود و مبلغ به‌صورت طلایی برای شما منظور می‌گردد.
+          </p>
+
+          <div className="reserve-modal-rows">
+            <div className="reserve-modal-row">
+              <span>وزن تقریبی قطعه</span>
+              <strong>{weight > 0 ? `≈ ${faNum(weight * qty)} گرم` : 'بر اساس مدل‌های مشابه'}</strong>
+            </div>
+            <div className="reserve-modal-row">
+              <span>مبلغ بیعانه (٪۲۰)</span>
+              <strong>{deposit != null ? `${faPrice(deposit * qty)} تومان` : '—'}</strong>
+            </div>
+            <div className="reserve-modal-row highlight">
+              <span>معادل طلایی بیعانه</span>
+              <strong>
+                {depositGold != null ? `≈ ${faNum(Number(depositGold.toFixed(3)))} گرم ۱۸ عیار` : '—'}
+              </strong>
+            </div>
+            {remainingGold != null && remainingGold > 0 && (
+              <div className="reserve-modal-row">
+                <span>باقیمانده تقریبی</span>
+                <strong>≈ {faNum(Number(remainingGold.toFixed(3)))} گرم</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="reserve-rules">
+            <div className="reserve-rules-title">قوانین رزرو</div>
+            <ul>
+              <li>مبلغ بیعانه به‌صورت طلایی از شما دریافت شده و برای شما اعمال می‌شود.</li>
+              <li>
+                مبلغ بیعانه با نرخ روز طلا به گرم ۱۸ عیار تبدیل می‌شود
+                {gp > 0 ? ` (نرخ فعلی: ${faPrice(gp)} تومان)` : ''}
+                و به‌عنوان طلب طلایی شما در حساب ثبت می‌گردد.
+              </li>
+              <li>
+                باقیمانده وزن قطعه هنگام تحویل، با نرخ لحظه‌ای طلا محاسبه و تسویه می‌شود.
+              </li>
+              <li>
+                جزئیات سفارش، گرم طلای بستانکار شما، و وضعیت رزرو در پروفایل قابل مشاهده است.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div className="reserve-modal-actions">
