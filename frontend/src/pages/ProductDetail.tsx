@@ -158,7 +158,7 @@ export function ProductDetail() {
               <div className="pd-breakdown-row"><span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span><span>{faPrice(bd.gold)}</span></div>
               <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faNum(Math.round(fee * 100))})</span><span>{faPrice(bd.fee)}</span></div>
               {bd.stone > 0 && <div className="pd-breakdown-row"><span>سنگ و نگین</span><span>{faPrice(bd.stone)}</span></div>}
-              <div className="pd-breakdown-row"><span>مالیات ۹٪ اجرت</span><span>{faPrice(bd.tax)}</span></div>
+              <div className="pd-breakdown-row"><span>مالیات ارزش افزوده ۹٪</span><span>{faPrice(bd.tax)}</span></div>
               <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>
             </div>
           ) : (

@@ -121,23 +121,20 @@ class Product(models.Model):
             self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
 
-    def price_breakdown(self, gp=None):
-        if self.weight_g is None:
-            return {"gold": 0, "fee": 0, "stone": int(self.stone_value or 0), "tax": 0, "total": None}
+    def price_breakdown(self, gp=None, *, include_profit=False):
+        """Customer-facing breakdown omits profit; total still includes 7% سود."""
+        from .pricing import compute_breakdown
+
         if gp is None:
             current = GoldPrice.current()
             gp = current.price_18k_per_gram if current else 0
-        gold = float(self.weight_g) * float(gp)
-        fee = gold * float(self.fee_ratio)
-        tax = fee * 0.09
-        total = gold + fee + float(self.stone_value) + tax
-        return {
-            "gold": round(gold),
-            "fee": round(fee),
-            "stone": int(self.stone_value),
-            "tax": round(tax),
-            "total": round(total),
-        }
+        return compute_breakdown(
+            float(self.weight_g) if self.weight_g is not None else None,
+            gp,
+            float(self.fee_ratio),
+            self.stone_value,
+            include_profit=include_profit,
+        )
 
     @property
     def has_weight(self):
