@@ -115,7 +115,7 @@ export function Header() {
               </div>
             )}
 
-            <ThemePicker compact />
+            <ThemePicker />
 
             {user ? (
               <Link to="/account" className="text-btn header-account" onClick={closeMenu}>
