@@ -4,6 +4,7 @@ import { faNum, faPrice } from '../../utils/format';
 export const ORDER_STATUSES: [string, string][] = [
   ['pending', 'در انتظار پرداخت'],
   ['paid', 'پرداخت‌شده'],
+  ['reserved', 'رزرو با بیعانه'],
   ['processing', 'در حال پردازش'],
   ['shipped', 'ارسال‌شده'],
   ['delivered', 'تحویل‌شده'],

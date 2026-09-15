@@ -74,6 +74,8 @@ export interface SiteSettings {
   contact_email: string;
   contact_address: string;
   top_banner: string;
+  made_to_order_deposit?: number;
+  made_to_order_deposit_percent?: number | string;
   updated_at?: string;
 }
 
@@ -109,6 +111,12 @@ export interface Product {
   category_slug: string;
   weight_g: string | null;
   has_weight?: boolean;
+  is_made_to_order?: boolean;
+  is_orderable?: boolean;
+  estimated_weight_g?: number | null;
+  estimated_price?: number | null;
+  deposit_amount?: number | null;
+  estimated_breakdown?: PriceBreakdown & { weight_g?: number | null };
   needs_review?: boolean;
   karat: number;
   fee_ratio: string;
@@ -141,7 +149,8 @@ export interface OrderItem {
   id: string;
   product: string;
   product_name: string;
-  weight_g: string;
+  weight_g: string | null;
+  weight_is_estimated?: boolean;
   fee_ratio: string;
   stone_value: number;
   qty: number;
@@ -159,6 +168,7 @@ export interface Order {
   city: string;
   postal_code: string;
   status: string;
+  order_kind?: 'full' | 'deposit';
   gold_price_snapshot: number;
   subtotal: number;
   shipping_cost: number;

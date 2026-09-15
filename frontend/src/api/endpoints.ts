@@ -152,8 +152,11 @@ export const api = {
   confirmEmailOtp: (code: string) =>
     client.post<{ detail: string; user: User }>('/auth/verify/email/confirm/', { code }),
 
-  createOrderFromProfile: (data: { items: { product_id: string; qty: number }[]; note?: string }) =>
-    client.post<Order>('/orders/', data),
+  createOrderFromProfile: (data: {
+    items: { product_id: string; qty: number }[];
+    note?: string;
+    order_kind?: 'full' | 'deposit';
+  }) => client.post<Order>('/orders/', data),
   priceHistory: (limit = 50) => client.get('/analytics/price-history/', { params: { limit } }),
   logProductView: (product_id: string) => client.post('/analytics/product-view/', { product_id }),
 

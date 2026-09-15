@@ -17,13 +17,20 @@ export function ProductCard({ product }: { product: Product }) {
 
   const hasWeight =
     product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
-  const w = hasWeight ? Number(product.weight_g) : 0;
+  const madeToOrder = product.is_made_to_order === true || !hasWeight;
+  const estW = Number(product.estimated_weight_g || 0);
+  const w = hasWeight ? Number(product.weight_g) : estW;
   const fee = Number(product.fee_ratio);
-  const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
+  const total = hasWeight
+    ? calcPrice(w, gp, fee, product.stone_value).total
+    : product.estimated_price ?? (w > 0 ? calcPrice(w, gp, fee, product.stone_value).total : null);
+  const deposit = product.deposit_amount ?? null;
+  const physicallyAvailable = hasWeight && product.in_stock !== false;
 
   const tryAdd = () => {
-    if (!hasWeight) {
-      toast('وزن این قطعه هنوز تأیید نشده؛ از مشاور هوشمند کمک بگیرید یا با گالری تماس بگیرید.');
+    if (madeToOrder) {
+      nav(`/products/${product.slug}`);
+      toast('این قطعه ناموجود است؛ از صفحه محصول با بیعانه رزرو کنید.');
       return;
     }
     if (!tokens || !user) {
@@ -42,7 +49,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <article className="product-card">
+    <article className={`product-card${madeToOrder ? ' is-mto' : ''}`}>
       <Link to={`/products/${product.slug}`} className="product-media">
         {product.primary_image ? (
           <img src={product.primary_image} alt={product.name} loading="lazy" />
@@ -50,6 +57,17 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="product-fallback">{product.placeholder_label || product.category_name}</span>
         )}
         {product.tag && <span className="product-tag">{product.tag}</span>}
+        {madeToOrder && (
+          <span className="product-avail">
+            <span className="avail-oos">ناموجود</span>
+            <span className="avail-orderable">قابل سفارش</span>
+          </span>
+        )}
+        {!madeToOrder && !physicallyAvailable && (
+          <span className="product-avail">
+            <span className="avail-oos">ناموجود</span>
+          </span>
+        )}
       </Link>
       <div className="product-body">
         <div className="product-cat">{product.category_name}</div>
@@ -63,19 +81,38 @@ export function ProductCard({ product }: { product: Product }) {
             ) : (
               <>وزن {faNum(w)} گرم · عیار ۱۸</>
             )
+          ) : w > 0 ? (
+            <>وزن تقریبی ≈ {faNum(w)} گرم · مدل‌های مشابه</>
           ) : (
-            <>وزن پس از تأیید · عیار ۱۸</>
+            <>وزن تقریبی از مدل‌های قبلی · عیار ۱۸</>
           )}
         </div>
         <div className="product-row">
           <div>
-            <div className="product-price">{total != null ? faPrice(total) : 'قیمت پس از تأیید وزن'}</div>
-            <div className="product-price-note">
-              {total != null ? 'تومان · قیمت پویا' : 'با مشاور یا گالری هماهنگ کنید'}
-            </div>
+            {madeToOrder ? (
+              <>
+                <div className="product-price">
+                  {deposit != null ? `بیعانه ${faPrice(deposit)}` : 'رزرو با بیعانه'}
+                </div>
+                <div className="product-price-note">
+                  {total != null ? `تخمین ≈ ${faPrice(total)} تومان` : 'تهیه برای شما · قابل سفارش'}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="product-price">{total != null ? faPrice(total) : '—'}</div>
+                <div className="product-price-note">تومان · قیمت پویا</div>
+              </>
+            )}
           </div>
-          <button type="button" className="add-btn" aria-label="افزودن به سبد" onClick={tryAdd} disabled={!hasWeight}>
-            +
+          <button
+            type="button"
+            className="add-btn"
+            aria-label={madeToOrder ? 'رزرو با بیعانه' : 'افزودن به سبد'}
+            onClick={tryAdd}
+            disabled={!madeToOrder && !physicallyAvailable}
+          >
+            {madeToOrder ? '◎' : '+'}
           </button>
         </div>
       </div>

@@ -36,15 +36,46 @@ class ProductListSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     has_weight = serializers.SerializerMethodField()
+    is_made_to_order = serializers.SerializerMethodField()
+    is_orderable = serializers.SerializerMethodField()
+    estimated_weight_g = serializers.SerializerMethodField()
+    estimated_price = serializers.SerializerMethodField()
+    deposit_amount = serializers.SerializerMethodField()
 
     def get_has_weight(self, obj):
         return bool(getattr(obj, "has_weight", False))
+
+    def get_is_made_to_order(self, obj):
+        return bool(getattr(obj, "is_made_to_order", False))
+
+    def get_is_orderable(self, obj):
+        return bool(getattr(obj, "is_orderable", False))
+
+    def get_estimated_weight_g(self, obj):
+        from .estimates import estimated_weight_g
+
+        w = estimated_weight_g(obj)
+        return float(w) if w is not None else None
+
+    def get_estimated_price(self, obj):
+        from .estimates import estimated_price_breakdown
+
+        return estimated_price_breakdown(obj)["total"]
+
+    def get_deposit_amount(self, obj):
+        from .estimates import deposit_amount_for
+
+        if not getattr(obj, "is_made_to_order", False):
+            return None
+        return deposit_amount_for(obj)
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
-            "weight_g", "has_weight", "karat", "fee_ratio", "stone_value", "tag",
+            "weight_g", "has_weight", "is_made_to_order", "is_orderable",
+            "estimated_weight_g", "estimated_price", "deposit_amount",
+            "karat", "fee_ratio", "stone_value", "tag",
             "placeholder_label", "price", "primary_image", "in_stock",
             "is_featured", "needs_review",
         ]
@@ -67,15 +98,55 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField()
     breakdown = serializers.SerializerMethodField()
     has_weight = serializers.SerializerMethodField()
+    is_made_to_order = serializers.SerializerMethodField()
+    is_orderable = serializers.SerializerMethodField()
+    estimated_weight_g = serializers.SerializerMethodField()
+    estimated_price = serializers.SerializerMethodField()
+    deposit_amount = serializers.SerializerMethodField()
+    estimated_breakdown = serializers.SerializerMethodField()
 
     def get_has_weight(self, obj):
         return bool(getattr(obj, "has_weight", False))
+
+    def get_is_made_to_order(self, obj):
+        return bool(getattr(obj, "is_made_to_order", False))
+
+    def get_is_orderable(self, obj):
+        return bool(getattr(obj, "is_orderable", False))
+
+    def get_estimated_weight_g(self, obj):
+        from .estimates import estimated_weight_g
+
+        w = estimated_weight_g(obj)
+        return float(w) if w is not None else None
+
+    def get_estimated_price(self, obj):
+        from .estimates import estimated_price_breakdown
+
+        return estimated_price_breakdown(obj)["total"]
+
+    def get_deposit_amount(self, obj):
+        from .estimates import deposit_amount_for
+
+        if not getattr(obj, "is_made_to_order", False):
+            return None
+        return deposit_amount_for(obj)
+
+    def get_estimated_breakdown(self, obj):
+        from .estimates import estimated_price_breakdown
+
+        if getattr(obj, "has_weight", False):
+            return None
+        return estimated_price_breakdown(obj)
 
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
-            "weight_g", "has_weight", "karat", "fee_ratio", "stone_value", "tag",
+            "weight_g", "has_weight", "is_made_to_order", "is_orderable",
+            "estimated_weight_g", "estimated_price", "deposit_amount",
+            "estimated_breakdown",
+            "karat", "fee_ratio", "stone_value", "tag",
             "description", "placeholder_label", "stock", "in_stock",
             "images", "price", "breakdown", "is_featured", "needs_review",
             "meta_title", "meta_description", "created_at",
@@ -137,7 +208,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "trust_heading", "footer_tagline",
             "contact_phone", "contact_email", "contact_address",
-            "top_banner", "updated_at",
+            "top_banner",
+            "made_to_order_deposit", "made_to_order_deposit_percent",
+            "updated_at",
         ]
         read_only_fields = ["updated_at"]
 

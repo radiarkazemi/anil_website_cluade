@@ -12,11 +12,16 @@ class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "در انتظار پرداخت"
         PAID = "paid", "پرداخت‌شده"
+        RESERVED = "reserved", "رزرو با بیعانه"
         PROCESSING = "processing", "در حال پردازش"
         SHIPPED = "shipped", "ارسال‌شده"
         DELIVERED = "delivered", "تحویل‌شده"
         CANCELLED = "cancelled", "لغوشده"
         REFUNDED = "refunded", "مرجوع‌شده"
+
+    class Kind(models.TextChoices):
+        FULL = "full", "خرید کامل"
+        DEPOSIT = "deposit", "بیعانه / رزرو"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order_number = models.CharField(max_length=20, unique=True, editable=False, db_index=True)
@@ -34,6 +39,13 @@ class Order(models.Model):
     city = models.CharField(max_length=80, blank=True)
     postal_code = models.CharField(max_length=10, blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    order_kind = models.CharField(
+        max_length=12,
+        choices=Kind.choices,
+        default=Kind.FULL,
+        db_index=True,
+        help_text="full = خرید موجودی · deposit = رزرو با بیعانه برای سفارش ساخت",
+    )
     gold_price_snapshot = models.BigIntegerField(help_text="نرخ ۱۸ عیار در لحظه ثبت")
     subtotal = models.BigIntegerField(default=0)
     shipping_cost = models.BigIntegerField(default=0)
@@ -88,7 +100,11 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     product_name = models.CharField(max_length=200)
-    weight_g = models.DecimalField(max_digits=8, decimal_places=2)
+    weight_g = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    weight_is_estimated = models.BooleanField(
+        default=False,
+        help_text="وزن از میانگین/میانه مدل‌های مشابه دسته برآورد شده",
+    )
     fee_ratio = models.DecimalField(max_digits=5, decimal_places=3)
     stone_value = models.BigIntegerField(default=0)
     qty = models.PositiveIntegerField(default=1)

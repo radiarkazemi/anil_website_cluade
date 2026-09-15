@@ -75,11 +75,11 @@ export function DemoPayment() {
               بازگشت به حساب
             </Link>
           </div>
-        ) : order.status !== 'pending' ? (
+        ) : order.status !== 'pending' && order.status !== 'reserved' ? (
           <div className="demo-pay-done">
             <div className="demo-pay-amount">{faPrice(order.total)} تومان</div>
             <p>
-              وضعیت فعلی: <strong>{order.status}</strong>
+              وضعیت فعلی: <strong>{order.status === 'reserved' ? 'رزرو با بیعانه' : order.status}</strong>
             </p>
             <Link to="/account?tab=orders" className="gold-btn">
               مشاهده سفارش‌ها

@@ -3665,3 +3665,49 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 720px) {
   .gold-consultant { inset-inline-end: 12px; bottom: calc(72px + env(safe-area-inset-bottom,0px)); }
 }
+
+
+/* Made-to-order / no-weight availability */
+.product-avail {
+  position: absolute;
+  inset: auto 10px 10px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  z-index: 2;
+}
+.avail-oos,
+.pd-oos {
+  background: #8b3a3a;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.avail-orderable,
+.pd-orderable {
+  background: rgba(212, 175, 55, 0.92);
+  color: #1a1408;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pd-avail-badges {
+  position: absolute;
+  inset: auto 16px 16px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 2;
+}
+.pd-tag-mto {
+  border-color: rgba(212,175,55,.55) !important;
+  color: var(--gold-light) !important;
+}
+.product-card.is-mto .product-media img {
+  filter: saturate(0.85) brightness(0.92);
+}

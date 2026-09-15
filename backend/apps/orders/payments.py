@@ -267,7 +267,11 @@ def list_gateways() -> list[dict[str, Any]]:
 
 
 def mark_order_paid(order, *, gateway: str, authority: str, ref_id: str, raw: dict | None = None):
-    order.status = order.Status.PAID
+    # Deposit reservations become «رزرو با بیعانه» after successful payment
+    if getattr(order, "order_kind", None) == order.Kind.DEPOSIT:
+        order.status = order.Status.RESERVED
+    else:
+        order.status = order.Status.PAID
     order.payment_gateway = gateway
     order.payment_authority = authority
     order.payment_ref_id = ref_id

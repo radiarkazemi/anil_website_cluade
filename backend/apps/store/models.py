@@ -144,6 +144,18 @@ class Product(models.Model):
         return self.weight_g is not None and float(self.weight_g) > 0
 
     @property
+    def is_made_to_order(self):
+        """No confirmed weight → physically ناموجود but قابل سفارش با بیعانه."""
+        return not self.has_weight
+
+    @property
+    def is_orderable(self):
+        """In-stock confirmed pieces, or made-to-order (deposit reserve)."""
+        if self.is_made_to_order:
+            return True
+        return self.stock > 0
+
+    @property
     def price(self):
         return self.price_breakdown()["total"]
 
@@ -224,6 +236,16 @@ class SiteSettings(models.Model):
     top_banner = models.CharField(
         max_length=300,
         default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
+    )
+    made_to_order_deposit = models.BigIntegerField(
+        default=5_000_000,
+        help_text="بیعانه رزرو برای محصولات بدون وزن تأییدشده (تومان)",
+    )
+    made_to_order_deposit_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text="درصد بیعانه از قیمت تقریبی (۰ = فقط مبلغ ثابت)",
     )
     updated_at = models.DateTimeField(auto_now=True)
 

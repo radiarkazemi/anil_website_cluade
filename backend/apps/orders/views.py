@@ -53,6 +53,7 @@ class OrderCreateView(APIView):
             "city": user.city or "",
             "postal_code": user.postal_code or "",
             "note": request.data.get("note", ""),
+            "order_kind": request.data.get("order_kind") or "full",
             "items": request.data.get("items", []),
         }
         # Allow optional note override only; identity comes from verified profile
@@ -203,7 +204,7 @@ class PaymentCallbackView(APIView):
             order = Order.objects.filter(payment_authority=authority).first()
         if not order:
             return Response({"detail": "سفارش متناظر یافت نشد."}, status=404)
-        if order.status == Order.Status.PAID:
+        if order.status in (Order.Status.PAID, Order.Status.RESERVED):
             return Response(
                 {
                     "ok": True,
@@ -252,7 +253,7 @@ class PaymentSandboxConfirmView(APIView):
         order_phone = re.sub(r"\D", "", order.phone or "")
         if not phone or phone != order_phone:
             return Response({"detail": "شماره موبایل با سفارش مطابقت ندارد."}, status=403)
-        if order.status == Order.Status.PAID:
+        if order.status in (Order.Status.PAID, Order.Status.RESERVED):
             return Response({"ok": True, "already_paid": True, "order": OrderSerializer(order).data})
         authority = order.payment_authority or f"SANDBOX-MANUAL-{order.order_number}"
         mark_order_paid(

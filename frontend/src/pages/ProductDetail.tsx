@@ -20,6 +20,7 @@ export function ProductDetail() {
   const nav = useNavigate();
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
+  const [reserving, setReserving] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -80,9 +81,15 @@ export function ProductDetail() {
   }
 
   const hasWeight = product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
-  const w = hasWeight ? Number(product.weight_g) : 0;
+  const madeToOrder = product.is_made_to_order === true || !hasWeight;
+  const estW = Number(product.estimated_weight_g || product.estimated_breakdown?.weight_g || 0);
+  const w = hasWeight ? Number(product.weight_g) : estW;
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
+  const estBd = !hasWeight
+    ? (product.estimated_breakdown || (w > 0 ? calcPrice(w, gp, fee, product.stone_value) : null))
+    : null;
+  const deposit = product.deposit_amount ?? null;
   const images = product.images?.length
     ? product.images.map((i) => i.image)
     : product.primary_image
@@ -90,7 +97,49 @@ export function ProductDetail() {
       : [];
   const mainImg = images[imgIdx] || images[0];
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
-  const maxQty = Math.max(1, product.stock ?? 99);
+  const physicallyAvailable = hasWeight && inStock;
+  const maxQty = madeToOrder ? 3 : Math.max(1, product.stock ?? 99);
+
+  const ensureAuth = () => {
+    if (!tokens || !user) {
+      toast('برای رزرو یا خرید ابتدا وارد شوید یا ثبت‌نام کنید.');
+      nav('/register');
+      return false;
+    }
+    if (!isProfileReady(user)) {
+      toast(profileGapMessage(user));
+      nav(profileCompletePath());
+      return false;
+    }
+    return true;
+  };
+
+  const reserveWithDeposit = async () => {
+    if (reserving || !madeToOrder) return;
+    if (!ensureAuth()) return;
+    setReserving(true);
+    try {
+      const { data: order } = await api.createOrderFromProfile({
+        items: [{ product_id: product.id, qty }],
+        order_kind: 'deposit',
+        note: 'رزرو با بیعانه — تهیه بر اساس وزن تقریبی مدل‌های مشابه',
+      });
+      toast(`رزرو ${order.order_number} ثبت شد — پرداخت بیعانه`);
+      nav(`/payment/demo/${order.order_number}`);
+    } catch (e: any) {
+      const data = e?.response?.data;
+      const detail = typeof data?.detail === 'string'
+        ? data.detail
+        : typeof data?.items === 'string'
+          ? data.items
+          : Array.isArray(data?.items)
+            ? data.items.join('، ')
+            : 'ثبت رزرو ناموفق بود.';
+      toast(detail);
+    } finally {
+      setReserving(false);
+    }
+  };
 
   return (
     <section className="container product-detail-page">
@@ -112,7 +161,12 @@ export function ProductDetail() {
             ) : (
               <span className="pd-placeholder">{product.placeholder_label || product.name}</span>
             )}
-            {!inStock && <div className="pd-oos">ناموجود</div>}
+            {(madeToOrder || !physicallyAvailable) && (
+              <div className="pd-avail-badges">
+                <span className="pd-oos">ناموجود</span>
+                {madeToOrder && <span className="pd-orderable">قابل سفارش</span>}
+              </div>
+            )}
           </div>
           {images.length > 1 && (
             <div className="pd-thumbs">
@@ -135,21 +189,32 @@ export function ProductDetail() {
             <span className="pd-cat">{product.category_name}</span>
             {product.tag && <span className="pd-tag">{product.tag}</span>}
             {product.is_featured && <span className="pd-tag">ویژه</span>}
+            {madeToOrder && <span className="pd-tag pd-tag-mto">قابل سفارش با بیعانه</span>}
           </div>
           <h1>{product.name}</h1>
           {product.description && <p className="pd-desc">{product.description}</p>}
 
           <div className="pd-price-row">
             <div className="pd-price">
-              {bd ? (
+              {madeToOrder ? (
+                deposit != null ? (
+                  <>
+                    بیعانه {faPrice(deposit)} <small>تومان</small>
+                  </>
+                ) : (
+                  <>رزرو با بیعانه</>
+                )
+              ) : bd ? (
                 <>
                   {faPrice(bd.total)} <small>تومان</small>
                 </>
               ) : (
-                <>قیمت پس از تأیید وزن</>
+                <>—</>
               )}
             </div>
-            <div className="pd-live"><span className="live-dot" /> {bd ? 'قیمت زنده' : 'در انتظار وزن'}</div>
+            <div className="pd-live">
+              <span className="live-dot" /> {madeToOrder ? 'سفارش ساخت / رزرو' : 'قیمت زنده'}
+            </div>
           </div>
 
           {bd ? (
@@ -163,19 +228,40 @@ export function ProductDetail() {
             </div>
           ) : (
             <div className="pd-breakdown">
-              <div className="pd-breakdown-title">وزن و قیمت</div>
+              <div className="pd-breakdown-title">ناموجود · قابل سفارش</div>
               <p className="pd-desc" style={{ margin: 0 }}>
-                وزن این قطعه در حال بازبینی است. از «مشاور هوشمند» بخواهید مشابه آن را با وزن/اجرت دلخواه پیدا کند،
-                یا برای اعلام وزن دقیق با گالری تماس بگیرید.
+                این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت بیعانه آن را رزرو کنید؛
+                گالری بر اساس وزن تقریبی مدل‌های مشابه قبلی، قطعه را برای شما تهیه می‌کند.
               </p>
+              {w > 0 && (
+                <div className="pd-breakdown-row" style={{ marginTop: 12 }}>
+                  <span>وزن تقریبی (میانگین مدل‌های مشابه)</span>
+                  <span>≈ {faNum(w)} گرم</span>
+                </div>
+              )}
+              {estBd && (
+                <div className="pd-breakdown-row">
+                  <span>تخمین قیمت نهایی</span>
+                  <span>≈ {faPrice(estBd.total)} تومان</span>
+                </div>
+              )}
+              {deposit != null && (
+                <div className="pd-breakdown-total">
+                  <span>بیعانه قابل پرداخت</span>
+                  <span>{faPrice(deposit)} تومان</span>
+                </div>
+              )}
             </div>
           )}
 
           <div className="pd-specs">
             {[
-              [hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید', hasWeight && product.placeholder_label?.includes('وزن حدودی') ? 'وزن حدودی' : 'وزن'],
+              [
+                hasWeight ? `${faNum(w)} گرم` : w > 0 ? `≈ ${faNum(w)} گرم` : 'تقریبی',
+                hasWeight ? 'وزن' : 'وزن تقریبی',
+              ],
               [faNum(product.karat || 18), 'عیار'],
-              [inStock ? faNum(product.stock ?? 0) : '۰', 'موجودی'],
+              [madeToOrder ? 'سفارشی' : inStock ? faNum(product.stock ?? 0) : '۰', 'موجودی'],
               ['۱۸ ماه', 'گارانتی اصالت'],
             ].map(([v, l]) => (
               <div key={l} className="pd-spec">
@@ -191,38 +277,44 @@ export function ProductDetail() {
               <div>{faNum(qty)}</div>
               <button type="button" onClick={() => setQty(Math.min(maxQty, qty + 1))}>+</button>
             </div>
-            <button
-              type="button"
-              className="gold-btn"
-              disabled={!inStock || !hasWeight}
-              onClick={() => {
-                if (!hasWeight) {
-                  toast('تا تأیید وزن، امکان افزودن به سبد نیست.');
-                  return;
-                }
-                if (!tokens || !user) {
-                  toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
-                  nav('/register');
-                  return;
-                }
-                if (!isProfileReady(user)) {
-                  toast(profileGapMessage(user));
-                  nav(profileCompletePath());
-                  return;
-                }
-                addToCart(product.id, qty);
-                toast(`«${product.name}» به گلد باکس افزوده شد`);
-                openCart();
-              }}
-            >
-              {!hasWeight ? 'منتظر تأیید وزن' : inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
-            </button>
+            {madeToOrder ? (
+              <button
+                type="button"
+                className="gold-btn"
+                disabled={reserving}
+                onClick={reserveWithDeposit}
+              >
+                {reserving
+                  ? 'در حال ثبت رزرو…'
+                  : deposit != null
+                    ? `رزرو با بیعانه ${faPrice(deposit)}`
+                    : 'رزرو با بیعانه'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="gold-btn"
+                disabled={!physicallyAvailable}
+                onClick={() => {
+                  if (!ensureAuth()) return;
+                  addToCart(product.id, qty);
+                  toast(`«${product.name}» به گلد باکس افزوده شد`);
+                  openCart();
+                }}
+              >
+                {physicallyAvailable ? 'افزودن به گلد باکس' : 'ناموجود'}
+              </button>
+            )}
           </div>
 
           <ul className="pd-trust">
             <li>فاکتور رسمی و ضمانت اصالت</li>
             <li>ارسال بیمه‌شده به سراسر کشور</li>
-            <li>امکان بازخرید طبق نرخ روز</li>
+            {madeToOrder ? (
+              <li>بیعانه بابت رزرو؛ مابه‌تفاوت هنگام تحویل بر اساس وزن واقعی</li>
+            ) : (
+              <li>امکان بازخرید طبق نرخ روز</li>
+            )}
           </ul>
         </div>
       </div>

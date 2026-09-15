@@ -2,6 +2,7 @@ import re
 
 from rest_framework import serializers
 
+from apps.store.estimates import deposit_amount_for, estimated_weight_g
 from apps.store.models import GoldPrice, Product
 
 from .models import Order, OrderItem
@@ -39,6 +40,11 @@ class OrderCreateSerializer(serializers.Serializer):
         },
     )
     note = serializers.CharField(required=False, allow_blank=True, default="")
+    order_kind = serializers.ChoiceField(
+        choices=Order.Kind.choices,
+        required=False,
+        default=Order.Kind.FULL,
+    )
     items = OrderItemInputSerializer(many=True)
 
     def validate_phone(self, value):
@@ -67,6 +73,7 @@ class OrderCreateSerializer(serializers.Serializer):
         from django.db import transaction
 
         items_data = validated_data.pop("items")
+        order_kind = validated_data.pop("order_kind", Order.Kind.FULL) or Order.Kind.FULL
         gold = GoldPrice.current()
         if not gold:
             raise serializers.ValidationError({"detail": "نرخ طلا تنظیم نشده است."})
@@ -86,12 +93,39 @@ class OrderCreateSerializer(serializers.Serializer):
             if missing:
                 raise serializers.ValidationError({"items": "یک یا چند محصول یافت نشد یا غیرفعال است."})
 
+            is_deposit = order_kind == Order.Kind.DEPOSIT
+
             for item in items_data:
                 product = products[item["product_id"]]
-                if product.stock is not None and product.stock < item["qty"]:
-                    raise serializers.ValidationError(
-                        {"items": f"موجودی «{product.name}» کافی نیست."}
-                    )
+                if is_deposit:
+                    if product.has_weight:
+                        raise serializers.ValidationError(
+                            {
+                                "items": (
+                                    f"«{product.name}» وزن تأییدشده دارد؛ "
+                                    "برای خرید کامل از سبد عادی استفاده کنید."
+                                )
+                            }
+                        )
+                else:
+                    if not product.has_weight:
+                        raise serializers.ValidationError(
+                            {
+                                "items": (
+                                    f"«{product.name}» ناموجود است اما قابل سفارش با بیعانه — "
+                                    "لطفاً رزرو با بیعانه را انتخاب کنید."
+                                )
+                            }
+                        )
+                    if product.stock is not None and product.stock < item["qty"]:
+                        raise serializers.ValidationError(
+                            {"items": f"موجودی «{product.name}» کافی نیست."}
+                        )
+
+            note = validated_data.get("note", "") or ""
+            if is_deposit:
+                reserve_note = "رزرو با بیعانه — قطعه ناموجود؛ تهیه بر اساس وزن تقریبی مدل‌های مشابه."
+                note = f"{note}\n{reserve_note}".strip() if note else reserve_note
 
             order = Order.objects.create(
                 user=user,
@@ -101,26 +135,42 @@ class OrderCreateSerializer(serializers.Serializer):
                 address=validated_data["address"],
                 city=validated_data.get("city", ""),
                 postal_code=validated_data.get("postal_code", ""),
-                note=validated_data.get("note", ""),
+                note=note,
                 gold_price_snapshot=gp,
+                order_kind=order_kind,
             )
 
             subtotal = 0
             for item in items_data:
                 product = products[item["product_id"]]
-                bd = product.price_breakdown(gp)
-                unit = bd["total"]
+                if is_deposit:
+                    est = estimated_weight_g(product)
+                    unit = deposit_amount_for(product, gp)
+                    weight_is_estimated = True
+                    weight_g = est
+                else:
+                    bd = product.price_breakdown(gp)
+                    unit = bd["total"]
+                    if unit is None:
+                        raise serializers.ValidationError(
+                            {"items": f"قیمت «{product.name}» قابل محاسبه نیست."}
+                        )
+                    weight_is_estimated = False
+                    weight_g = product.weight_g
+
                 OrderItem.objects.create(
                     order=order,
                     product=product,
                     product_name=product.name,
-                    weight_g=product.weight_g,
+                    weight_g=weight_g,
+                    weight_is_estimated=weight_is_estimated,
                     fee_ratio=product.fee_ratio,
                     stone_value=product.stone_value,
                     qty=item["qty"],
                     unit_price=unit,
                 )
-                if product.stock is not None:
+                # Only decrement physical stock for confirmed in-stock purchases
+                if not is_deposit and product.stock is not None:
                     product.stock = max(0, product.stock - item["qty"])
                     product.save(update_fields=["stock"])
                 subtotal += unit * item["qty"]
@@ -135,8 +185,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = [
-            "id", "product", "product_name", "weight_g", "fee_ratio",
-            "stone_value", "qty", "unit_price", "line_total",
+            "id", "product", "product_name", "weight_g", "weight_is_estimated",
+            "fee_ratio", "stone_value", "qty", "unit_price", "line_total",
         ]
 
 
@@ -147,7 +197,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             "id", "order_number", "full_name", "phone", "email",
-            "address", "city", "postal_code", "status",
+            "address", "city", "postal_code", "status", "order_kind",
             "gold_price_snapshot", "subtotal", "shipping_cost", "discount", "total",
             "note", "tracking_code",
             "payment_gateway", "payment_authority", "payment_ref_id",
