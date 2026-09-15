@@ -83,12 +83,12 @@ export function ProductDetail() {
   const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
-  const images = product.images?.length
-    ? product.images.map((i) => i.image)
+  const images = (product.images?.length
+    ? product.images.map((i) => i.image_url || i.image || '').filter(Boolean)
     : product.primary_image
       ? [product.primary_image]
-      : [];
-  const mainImg = images[imgIdx] || images[0];
+      : []) as string[];
+  const mainImg = images[imgIdx] || images[0] || '';
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
   const maxQty = Math.max(1, product.stock ?? 99);
 
@@ -118,12 +118,12 @@ export function ProductDetail() {
             <div className="pd-thumbs">
               {images.map((src, i) => (
                 <button
-                  key={src + i}
+                  key={`${src ?? 'img'}-${i}`}
                   type="button"
                   className={`pd-thumb${i === imgIdx ? ' active' : ''}`}
                   onClick={() => setImgIdx(i)}
                 >
-                  <img src={src} alt="" />
+                  <img src={src || ''} alt="" />
                 </button>
               ))}
             </div>

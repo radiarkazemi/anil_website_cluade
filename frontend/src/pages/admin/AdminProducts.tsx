@@ -17,6 +17,23 @@ function productThumb(p: any): string | null {
   );
 }
 
+function imageUrl(img: any): string {
+  return String(img?.image_url || img?.image || '');
+}
+
+function normalizeImages(images: any[] | undefined | null) {
+  return (images || [])
+    .map((img) => ({
+      id: img.id,
+      image: img.image,
+      image_url: img.image_url || img.image,
+      alt: img.alt || '',
+      order: img.order ?? 0,
+      is_primary: !!img.is_primary,
+    }))
+    .filter((img) => img.id && imageUrl(img));
+}
+
 const empty = {
   name: '', slug: '', category: '', weight_g: '4', karat: 18, fee_ratio: '0.20',
   stone_value: 0, tag: '', description: '', placeholder_label: '', sku: '',
@@ -103,22 +120,20 @@ export function AdminProducts() {
   });
 
   const [form, setForm] = useState<any>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState('');
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [enhanceImage, setEnhanceImage] = useState(true);
-  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [removingImageId, setRemovingImageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!file) {
-      setFilePreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setFilePreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    pendingPreviews.forEach((u) => URL.revokeObjectURL(u));
+    const urls = pendingFiles.map((f) => URL.createObjectURL(f));
+    setPendingPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFiles]);
 
   useEffect(() => {
     if (!form) return;
@@ -141,9 +156,9 @@ export function AdminProducts() {
   const closeForm = () => {
     setForm(null);
     setFormError('');
-    setFile(null);
+    setPendingFiles([]);
     setEnhanceImage(true);
-    setRemoveExistingImage(false);
+    setRemovingImageId(null);
   };
 
 
@@ -199,21 +214,13 @@ export function AdminProducts() {
       } else {
         product = (await api.adminCreateProduct(payload)).data;
       }
-      if (removeExistingImage && product.id && !file) {
+      if (pendingFiles.length) {
         try {
-          await api.adminClearProductImages(product.id);
-        } catch (delErr: any) {
-          const msg = formatApiError(delErr?.response?.data, delErr?.response?.status);
-          throw Object.assign(new Error(msg), {
-            response: delErr?.response,
-            isImageUpload: true,
-            productSaved: true,
-          });
-        }
-      }
-      if (file) {
-        try {
-          await api.adminUploadImage(product.id, file, true, enhanceImage);
+          const existingCount = normalizeImages(form.images).length;
+          for (let i = 0; i < pendingFiles.length; i += 1) {
+            const makePrimary = existingCount === 0 && i === 0;
+            await api.adminUploadImage(product.id, pendingFiles[i], makePrimary, enhanceImage);
+          }
         } catch (uploadErr: any) {
           const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
           throw Object.assign(new Error(msg), {
@@ -353,10 +360,9 @@ export function AdminProducts() {
               disabled={!!form}
               onClick={() => {
                 setFormError('');
-                setFile(null);
-                setRemoveExistingImage(false);
+                setPendingFiles([]);
                 setEnhanceImage(true);
-                setForm({ ...empty, category: categories?.[0]?.id || '' });
+                setForm({ ...empty, category: categories?.[0]?.id || '', images: [], primary_image: null });
               }}
             >
               + محصول جدید
@@ -402,15 +408,15 @@ export function AdminProducts() {
               <div className="form-grid product-form-grid">
                 <label>
                   <span>نام محصول *</span>
-                  <input className="input" value={form.name} onChange={(e) => onNameChange(e.target.value)} />
+                  <input className="input" value={form.name ?? ''} onChange={(e) => onNameChange(e.target.value)} />
                 </label>
                 <label>
                   <span>اسلاگ (اختیاری — خودکار از نام)</span>
-                  <input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} dir="ltr" />
+                  <input className="input" value={form.slug ?? ''} onChange={(e) => setForm({ ...form, slug: e.target.value })} dir="ltr" />
                 </label>
                 <label>
                   <span>دسته‌بندی *</span>
-                  <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <select className="input" value={form.category ?? ''} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                     <option value="">انتخاب دسته</option>
                     {(categories || []).map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -419,11 +425,11 @@ export function AdminProducts() {
                 </label>
                 <label>
                   <span>کد کالا (SKU)</span>
-                  <input className="input" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+                  <input className="input" value={form.sku ?? ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
                 </label>
                 <label>
                   <span>وزن (گرم) *</span>
-                  <input className="input" value={form.weight_g} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
+                  <input className="input" value={form.weight_g ?? ''} onChange={(e) => setForm({ ...form, weight_g: e.target.value })} />
                 </label>
                 <label>
                   <span>عیار</span>
@@ -436,19 +442,19 @@ export function AdminProducts() {
                 </label>
                 <label>
                   <span>اجرت (نسبت، مثلاً 0.22)</span>
-                  <input className="input" value={form.fee_ratio} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
+                  <input className="input" value={form.fee_ratio ?? ''} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
                 </label>
                 <label>
                   <span>ارزش سنگ / نگین (تومان)</span>
-                  <input className="input" value={form.stone_value} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
+                  <input className="input" value={form.stone_value ?? 0} onChange={(e) => setForm({ ...form, stone_value: e.target.value })} />
                 </label>
                 <label>
                   <span>موجودی</span>
-                  <input className="input" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                  <input className="input" type="number" value={form.stock ?? 0} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
                 </label>
                 <label>
                   <span>برچسب</span>
-                  <select className="input" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
+                  <select className="input" value={form.tag ?? ''} onChange={(e) => setForm({ ...form, tag: e.target.value })}>
                     <option value="">بدون برچسب</option>
                     <option value="پرفروش">پرفروش</option>
                     <option value="جدید">جدید</option>
@@ -457,11 +463,11 @@ export function AdminProducts() {
                 </label>
                 <label>
                   <span>برچسب جایگزین تصویر</span>
-                  <input className="input" value={form.placeholder_label || ''} onChange={(e) => setForm({ ...form, placeholder_label: e.target.value })} />
+                  <input className="input" value={form.placeholder_label ?? ''} onChange={(e) => setForm({ ...form, placeholder_label: e.target.value })} />
                 </label>
                 <label className="full">
                   <span>توضیحات کامل</span>
-                  <textarea className="input" rows={4} value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  <textarea className="input" rows={4} value={form.description ?? ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </label>
 
                 <div className="full seo-smart-box">
@@ -508,7 +514,7 @@ export function AdminProducts() {
                     عنوان سئو (meta title)
                     <em className="seo-count">{faNum((form.meta_title || '').length)} / ۶۰</em>
                   </span>
-                  <input className="input" value={form.meta_title || ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value, _seoAppliedId: '' })} />
+                  <input className="input" value={form.meta_title ?? ''} onChange={(e) => setForm({ ...form, meta_title: e.target.value, _seoAppliedId: '' })} />
                 </label>
                 <label className="full">
                   <span>
@@ -518,36 +524,86 @@ export function AdminProducts() {
                   <textarea
                     className="input"
                     rows={3}
-                    value={form.meta_description || ''}
+                    value={form.meta_description ?? ''}
                     onChange={(e) => setForm({ ...form, meta_description: e.target.value, _seoAppliedId: '' })}
                   />
                 </label>
                 <label className="full">
-                  <span>تصویر اصلی</span>
+                  <span>تصاویر محصول</span>
                   <div className="admin-image-picker">
-                    {(!removeExistingImage && (filePreview || form.primary_image || productThumb(form))) ? (
-                      <div className="admin-image-preview-wrap">
-                        <img
-                          className={`admin-image-preview${file && enhanceImage ? ' is-enhanced' : ''}`}
-                          src={filePreview || form.primary_image || productThumb(form) || ''}
-                          alt="پیش‌نمایش"
-                        />
-                        {file && enhanceImage && (
-                          <span className="admin-image-enhance-badge">بهبود خودکار</span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="admin-image-empty">هنوز تصویری برای این محصول ثبت نشده — فایل JPG/PNG را انتخاب کنید</div>
-                    )}
+                    <div className="admin-image-gallery">
+                      {normalizeImages(form.images).map((img) => (
+                        <div key={img.id} className={`admin-image-tile${img.is_primary ? ' is-primary' : ''}`}>
+                          <img src={imageUrl(img)} alt={img.alt || form.name || ''} />
+                          {img.is_primary && <span className="admin-image-enhance-badge">اصلی</span>}
+                          <button
+                            type="button"
+                            className="admin-image-tile-remove"
+                            disabled={removingImageId === img.id || !form.id}
+                            onClick={async () => {
+                              if (!form.id) return;
+                              if (!confirm('این تصویر حذف شود؟')) return;
+                              setRemovingImageId(img.id);
+                              try {
+                                await api.adminDeleteProductImage(form.id, img.id);
+                                setForm((f: any) => {
+                                  if (!f) return f;
+                                  const next = normalizeImages(f.images).filter((x) => x.id !== img.id);
+                                  return {
+                                    ...f,
+                                    images: next,
+                                    primary_image: next.find((x) => x.is_primary)?.image_url
+                                      || next[0]?.image_url
+                                      || null,
+                                  };
+                                });
+                                toast('تصویر حذف شد');
+                                qc.invalidateQueries({ queryKey: ['admin-products'] });
+                              } catch (err: any) {
+                                toast(formatApiError(err?.response?.data, err?.response?.status));
+                              } finally {
+                                setRemovingImageId(null);
+                              }
+                            }}
+                          >
+                            حذف
+                          </button>
+                        </div>
+                      ))}
+                      {pendingPreviews.map((src, idx) => (
+                        <div key={`pending-${idx}`} className="admin-image-tile is-pending">
+                          <img
+                            className={enhanceImage ? 'is-enhanced' : undefined}
+                            src={src}
+                            alt={`پیش‌نمایش ${idx + 1}`}
+                          />
+                          <span className="admin-image-enhance-badge">جدید</span>
+                          <button
+                            type="button"
+                            className="admin-image-tile-remove"
+                            onClick={() => {
+                              setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                          >
+                            برداشتن
+                          </button>
+                        </div>
+                      ))}
+                      {!normalizeImages(form.images).length && !pendingPreviews.length && (
+                        <div className="admin-image-empty">هنوز تصویری نیست — می‌توانید چند تصویر اضافه کنید</div>
+                      )}
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       className="admin-image-file-input"
                       onChange={(e) => {
-                        const next = e.target.files?.[0] || null;
-                        setFile(next);
-                        if (next) setRemoveExistingImage(false);
+                        const picked = Array.from(e.target.files || []);
+                        if (picked.length) setPendingFiles((prev) => [...prev, ...picked]);
+                        e.target.value = '';
                       }}
                     />
                     <div className="admin-image-actions">
@@ -556,20 +612,26 @@ export function AdminProducts() {
                         className="outline-btn"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        {file || form.primary_image || productThumb(form) ? 'تغییر تصویر' : 'انتخاب تصویر'}
+                        افزودن تصویر
                       </button>
-                      {(file || (!removeExistingImage && (form.primary_image || productThumb(form)))) && (
+                      {!!normalizeImages(form.images).length && form.id && (
                         <button
                           type="button"
                           className="outline-btn admin-image-remove-btn"
-                          onClick={() => {
-                            setFile(null);
-                            setRemoveExistingImage(true);
-                            setForm((f: any) => (f ? { ...f, primary_image: null, images: [] } : f));
-                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          onClick={async () => {
+                            if (!confirm('همه تصاویر این محصول حذف شوند؟')) return;
+                            try {
+                              await api.adminClearProductImages(form.id);
+                              setForm((f: any) => (f ? { ...f, images: [], primary_image: null } : f));
+                              setPendingFiles([]);
+                              toast('همه تصاویر حذف شد');
+                              qc.invalidateQueries({ queryKey: ['admin-products'] });
+                            } catch (err: any) {
+                              toast(formatApiError(err?.response?.data, err?.response?.status));
+                            }
                           }}
                         >
-                          حذف تصویر
+                          حذف همه
                         </button>
                       )}
                     </div>
@@ -579,15 +641,13 @@ export function AdminProducts() {
                         checked={enhanceImage}
                         onChange={(e) => setEnhanceImage(e.target.checked)}
                       />
-                      بهبود کیفیت و وضوح تصویر (مناسب جواهرات)
+                      بهبود کیفیت تصاویر جدید هنگام ذخیره (مناسب جواهرات)
                     </label>
-                    {file && enhanceImage && (
+                    {!!pendingFiles.length && (
                       <p className="admin-image-enhance-hint">
-                        پس از ذخیره، تصویر در همین کادر با وضوح و رنگ بهتر برای طلا ذخیره می‌شود.
+                        {pendingFiles.length} تصویر جدید بعد از ذخیره به گالری محصول اضافه می‌شود
+                        {enhanceImage ? ' (با بهبود کیفیت)' : ''}.
                       </p>
-                    )}
-                    {removeExistingImage && !file && form.id && (
-                      <p className="admin-image-enhance-hint">با ذخیره، تصویر فعلی محصول حذف می‌شود.</p>
                     )}
                   </div>
                 </label>
@@ -671,18 +731,18 @@ export function AdminProducts() {
                         style={{ padding: '6px 12px', fontSize: 12, marginLeft: 6 }}
                         onClick={() => {
                           setFormError('');
-                          setFile(null);
-                          setRemoveExistingImage(false);
+                          setPendingFiles([]);
                           setEnhanceImage(true);
+                          const images = normalizeImages(p.images);
                           setForm({
                             id: p.id,
                             name: p.name,
                             slug: p.slug,
                             category: p.category || categories?.find((c) => c.name === p.category_name)?.id,
-                            weight_g: p.weight_g,
+                            weight_g: p.weight_g ?? '',
                             karat: p.karat ?? 18,
-                            fee_ratio: p.fee_ratio,
-                            stone_value: p.stone_value,
+                            fee_ratio: p.fee_ratio ?? '0.20',
+                            stone_value: p.stone_value ?? 0,
                             tag: p.tag || '',
                             description: p.description || '',
                             placeholder_label: p.placeholder_label || '',
@@ -693,7 +753,7 @@ export function AdminProducts() {
                             meta_title: p.meta_title || '',
                             meta_description: p.meta_description || '',
                             primary_image: productThumb(p),
-                            images: p.images || [],
+                            images,
                           });
                         }}
                       >

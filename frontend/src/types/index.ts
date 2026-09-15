@@ -95,7 +95,8 @@ export interface ContentPage {
 
 export interface ProductImage {
   id: string;
-  image: string;
+  image?: string;
+  image_url?: string | null;
   alt: string;
   order: number;
   is_primary: boolean;

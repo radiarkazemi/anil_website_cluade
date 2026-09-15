@@ -391,15 +391,12 @@ class AdminProductImageUploadView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         if obj.is_primary:
-            # Replace: remove previous images so "change photo" doesn't leave orphans.
-            old = ProductImage.objects.filter(product=product).exclude(id=obj.id)
-            for prev in old:
-                if prev.image:
-                    try:
-                        prev.image.delete(save=False)
-                    except Exception:
-                        pass
-                prev.delete()
+            # Keep gallery: only demote other primaries (do NOT delete them).
+            ProductImage.objects.filter(product=product).exclude(id=obj.id).update(is_primary=False)
+        elif not ProductImage.objects.filter(product=product).exclude(id=obj.id).exists():
+            # First image on an empty product becomes primary.
+            obj.is_primary = True
+            obj.save(update_fields=["is_primary"])
         data = ProductImageSerializer(obj, context={"request": request}).data
         data["processed"] = meta
         return Response(data, status=status.HTTP_201_CREATED)
