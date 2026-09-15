@@ -4,10 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
-import { useTheme } from '../store/themeStore';
+import { THEME_META, useTheme } from '../store/themeStore';
 import { faNum, faPrice } from '../utils/format';
 import { IconGoldBox } from './icons';
 import { SiteSearch } from './SiteSearch';
+import { ThemePicker } from './ThemePicker';
 
 export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
@@ -15,7 +16,6 @@ export function Header() {
   const user = useStore((s) => s.user);
   const openCart = useUI((s) => s.openCart);
   const theme = useTheme((s) => s.theme);
-  const toggleTheme = useTheme((s) => s.toggle);
   const [menuOpen, setMenuOpen] = useState(false);
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
@@ -86,9 +86,16 @@ export function Header() {
     <>
       {banner && <div className="top-banner">{banner}</div>}
       <header className="site-header">
+        <div className="header-rail" aria-hidden>
+          <span className="header-rail-gem" />
+          <span className="header-rail-line" />
+          <span className="header-rail-gem" />
+        </div>
         <div className="container header-inner">
           <Link to="/" className="logo" onClick={closeMenu}>
-            <img className="logo-img" src={logoSrc} alt={brandName} />
+            <span className="logo-frame">
+              <img className="logo-img" src={logoSrc} alt={brandName} />
+            </span>
             <span className="logo-text">
               <span className="logo-name">{brandName}</span>
               <span className="logo-sub">{brandTag}</span>
@@ -108,15 +115,7 @@ export function Header() {
               </div>
             )}
 
-            <button
-              className="icon-btn header-theme-btn"
-              onClick={toggleTheme}
-              title={theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
-              type="button"
-              aria-label="تغییر تم"
-            >
-              {theme === 'dark' ? '☀' : '☾'}
-            </button>
+            <ThemePicker compact />
 
             {user ? (
               <Link to="/account" className="text-btn header-account" onClick={closeMenu}>
@@ -156,7 +155,11 @@ export function Header() {
         </div>
 
         <div className="container header-search-bar">
-          <SiteSearch className="header-search" />
+          <div className="header-search-shell">
+            <span className="header-search-ornament" aria-hidden />
+            <SiteSearch className="header-search" />
+            <span className="header-search-ornament flip" aria-hidden />
+          </div>
         </div>
 
         {gp > 0 && (
@@ -220,9 +223,10 @@ export function Header() {
             ) : (
               <Link to="/login" className="gold-btn" onClick={closeMenu}>ورود / ثبت‌نام</Link>
             )}
-            <button type="button" className="outline-btn mobile-theme-btn" onClick={() => toggleTheme()}>
-              {theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
-            </button>
+            <div className="mobile-theme-block">
+              <span className="mobile-theme-caption">تم فعلی: {THEME_META[theme].label}</span>
+              <ThemePicker />
+            </div>
           </div>
         </nav>
       </div>

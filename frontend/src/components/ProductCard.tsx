@@ -45,7 +45,13 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="product-card">
       <Link to={`/products/${product.slug}`} className="product-media">
         {product.primary_image ? (
-          <img src={product.primary_image} alt={product.name} loading="lazy" />
+          <img
+            src={product.primary_image}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
         ) : (
           <span className="product-fallback">{product.placeholder_label || product.category_name}</span>
         )}

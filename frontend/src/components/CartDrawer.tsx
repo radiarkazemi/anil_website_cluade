@@ -42,10 +42,18 @@ export function CartDrawer() {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
 
+  const cartIds = cart.map((c) => c.productId).join(',');
   const { data } = useQuery({
-    queryKey: ['products-all'],
-    queryFn: () => api.productsAll({ page_size: '200' }),
-    staleTime: 60000,
+    queryKey: ['products-cart', cartIds],
+    queryFn: () =>
+      api
+        .products({
+          ids: cartIds,
+          page_size: String(Math.max(cart.length, 1)),
+        })
+        .then((r) => r.data.results),
+    enabled: cartOpen && cart.length > 0 && Boolean(cartIds),
+    staleTime: 60_000,
   });
 
   const products = data ?? [];

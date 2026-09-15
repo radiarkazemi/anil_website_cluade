@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/endpoints';
 import { useStore } from '../../store/useStore';
-import { useTheme } from '../../store/themeStore';
+import { THEME_META, useTheme } from '../../store/themeStore';
 import { faNum, faPrice } from '../../utils/format';
 import type { User } from '../../types';
 
@@ -40,7 +40,7 @@ export function AdminLayout() {
   const setUser = useStore((s) => s.setAdminUser);
   const logout = useStore((s) => s.adminLogout);
   const theme = useTheme((s) => s.theme);
-  const toggleTheme = useTheme((s) => s.toggle);
+  const cycleTheme = useTheme((s) => s.cycle);
   const [loading, setLoading] = useState(!user);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
@@ -167,9 +167,9 @@ export function AdminLayout() {
             <span className="admin-nav-icon">{collapsed ? '»' : '«'}</span>
             {!collapsed && <span>جمع‌کردن منو</span>}
           </button>
-          <button type="button" className="admin-nav-item" onClick={toggleTheme}>
-            <span className="admin-nav-icon">{theme === 'dark' ? '☀' : '☾'}</span>
-            {!collapsed && <span>{theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}</span>}
+          <button type="button" className="admin-nav-item" onClick={cycleTheme}>
+            <span className="admin-nav-icon">◐</span>
+            {!collapsed && <span>تم: {THEME_META[theme].label}</span>}
           </button>
           <a href="/" className="admin-nav-item" onClick={() => setMobileNav(false)}>
             <span className="admin-nav-icon">←</span>

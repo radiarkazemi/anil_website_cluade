@@ -136,11 +136,22 @@ class ProductListView(generics.ListAPIView):
     search_fields = ["name", "description", "sku", "tag", "placeholder_label", "category__name"]
     ordering_fields = ["created_at", "weight_g", "name"]
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        gold = GoldPrice.current()
+        ctx["gold_price"] = float(gold.price_18k_per_gram) if gold else 0.0
+        return ctx
+
     def get_queryset(self):
         qs = Product.objects.filter(is_active=True).select_related("category").prefetch_related("images")
         category = self.request.query_params.get("category")
         if category and category != "all":
             qs = qs.filter(Q(category__slug=category) | Q(category__name=category))
+        ids = self.request.query_params.get("ids")
+        if ids:
+            id_list = [x.strip() for x in ids.split(",") if x.strip()]
+            if id_list:
+                qs = qs.filter(id__in=id_list)
         wmin = self.request.query_params.get("weight_min")
         wmax = self.request.query_params.get("weight_max")
         fee_max = self.request.query_params.get("fee_max")
@@ -157,19 +168,33 @@ class ProductListView(generics.ListAPIView):
                 qs = qs.filter(fee_ratio__lte=f)
         except (TypeError, ValueError):
             pass
-        return qs
 
-    def list(self, request, *args, **kwargs):
-        qs = self.filter_queryset(self.get_queryset())
-        ordering = request.query_params.get("ordering", "")
+        ordering = self.request.query_params.get("ordering", "")
         if ordering in ("price", "-price"):
-            products = list(qs)
-            products.sort(key=lambda p: p.price, reverse=(ordering == "-price"))
-            page = self.paginate_queryset(products)
-            if page is not None:
-                return self.get_paginated_response(self.get_serializer(page, many=True).data)
-            return Response(self.get_serializer(products, many=True).data)
-        return super().list(request, *args, **kwargs)
+            # Sort in SQL with the same retail formula (approx. rounded total).
+            # total ≈ gold*1.0763 + gold*fee_ratio*1.1663 + stone
+            from django.db.models import DecimalField, ExpressionWrapper, F, Value
+            from django.db.models.functions import Coalesce
+
+            from .pricing import PROFIT_RATIO, TAX_RATIO
+
+            gold = GoldPrice.current()
+            gp = float(gold.price_18k_per_gram) if gold else 0.0
+            gold_coef = 1.0 + PROFIT_RATIO + (PROFIT_RATIO * TAX_RATIO)
+            fee_coef = 1.0 + PROFIT_RATIO + TAX_RATIO + (PROFIT_RATIO * TAX_RATIO)
+            dec = DecimalField(max_digits=18, decimal_places=2)
+            qs = qs.annotate(
+                sort_price=ExpressionWrapper(
+                    Coalesce(F("weight_g"), Value(0)) * Value(gp) * Value(gold_coef)
+                    + Coalesce(F("weight_g"), Value(0))
+                    * Value(gp)
+                    * F("fee_ratio")
+                    * Value(fee_coef)
+                    + Coalesce(F("stone_value"), Value(0)),
+                    output_field=dec,
+                )
+            ).order_by("sort_price" if ordering == "price" else "-sort_price")
+        return qs
 
 
 class ProductDetailView(generics.RetrieveAPIView):
@@ -177,6 +202,12 @@ class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     queryset = Product.objects.filter(is_active=True).select_related("category").prefetch_related("images")
     lookup_field = "slug"
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        gold = GoldPrice.current()
+        ctx["gold_price"] = float(gold.price_18k_per_gram) if gold else 0.0
+        return ctx
 
 
 class WishlistListCreateView(generics.ListCreateAPIView):

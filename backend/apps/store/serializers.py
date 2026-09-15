@@ -50,10 +50,13 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_price(self, obj):
-        return obj.price_breakdown()["total"]
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)["total"]
 
     def get_primary_image(self, obj):
-        img = obj.images.filter(is_primary=True).first() or obj.images.first()
+        # Use prefetched related manager — avoid per-row .filter() queries.
+        images = list(obj.images.all())
+        img = next((i for i in images if i.is_primary), None) or (images[0] if images else None)
         if img and img.image:
             request = self.context.get("request")
             return request.build_absolute_uri(img.image.url) if request else img.image.url
@@ -82,10 +85,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_price(self, obj):
-        return obj.price_breakdown()["total"]
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)["total"]
 
     def get_breakdown(self, obj):
-        return obj.price_breakdown()
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)
 
 
 class CategorySerializer(serializers.ModelSerializer):

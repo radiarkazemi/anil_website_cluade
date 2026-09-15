@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
@@ -7,6 +7,7 @@ import { faNum } from '../utils/format';
 
 type GridCols = 3 | 4;
 const GRID_KEY = 'anil-product-grid-cols';
+const PAGE_SIZE = '24';
 
 export function Products() {
   const [params, setParams] = useSearchParams();
@@ -33,23 +34,46 @@ export function Products() {
     }
   }, [cols]);
 
-  const { data: categoriesData } = useQuery({ queryKey: ['categories'], queryFn: () => api.categories().then((r) => r.data) });
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ['products', category, sort, weightMin, weightMax, feeMax, search],
-    queryFn: () => {
-      const p: Record<string, string> = { page_size: '200' };
-      if (category !== 'all') p.category = category;
-      if (sort) p.ordering = sort;
-      if (weightMin) p.weight_min = weightMin;
-      if (weightMax) p.weight_max = weightMax;
-      if (feeMax) p.fee_max = feeMax;
-      if (search.trim()) p.search = search.trim();
-      return api.productsAll(p);
+  const listParams = useMemo(() => {
+    const p: Record<string, string> = { page_size: PAGE_SIZE };
+    if (category !== 'all') p.category = category;
+    if (sort) p.ordering = sort;
+    if (weightMin) p.weight_min = weightMin;
+    if (weightMax) p.weight_max = weightMax;
+    if (feeMax) p.fee_max = feeMax;
+    if (search.trim()) p.search = search.trim();
+    return p;
+  }, [category, sort, weightMin, weightMax, feeMax, search]);
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.categories().then((r) => r.data),
+    staleTime: 120_000,
+  });
+
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['products', listParams],
+    queryFn: ({ pageParam }) =>
+      api.products({ ...listParams, page: String(pageParam) }).then((r) => r.data),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) => {
+      if (!lastPage.next) return undefined;
+      return lastPageParam + 1;
     },
+    staleTime: 90_000,
+    gcTime: 10 * 60_000,
   });
 
   const categories = categoriesData ?? [];
-  const products = productsData ?? [];
+  const products = data?.pages.flatMap((p) => p.results) ?? [];
+  const totalCount = data?.pages[0]?.count ?? products.length;
   const chips = [{ slug: 'all', name: 'همه' }, ...categories.map((c) => ({ slug: c.slug, name: c.name }))];
   const title = search.trim()
     ? `نتایج «${search.trim()}»`
@@ -66,7 +90,10 @@ export function Products() {
       </div>
       <div className="products-title-row">
         <h1 className="products-title">{title}</h1>
-        <div className="products-count">{faNum(products.length)} محصول</div>
+        <div className="products-count">
+          {faNum(totalCount)} محصول
+          {isFetching && !isFetchingNextPage ? <span className="products-fetch-dot" aria-hidden /> : null}
+        </div>
       </div>
 
       <form
@@ -121,12 +148,12 @@ export function Products() {
           })}
         </div>
         <div className="products-smart-filters">
-          <input className="input" style={{width:100}} placeholder="وزن از" value={weightMin}
-            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('weight_min', v); else p.delete('weight_min'); return p; })} />
-          <input className="input" style={{width:100}} placeholder="وزن تا" value={weightMax}
-            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('weight_max', v); else p.delete('weight_max'); return p; })} />
-          <input className="input" style={{width:110}} placeholder="اجرت تا ٪" value={feeMax}
-            onChange={(e) => setParams((p) => { const v=e.target.value; if(v) p.set('fee_max', v); else p.delete('fee_max'); return p; })} />
+          <input className="input" style={{ width: 100 }} placeholder="وزن از" value={weightMin}
+            onChange={(e) => setParams((p) => { const v = e.target.value; if (v) p.set('weight_min', v); else p.delete('weight_min'); return p; })} />
+          <input className="input" style={{ width: 100 }} placeholder="وزن تا" value={weightMax}
+            onChange={(e) => setParams((p) => { const v = e.target.value; if (v) p.set('weight_max', v); else p.delete('weight_max'); return p; })} />
+          <input className="input" style={{ width: 110 }} placeholder="اجرت تا ٪" value={feeMax}
+            onChange={(e) => setParams((p) => { const v = e.target.value; if (v) p.set('fee_max', v); else p.delete('fee_max'); return p; })} />
         </div>
         <div className="products-toolbar-end">
           <div className="grid-density" role="group" aria-label="تعداد ستون">
@@ -165,15 +192,33 @@ export function Products() {
       </div>
 
       {isLoading ? (
-        <div className="products-loading">در حال بارگذاری…</div>
+        <div className={`product-grid cols-${cols} products-skeleton-grid`}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="product-skeleton" aria-hidden />
+          ))}
+        </div>
       ) : products.length === 0 ? (
         <div className="products-empty">
           {search ? `نتیجه‌ای برای «${search}» پیدا نشد.` : 'محصولی در این فیلتر نیست.'}
         </div>
       ) : (
-        <div className={`product-grid cols-${cols}`}>
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
+        <>
+          <div className={`product-grid cols-${cols}`}>
+            {products.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+          {hasNextPage ? (
+            <div className="products-more">
+              <button
+                type="button"
+                className="outline-btn products-more-btn"
+                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+              >
+                {isFetchingNextPage ? 'در حال بارگذاری…' : 'مشاهده‌ی بیشتر'}
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
     </section>
   );
