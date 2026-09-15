@@ -41,6 +41,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     estimated_weight_g = serializers.SerializerMethodField()
     estimated_price = serializers.SerializerMethodField()
     deposit_amount = serializers.SerializerMethodField()
+    deposit_gold_g = serializers.SerializerMethodField()
 
     def get_has_weight(self, obj):
         return bool(getattr(obj, "has_weight", False))
@@ -69,12 +70,19 @@ class ProductListSerializer(serializers.ModelSerializer):
             return None
         return deposit_amount_for(obj)
 
+    def get_deposit_gold_g(self, obj):
+        from .estimates import deposit_gold_grams
+
+        if not getattr(obj, "is_made_to_order", False):
+            return None
+        return deposit_gold_grams(obj)
+
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
             "weight_g", "has_weight", "is_made_to_order", "is_orderable",
-            "estimated_weight_g", "estimated_price", "deposit_amount",
+            "estimated_weight_g", "estimated_price", "deposit_amount", "deposit_gold_g",
             "karat", "fee_ratio", "stone_value", "tag",
             "placeholder_label", "price", "primary_image", "in_stock",
             "is_featured", "needs_review",
@@ -103,6 +111,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     estimated_weight_g = serializers.SerializerMethodField()
     estimated_price = serializers.SerializerMethodField()
     deposit_amount = serializers.SerializerMethodField()
+    deposit_gold_g = serializers.SerializerMethodField()
     estimated_breakdown = serializers.SerializerMethodField()
 
     def get_has_weight(self, obj):
@@ -132,6 +141,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             return None
         return deposit_amount_for(obj)
 
+    def get_deposit_gold_g(self, obj):
+        from .estimates import deposit_gold_grams
+
+        if not getattr(obj, "is_made_to_order", False):
+            return None
+        return deposit_gold_grams(obj)
+
     def get_estimated_breakdown(self, obj):
         from .estimates import estimated_price_breakdown
 
@@ -144,7 +160,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "slug", "category_name", "category_slug",
             "weight_g", "has_weight", "is_made_to_order", "is_orderable",
-            "estimated_weight_g", "estimated_price", "deposit_amount",
+            "estimated_weight_g", "estimated_price", "deposit_amount", "deposit_gold_g",
             "estimated_breakdown",
             "karat", "fee_ratio", "stone_value", "tag",
             "description", "placeholder_label", "stock", "in_stock",

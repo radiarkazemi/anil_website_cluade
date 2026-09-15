@@ -11,6 +11,7 @@ import type { Order } from '../types';
 const STATUS_FA: Record<string, string> = {
   pending: 'در انتظار پرداخت',
   paid: 'پرداخت‌شده',
+  reserved: 'رزرو با بیعانه',
   processing: 'در حال پردازش',
   shipped: 'ارسال‌شده',
   delivered: 'تحویل‌شده',
@@ -256,13 +257,53 @@ export function Account() {
                   <ul className="order-items">
                     {o.items?.map((it) => (
                       <li key={it.id}>
-                        {it.product_name} × {faNum(it.qty)} — {faPrice(it.line_total)}
+                        {it.product_name} × {faNum(it.qty)}
+                        {it.weight_g != null && (
+                          <> · وزن{it.weight_is_estimated ? ' تقریبی' : ''} {faNum(Number(it.weight_g))} گرم</>
+                        )}
+                        {' — '}
+                        {faPrice(it.line_total)} تومان
                       </li>
                     ))}
                   </ul>
+                  {o.order_kind === 'deposit' && (
+                    <div className="order-gold-box">
+                      <div className="order-gold-title">جزئیات رزرو طلایی</div>
+                      <div className="order-gold-grid">
+                        {o.estimated_weight_g != null && (
+                          <div>
+                            <span>وزن تقریبی</span>
+                            <strong>≈ {faNum(Number(o.estimated_weight_g))} گرم</strong>
+                          </div>
+                        )}
+                        <div>
+                          <span>بیعانه پرداختی</span>
+                          <strong>{faPrice(o.total)} تومان</strong>
+                        </div>
+                        {o.gold_owed_g != null && (
+                          <div className="owed">
+                            <span>طلب طلایی شما از گالری</span>
+                            <strong>≈ {faNum(Number(o.gold_owed_g))} گرم ۱۸ عیار</strong>
+                          </div>
+                        )}
+                        {o.remaining_weight_g != null && Number(o.remaining_weight_g) > 0 && (
+                          <div>
+                            <span>باقیمانده تقریبی</span>
+                            <strong>≈ {faNum(Number(o.remaining_weight_g))} گرم · نرخ لحظه‌ای</strong>
+                          </div>
+                        )}
+                      </div>
+                      <p className="order-gold-note">
+                        مبلغ بیعانه به‌صورت طلایی برای شما منظور می‌شود. مابه‌تفاوت هنگام تحویل با نرخ روز طلا محاسبه می‌گردد.
+                      </p>
+                    </div>
+                  )}
                   <div className="order-card-foot">
                     <div>
-                      <div className="order-total">{faPrice(o.total)} تومان</div>
+                      <div className="order-total">
+                        {o.order_kind === 'deposit' ? 'بیعانه رزرو: ' : ''}
+                        {faPrice(o.total)} تومان
+                      </div>
                       {o.tracking_code && <div className="order-track-code">کد پیگیری پست: {o.tracking_code}</div>}
                       {o.payment_ref_id && <div className="order-track-code">رسید پرداخت: {o.payment_ref_id}</div>}
                     </div>
@@ -313,6 +354,12 @@ export function Account() {
                 <span className={`status-badge status-${tracked.status}`}>{STATUS_FA[tracked.status]}</span>
               </div>
               <div className="order-total">{faPrice(tracked.total)} تومان</div>
+              {tracked.order_kind === 'deposit' && tracked.gold_owed_g != null && (
+                <div className="order-gold-box" style={{ marginTop: 12 }}>
+                  <div className="order-gold-title">طلب طلایی شما</div>
+                  <strong>≈ {faNum(Number(tracked.gold_owed_g))} گرم ۱۸ عیار</strong>
+                </div>
+              )}
             </div>
           )}
         </div>

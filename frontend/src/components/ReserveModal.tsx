@@ -17,12 +17,21 @@ type Props = {
 export function ReserveModal({ product, qty = 1, open, onClose }: Props) {
   const user = useStore((s) => s.user);
   const tokens = useStore((s) => s.tokens);
+  const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
 
   const weight = Number(product.estimated_weight_g || product.estimated_breakdown?.weight_g || 0);
   const deposit = product.deposit_amount ?? null;
+  const depositGold =
+    product.deposit_gold_g != null
+      ? Number(product.deposit_gold_g) * qty
+      : deposit != null && gp > 0
+        ? (deposit * qty) / gp
+        : null;
+  const remainingGold =
+    weight > 0 && depositGold != null ? Math.max(weight * qty - depositGold, 0) : null;
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +68,7 @@ export function ReserveModal({ product, qty = 1, open, onClose }: Props) {
       const { data: order } = await api.createOrderFromProfile({
         items: [{ product_id: product.id, qty }],
         order_kind: 'deposit',
-        note: 'رزرو محصول — تهیه بر اساس وزن تقریبی مدل‌های مشابه',
+        note: 'رزرو محصول — بیعانه به‌صورت طلایی برای مشتری منظور می‌شود',
       });
       toast(`رزرو ${order.order_number} ثبت شد`);
       onClose();
@@ -99,23 +108,49 @@ export function ReserveModal({ product, qty = 1, open, onClose }: Props) {
         </header>
 
         <p className="reserve-modal-copy">
-          این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت مبلغ رزرو، قطعه بر اساس وزن تقریبی مدل‌های مشابه برای شما تهیه می‌شود.
+          این مدل هم‌اکنون در ویترین موجود نیست. با پرداخت بیعانه، سفارش ساخت ثبت می‌شود و مبلغ به‌صورت طلایی برای شما منظور می‌گردد.
         </p>
 
         <div className="reserve-modal-rows">
           <div className="reserve-modal-row">
-            <span>وزن تقریبی</span>
-            <strong>{weight > 0 ? `≈ ${faNum(weight)} گرم` : 'بر اساس مدل‌های مشابه'}</strong>
+            <span>وزن تقریبی قطعه</span>
+            <strong>{weight > 0 ? `≈ ${faNum(weight * qty)} گرم` : 'بر اساس مدل‌های مشابه'}</strong>
+          </div>
+          <div className="reserve-modal-row">
+            <span>مبلغ بیعانه (٪۲۰)</span>
+            <strong>{deposit != null ? `${faPrice(deposit * qty)} تومان` : '—'}</strong>
           </div>
           <div className="reserve-modal-row highlight">
-            <span>مبلغ رزرو (٪۲۰)</span>
-            <strong>{deposit != null ? `${faPrice(deposit)} تومان` : '—'}</strong>
+            <span>معادل طلایی بیعانه</span>
+            <strong>
+              {depositGold != null ? `≈ ${faNum(Number(depositGold.toFixed(3)))} گرم ۱۸ عیار` : '—'}
+            </strong>
           </div>
+          {remainingGold != null && remainingGold > 0 && (
+            <div className="reserve-modal-row">
+              <span>باقیمانده تقریبی</span>
+              <strong>≈ {faNum(Number(remainingGold.toFixed(3)))} گرم</strong>
+            </div>
+          )}
         </div>
 
-        <p className="reserve-modal-note">
-          مابه‌تفاوت هنگام تحویل بر اساس وزن واقعی محاسبه می‌شود.
-        </p>
+        <div className="reserve-rules">
+          <div className="reserve-rules-title">قوانین رزرو</div>
+          <ul>
+            <li>مبلغ بیعانه به‌صورت طلایی از شما دریافت شده و برای شما اعمال می‌شود.</li>
+            <li>
+              مبلغ بیعانه با نرخ روز طلا به گرم ۱۸ عیار تبدیل می‌شود
+              {gp > 0 ? ` (نرخ فعلی: ${faPrice(gp)} تومان)` : ''}
+              و به‌عنوان طلب طلایی شما در حساب ثبت می‌گردد.
+            </li>
+            <li>
+              باقیمانده وزن قطعه هنگام تحویل، با نرخ لحظه‌ای طلا محاسبه و تسویه می‌شود.
+            </li>
+            <li>
+              جزئیات سفارش، گرم طلای بستانکار شما، و وضعیت رزرو در پروفایل قابل مشاهده است.
+            </li>
+          </ul>
+        </div>
 
         <div className="reserve-modal-actions">
           <button type="button" className="gold-btn" disabled={busy || deposit == null} onClick={confirmReserve}>

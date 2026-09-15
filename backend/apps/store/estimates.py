@@ -172,6 +172,19 @@ def deposit_amount_for(product: Product, gp: int | None = None) -> int:
     return max(fixed, 100_000)
 
 
+def deposit_gold_grams(product: Product, gp: int | None = None, qty: int = 1) -> float | None:
+    """Convert the reserve toman amount into 18k gold grams at current rate."""
+    from .models import GoldPrice
+
+    if gp is None:
+        current = GoldPrice.current()
+        gp = current.price_18k_per_gram if current else 0
+    if not gp:
+        return None
+    amount = deposit_amount_for(product, gp) * max(int(qty or 1), 1)
+    return round(amount / float(gp), 3)
+
+
 def category_avg_weight(category_id) -> Optional[float]:
     row = Product.objects.filter(
         category_id=category_id,

@@ -47,6 +47,20 @@ class Order(models.Model):
         help_text="full = خرید موجودی · deposit = رزرو با بیعانه برای سفارش ساخت",
     )
     gold_price_snapshot = models.BigIntegerField(help_text="نرخ ۱۸ عیار در لحظه ثبت")
+    estimated_weight_g = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="وزن تقریبی کل سفارش (گرم) برای رزرو",
+    )
+    deposit_gold_g = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="معادل طلایی بیعانه پرداختی — طلب مشتری از گالری (گرم ۱۸ عیار)",
+    )
     subtotal = models.BigIntegerField(default=0)
     shipping_cost = models.BigIntegerField(default=0)
     discount = models.BigIntegerField(default=0)
@@ -80,6 +94,31 @@ class Order(models.Model):
 
     def __str__(self):
         return f"سفارش {self.order_number} — {self.full_name}"
+
+    @property
+    def remaining_weight_g(self):
+        """Estimated remaining grams to settle at live gold price."""
+        if self.estimated_weight_g is None:
+            return None
+        credited = float(self.deposit_gold_g or 0)
+        rem = float(self.estimated_weight_g) - credited
+        return round(max(rem, 0), 3)
+
+    @property
+    def gold_owed_g(self):
+        """Gold grams the gallery owes the customer from paid بیعانه."""
+        if self.order_kind != self.Kind.DEPOSIT:
+            return None
+        if self.status not in (
+            self.Status.RESERVED,
+            self.Status.PAID,
+            self.Status.PROCESSING,
+            self.Status.SHIPPED,
+            self.Status.DELIVERED,
+        ):
+            # Still show projected credit for pending deposit orders
+            return float(self.deposit_gold_g) if self.deposit_gold_g is not None else None
+        return float(self.deposit_gold_g) if self.deposit_gold_g is not None else None
 
     def save(self, *args, **kwargs):
         if not self.order_number:

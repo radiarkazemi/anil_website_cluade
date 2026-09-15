@@ -116,6 +116,7 @@ export interface Product {
   estimated_weight_g?: number | null;
   estimated_price?: number | null;
   deposit_amount?: number | null;
+  deposit_gold_g?: number | null;
   estimated_breakdown?: PriceBreakdown & { weight_g?: number | null };
   needs_review?: boolean;
   karat: number;
@@ -170,6 +171,10 @@ export interface Order {
   status: string;
   order_kind?: 'full' | 'deposit';
   gold_price_snapshot: number;
+  estimated_weight_g?: number | string | null;
+  deposit_gold_g?: number | string | null;
+  remaining_weight_g?: number | null;
+  gold_owed_g?: number | null;
   subtotal: number;
   shipping_cost: number;
   discount: number;

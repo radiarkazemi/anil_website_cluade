@@ -141,6 +141,7 @@ class OrderCreateSerializer(serializers.Serializer):
             )
 
             subtotal = 0
+            estimated_weight_total = 0.0
             for item in items_data:
                 product = products[item["product_id"]]
                 if is_deposit:
@@ -148,6 +149,8 @@ class OrderCreateSerializer(serializers.Serializer):
                     unit = deposit_amount_for(product, gp)
                     weight_is_estimated = True
                     weight_g = est
+                    if est is not None:
+                        estimated_weight_total += float(est) * item["qty"]
                 else:
                     bd = product.price_breakdown(gp)
                     unit = bd["total"]
@@ -177,7 +180,12 @@ class OrderCreateSerializer(serializers.Serializer):
 
             order.subtotal = subtotal
             order.total = subtotal + order.shipping_cost - order.discount
-            order.save(update_fields=["subtotal", "total"])
+            update_fields = ["subtotal", "total"]
+            if is_deposit and gp:
+                order.estimated_weight_g = round(estimated_weight_total, 3) if estimated_weight_total else None
+                order.deposit_gold_g = round(order.total / float(gp), 3)
+                update_fields.extend(["estimated_weight_g", "deposit_gold_g"])
+            order.save(update_fields=update_fields)
             return order
 
 
@@ -192,15 +200,25 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    remaining_weight_g = serializers.SerializerMethodField()
+    gold_owed_g = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
             "id", "order_number", "full_name", "phone", "email",
             "address", "city", "postal_code", "status", "order_kind",
-            "gold_price_snapshot", "subtotal", "shipping_cost", "discount", "total",
+            "gold_price_snapshot", "estimated_weight_g", "deposit_gold_g",
+            "remaining_weight_g", "gold_owed_g",
+            "subtotal", "shipping_cost", "discount", "total",
             "note", "tracking_code",
             "payment_gateway", "payment_authority", "payment_ref_id",
             "paid_at", "shipped_at", "delivered_at",
             "created_at", "items",
         ]
+
+    def get_remaining_weight_g(self, obj):
+        return obj.remaining_weight_g
+
+    def get_gold_owed_g(self, obj):
+        return obj.gold_owed_g
