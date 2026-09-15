@@ -363,12 +363,8 @@ class AdminProductImageUploadView(APIView):
 
         from apps.store.uploads import ensure_media_subdir, process_uploaded_image
 
-        # Default ON: jewelry polish (sharpness/clarity) into the same image field.
-        enhance_raw = request.data.get("enhance", "true")
-        enhance = str(enhance_raw).strip().lower() not in ("0", "false", "no", "off")
-
         try:
-            processed, meta = process_uploaded_image(image, enhance=enhance)
+            processed, meta = process_uploaded_image(image)
         except Exception as exc:
             detail = getattr(exc, "detail", None) or str(exc)
             return Response(

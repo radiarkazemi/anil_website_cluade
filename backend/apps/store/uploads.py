@@ -1,4 +1,4 @@
-"""Safe image upload validation + automatic resize/compression + jewelry enhance."""
+"""Safe image upload validation + automatic resize/compression."""
 
 from __future__ import annotations
 
@@ -12,8 +12,6 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 from rest_framework.exceptions import ValidationError
-
-from apps.store.image_enhance import enhance_jewelry_image
 
 ALLOWED_IMAGE_CONTENT_TYPES = {
     "image/jpeg",
@@ -92,21 +90,12 @@ def process_uploaded_image(
     field_name: str = "image",
     max_side: int | None = None,
     quality: int | None = None,
-    enhance: bool | None = None,
 ) -> Tuple[InMemoryUploadedFile, dict]:
-    """
-    Validate, auto-orient, jewelry-enhance, resize, and compress.
-
-    Enhanced JPEG is saved into the same ImageField — no second upload slot.
-    enhance defaults to True (jewelry catalog polish). Pass False to skip.
-    """
+    """Validate, auto-orient, resize, and compress to JPEG."""
     validate_uploaded_image(uploaded_file, field_name=field_name)
 
-    max_side = int(max_side or getattr(settings, "IMAGE_MAX_SIDE", 1600))
-    do_enhance = True if enhance is None else bool(enhance)
-    default_q = int(getattr(settings, "IMAGE_JPEG_QUALITY", 82))
-    enhance_q = int(getattr(settings, "IMAGE_ENHANCE_JPEG_QUALITY", 88))
-    quality = int(quality if quality is not None else (enhance_q if do_enhance else default_q))
+    max_side = int(max_side or getattr(settings, "IMAGE_MAX_SIDE", 2048))
+    quality = int(quality if quality is not None else getattr(settings, "IMAGE_JPEG_QUALITY", 90))
 
     uploaded_file.seek(0)
     with Image.open(uploaded_file) as raw:
@@ -122,11 +111,6 @@ def process_uploaded_image(
         img = img.convert("RGB")
 
     original_size = img.size
-
-    # Polish at full resolution first, then downscale — cleaner metal edges.
-    if do_enhance:
-        img = enhance_jewelry_image(img)
-
     img.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
 
     buf = io.BytesIO()
@@ -150,7 +134,6 @@ def process_uploaded_image(
         "height": img.size[1],
         "bytes": len(data),
         "filename": filename,
-        "enhanced": do_enhance,
         "jpeg_quality": quality,
     }
     return processed, meta

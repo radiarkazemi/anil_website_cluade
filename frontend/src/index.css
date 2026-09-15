@@ -4036,9 +4036,6 @@ body.nav-open { overflow: hidden; }
   object-fit: cover;
   display: block;
 }
-.admin-image-tile img.is-enhanced {
-  filter: contrast(1.05) saturate(1.08) brightness(1.02);
-}
 .admin-image-tile-remove {
   position: absolute;
   inset-inline-end: 6px;
@@ -4068,10 +4065,7 @@ body.nav-open { overflow: hidden; }
   border: 1px solid rgba(212, 175, 55, .3);
   transition: filter .25s ease;
 }
-.admin-image-preview.is-enhanced {
-  filter: contrast(1.05) saturate(1.08) brightness(1.02);
-}
-.admin-image-enhance-badge {
+.admin-image-badge {
   position: absolute;
   inset-inline-start: 8px;
   bottom: 8px;
@@ -4083,12 +4077,7 @@ body.nav-open { overflow: hidden; }
   color: #f0d78a;
   letter-spacing: .02em;
 }
-.admin-image-enhance-toggle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted, var(--text-dim));
-}
-.admin-image-enhance-hint {
+.admin-image-hint {
   margin: 0;
   font-size: 12px;
   line-height: 1.6;

@@ -123,7 +123,6 @@ export function AdminProducts() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState('');
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
-  const [enhanceImage, setEnhanceImage] = useState(true);
   const [removingImageId, setRemovingImageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -157,7 +156,6 @@ export function AdminProducts() {
     setForm(null);
     setFormError('');
     setPendingFiles([]);
-    setEnhanceImage(true);
     setRemovingImageId(null);
   };
 
@@ -219,7 +217,7 @@ export function AdminProducts() {
           const existingCount = normalizeImages(form.images).length;
           for (let i = 0; i < pendingFiles.length; i += 1) {
             const makePrimary = existingCount === 0 && i === 0;
-            await api.adminUploadImage(product.id, pendingFiles[i], makePrimary, enhanceImage);
+            await api.adminUploadImage(product.id, pendingFiles[i], makePrimary);
           }
         } catch (uploadErr: any) {
           const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
@@ -361,7 +359,6 @@ export function AdminProducts() {
               onClick={() => {
                 setFormError('');
                 setPendingFiles([]);
-                setEnhanceImage(true);
                 setForm({ ...empty, category: categories?.[0]?.id || '', images: [], primary_image: null });
               }}
             >
@@ -535,7 +532,7 @@ export function AdminProducts() {
                       {normalizeImages(form.images).map((img) => (
                         <div key={img.id} className={`admin-image-tile${img.is_primary ? ' is-primary' : ''}`}>
                           <img src={imageUrl(img)} alt={img.alt || form.name || ''} />
-                          {img.is_primary && <span className="admin-image-enhance-badge">اصلی</span>}
+                          {img.is_primary && <span className="admin-image-badge">اصلی</span>}
                           <button
                             type="button"
                             className="admin-image-tile-remove"
@@ -572,12 +569,8 @@ export function AdminProducts() {
                       ))}
                       {pendingPreviews.map((src, idx) => (
                         <div key={`pending-${idx}`} className="admin-image-tile is-pending">
-                          <img
-                            className={enhanceImage ? 'is-enhanced' : undefined}
-                            src={src}
-                            alt={`پیش‌نمایش ${idx + 1}`}
-                          />
-                          <span className="admin-image-enhance-badge">جدید</span>
+                          <img src={src} alt={`پیش‌نمایش ${idx + 1}`} />
+                          <span className="admin-image-badge">جدید</span>
                           <button
                             type="button"
                             className="admin-image-tile-remove"
@@ -635,18 +628,9 @@ export function AdminProducts() {
                         </button>
                       )}
                     </div>
-                    <label className="layout-toggle admin-image-enhance-toggle">
-                      <input
-                        type="checkbox"
-                        checked={enhanceImage}
-                        onChange={(e) => setEnhanceImage(e.target.checked)}
-                      />
-                      بهبود کیفیت تصاویر جدید هنگام ذخیره (مناسب جواهرات)
-                    </label>
                     {!!pendingFiles.length && (
-                      <p className="admin-image-enhance-hint">
-                        {pendingFiles.length} تصویر جدید بعد از ذخیره به گالری محصول اضافه می‌شود
-                        {enhanceImage ? ' (با بهبود کیفیت)' : ''}.
+                      <p className="admin-image-hint">
+                        {pendingFiles.length} تصویر جدید بعد از ذخیره به گالری محصول اضافه می‌شود.
                       </p>
                     )}
                   </div>
@@ -732,7 +716,6 @@ export function AdminProducts() {
                         onClick={() => {
                           setFormError('');
                           setPendingFiles([]);
-                          setEnhanceImage(true);
                           const images = normalizeImages(p.images);
                           setForm({
                             id: p.id,
