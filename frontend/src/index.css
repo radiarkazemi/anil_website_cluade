@@ -414,6 +414,81 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
 .main-nav a:hover,
 .main-nav a.active { color: var(--gold-light); }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.site-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+.site-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border-gold, rgba(212,175,55,.35));
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 13px;
+}
+.site-search-input::placeholder { color: var(--text-dim); opacity: .85; }
+.site-search-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #1a1206;
+  background: linear-gradient(135deg, #f0d78a, #c9a24b);
+  white-space: nowrap;
+}
+.header-search-mobile-wrap,
+.desktop-search { display: none; }
+.mobile-nav-search { padding: 0 16px 12px; }
+.mobile-nav-search .site-search { max-width: none; width: 100%; }
+
+.products-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  align-items: center;
+}
+.products-search-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  height: 44px;
+}
+.products-search-submit { height: 44px; padding: 0 18px; }
+.products-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+
+.admin-image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.admin-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-image-remove-btn {
+  color: var(--down, #c45c5c) !important;
+  border-color: rgba(196, 92, 92, .35) !important;
+}
 .cart-label-short { display: none; }
 .nav-toggle {
   display: none;
@@ -1950,6 +2025,15 @@ body.nav-open { overflow: hidden; }
     max-width: 100%;
   }
   .desktop-nav { display: none; }
+  .desktop-search { display: none !important; }
+  .header-search-mobile-wrap {
+    display: block;
+    padding: 0 0 10px;
+  }
+  .header-search-mobile-wrap .site-search {
+    max-width: none;
+    width: 100%;
+  }
   .header-panel,
   .header-account,
   .header-theme-btn,

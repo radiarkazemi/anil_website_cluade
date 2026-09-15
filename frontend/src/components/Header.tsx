@@ -7,6 +7,7 @@ import { useUI } from '../store/uiStore';
 import { useTheme } from '../store/themeStore';
 import { faNum, faPrice } from '../utils/format';
 import { IconGoldBox } from './icons';
+import { SiteSearch } from './SiteSearch';
 
 export function Header() {
   const goldPrice = useStore((s) => s.goldPrice);
@@ -98,6 +99,8 @@ export function Header() {
             {navLinks}
           </nav>
 
+          <SiteSearch className="header-search desktop-search" />
+
           <div className="header-actions">
             {gp > 0 && (
               <div className="live-gold" title="نرخ طلای ۱۸ عیار">
@@ -154,6 +157,10 @@ export function Header() {
           </div>
         </div>
 
+        <div className="container header-search-mobile-wrap">
+          <SiteSearch className="header-search mobile-search" />
+        </div>
+
         {gp > 0 && (
           <div className="mobile-ticker">
             <div className="container mobile-ticker-inner">
@@ -170,7 +177,6 @@ export function Header() {
         )}
       </header>
 
-      {/* Standard mobile drawer — portal-like fixed overlay outside sticky header */}
       <div
         className={`mobile-drawer ${menuOpen ? 'is-open' : ''}`}
         aria-hidden={!menuOpen}
@@ -205,6 +211,9 @@ export function Header() {
             >
               ×
             </button>
+          </div>
+          <div className="mobile-nav-search">
+            <SiteSearch className="header-search" onSubmitExtra={closeMenu} />
           </div>
           <div className="mobile-nav-links">{navLinks}</div>
           <div className="mobile-nav-actions">

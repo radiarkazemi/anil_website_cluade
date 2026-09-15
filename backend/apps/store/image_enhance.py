@@ -1,36 +1,39 @@
 """
-Subtle jewelry-oriented photo polish (Pillow only).
+Jewelry catalog photo polish (Pillow only).
 
-Goals: slightly clearer metal edges, richer gold tones, better contrast —
-without the "over-processed HDR" look. Applied on upload before JPEG save.
+Goal: cleaner, brighter gold on phone/showcase snaps without neon color,
+halos, or crunchy over-sharpen. Heavy AI denoise/upscale is out of scope —
+this is a careful tone + light clarity pass.
 """
 
 from __future__ import annotations
 
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
-# Tuned for product / catalog jewelry shots (phone + lightbox).
-COLOR_FACTOR = 1.07
-CONTRAST_FACTOR = 1.05
-BRIGHTNESS_FACTOR = 1.02
-SHARPNESS_FACTOR = 1.12
-UNSHARP_RADIUS = 1.5
-UNSHARP_PERCENT = 130
-UNSHARP_THRESHOLD = 2
+MEDIAN_SIZE = 3
 AUTOCONTRAST_CUTOFF = 1
+COLOR_FACTOR = 1.08
+CONTRAST_FACTOR = 1.08
+BRIGHTNESS_FACTOR = 1.025
+SHARPNESS_FACTOR = 1.18
+UNSHARP_RADIUS = 1.2
+UNSHARP_PERCENT = 85
+UNSHARP_THRESHOLD = 8
 
 
 def enhance_jewelry_image(img: Image.Image) -> Image.Image:
     """
-    Return an RGB image with mild clarity / color improvements for jewelry.
+    Gentle jewelry polish: denoise → open tones → light edge clarity.
 
-    Expects RGB (caller flattens alpha). Safe to call on already-decent studio
-    photos — factors stay conservative.
+    Expects RGB (caller flattens alpha).
     """
     if img.mode != "RGB":
         img = img.convert("RGB")
 
-    # Lift muddy midtones without crushing gold highlights.
+    # Denoise grain on bust / glass before any edge work.
+    img = img.filter(ImageFilter.MedianFilter(size=MEDIAN_SIZE))
+    img = img.filter(ImageFilter.SMOOTH)
+
     img = ImageOps.autocontrast(img, cutoff=AUTOCONTRAST_CUTOFF)
 
     img = ImageEnhance.Color(img).enhance(COLOR_FACTOR)
@@ -38,7 +41,7 @@ def enhance_jewelry_image(img: Image.Image) -> Image.Image:
     img = ImageEnhance.Brightness(img).enhance(BRIGHTNESS_FACTOR)
     img = ImageEnhance.Sharpness(img).enhance(SHARPNESS_FACTOR)
 
-    # Micro-contrast for facets, bezels, and stone edges.
+    # Mild unsharp with high threshold — edges only, skip noise.
     img = img.filter(
         ImageFilter.UnsharpMask(
             radius=UNSHARP_RADIUS,

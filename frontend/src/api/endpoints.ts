@@ -176,6 +176,10 @@ export const api = {
     fd.append('enhance', String(enhance));
     return client.post(`/admin/products/${productId}/images/`, fd);
   },
+  adminDeleteProductImage: (productId: string, imageId: string) =>
+    client.delete(`/admin/products/${productId}/images/`, { params: { image_id: imageId } }),
+  adminClearProductImages: (productId: string) =>
+    client.delete(`/admin/products/${productId}/images/`, { params: { all: '1' } }),
   adminApplyAutoSeo: (onlyEmpty = false) =>
     client.post<{ updated: number; total: number }>('/admin/products/apply-seo/', { only_empty: onlyEmpty }),
   adminCategories: () => client.get<Category[]>('/admin/categories/'),

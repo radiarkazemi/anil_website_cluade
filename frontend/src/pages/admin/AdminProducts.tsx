@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
@@ -107,6 +107,8 @@ export function AdminProducts() {
   const [formError, setFormError] = useState('');
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [enhanceImage, setEnhanceImage] = useState(true);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!file) {
@@ -141,6 +143,7 @@ export function AdminProducts() {
     setFormError('');
     setFile(null);
     setEnhanceImage(true);
+    setRemoveExistingImage(false);
   };
 
 
@@ -195,6 +198,18 @@ export function AdminProducts() {
         product = (await api.adminUpdateProduct(form.id, payload)).data;
       } else {
         product = (await api.adminCreateProduct(payload)).data;
+      }
+      if (removeExistingImage && product.id && !file) {
+        try {
+          await api.adminClearProductImages(product.id);
+        } catch (delErr: any) {
+          const msg = formatApiError(delErr?.response?.data, delErr?.response?.status);
+          throw Object.assign(new Error(msg), {
+            response: delErr?.response,
+            isImageUpload: true,
+            productSaved: true,
+          });
+        }
       }
       if (file) {
         try {
@@ -339,6 +354,8 @@ export function AdminProducts() {
               onClick={() => {
                 setFormError('');
                 setFile(null);
+                setRemoveExistingImage(false);
+                setEnhanceImage(true);
                 setForm({ ...empty, category: categories?.[0]?.id || '' });
               }}
             >
@@ -508,7 +525,7 @@ export function AdminProducts() {
                 <label className="full">
                   <span>تصویر اصلی</span>
                   <div className="admin-image-picker">
-                    {(filePreview || form.primary_image || productThumb(form)) ? (
+                    {(!removeExistingImage && (filePreview || form.primary_image || productThumb(form))) ? (
                       <div className="admin-image-preview-wrap">
                         <img
                           className={`admin-image-preview${file && enhanceImage ? ' is-enhanced' : ''}`}
@@ -522,7 +539,40 @@ export function AdminProducts() {
                     ) : (
                       <div className="admin-image-empty">هنوز تصویری برای این محصول ثبت نشده — فایل JPG/PNG را انتخاب کنید</div>
                     )}
-                    <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="admin-image-file-input"
+                      onChange={(e) => {
+                        const next = e.target.files?.[0] || null;
+                        setFile(next);
+                        if (next) setRemoveExistingImage(false);
+                      }}
+                    />
+                    <div className="admin-image-actions">
+                      <button
+                        type="button"
+                        className="outline-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {file || form.primary_image || productThumb(form) ? 'تغییر تصویر' : 'انتخاب تصویر'}
+                      </button>
+                      {(file || (!removeExistingImage && (form.primary_image || productThumb(form)))) && (
+                        <button
+                          type="button"
+                          className="outline-btn admin-image-remove-btn"
+                          onClick={() => {
+                            setFile(null);
+                            setRemoveExistingImage(true);
+                            setForm((f: any) => (f ? { ...f, primary_image: null, images: [] } : f));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                        >
+                          حذف تصویر
+                        </button>
+                      )}
+                    </div>
                     <label className="layout-toggle admin-image-enhance-toggle">
                       <input
                         type="checkbox"
@@ -535,6 +585,9 @@ export function AdminProducts() {
                       <p className="admin-image-enhance-hint">
                         پس از ذخیره، تصویر در همین کادر با وضوح و رنگ بهتر برای طلا ذخیره می‌شود.
                       </p>
+                    )}
+                    {removeExistingImage && !file && form.id && (
+                      <p className="admin-image-enhance-hint">با ذخیره، تصویر فعلی محصول حذف می‌شود.</p>
                     )}
                   </div>
                 </label>
@@ -619,6 +672,8 @@ export function AdminProducts() {
                         onClick={() => {
                           setFormError('');
                           setFile(null);
+                          setRemoveExistingImage(false);
+                          setEnhanceImage(true);
                           setForm({
                             id: p.id,
                             name: p.name,

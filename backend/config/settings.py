@@ -254,7 +254,7 @@ MAX_UPLOAD_IMAGE_PIXELS = int(os.environ.get("MAX_UPLOAD_IMAGE_PIXELS", str(6000
 IMAGE_MAX_SIDE = int(os.environ.get("IMAGE_MAX_SIDE", "1600"))
 IMAGE_JPEG_QUALITY = int(os.environ.get("IMAGE_JPEG_QUALITY", "82"))
 # Slightly higher JPEG quality when jewelry auto-enhance is on (sharper metal detail).
-IMAGE_ENHANCE_JPEG_QUALITY = int(os.environ.get("IMAGE_ENHANCE_JPEG_QUALITY", "88"))
+IMAGE_ENHANCE_JPEG_QUALITY = int(os.environ.get("IMAGE_ENHANCE_JPEG_QUALITY", "92"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 

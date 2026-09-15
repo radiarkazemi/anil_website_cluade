@@ -391,16 +391,50 @@ class AdminProductImageUploadView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         if obj.is_primary:
-            ProductImage.objects.filter(product=product).exclude(id=obj.id).update(is_primary=False)
+            # Replace: remove previous images so "change photo" doesn't leave orphans.
+            old = ProductImage.objects.filter(product=product).exclude(id=obj.id)
+            for prev in old:
+                if prev.image:
+                    try:
+                        prev.image.delete(save=False)
+                    except Exception:
+                        pass
+                prev.delete()
         data = ProductImageSerializer(obj, context={"request": request}).data
         data["processed"] = meta
         return Response(data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, product_id):
+        """Delete one image (?image_id=) or all product images (?all=1)."""
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "محصول یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        clear_all = str(request.query_params.get("all", "")).lower() in ("1", "true", "yes")
         image_id = request.query_params.get("image_id")
-        deleted, _ = ProductImage.objects.filter(product_id=product_id, id=image_id).delete()
-        if not deleted:
+
+        if clear_all:
+            qs = ProductImage.objects.filter(product=product)
+        elif image_id:
+            qs = ProductImage.objects.filter(product=product, id=image_id)
+        else:
+            return Response(
+                {"detail": "image_id یا all=1 لازم است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        objs = list(qs)
+        if not objs:
             return Response({"detail": "تصویر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        for obj in objs:
+            if obj.image:
+                try:
+                    obj.image.delete(save=False)
+                except Exception:
+                    pass
+            obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

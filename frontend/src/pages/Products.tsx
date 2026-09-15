@@ -15,6 +15,7 @@ export function Products() {
   const weightMin = params.get('weight_min') || '';
   const weightMax = params.get('weight_max') || '';
   const feeMax = params.get('fee_max') || '';
+  const search = params.get('search') || '';
   const [cols, setCols] = useState<GridCols>(() => {
     try {
       const saved = Number(localStorage.getItem(GRID_KEY));
@@ -34,7 +35,7 @@ export function Products() {
 
   const { data: categoriesData } = useQuery({ queryKey: ['categories'], queryFn: () => api.categories().then((r) => r.data) });
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ['products', category, sort, weightMin, weightMax, feeMax],
+    queryKey: ['products', category, sort, weightMin, weightMax, feeMax, search],
     queryFn: () => {
       const p: Record<string, string> = { page_size: '200' };
       if (category !== 'all') p.category = category;
@@ -42,6 +43,7 @@ export function Products() {
       if (weightMin) p.weight_min = weightMin;
       if (weightMax) p.weight_max = weightMax;
       if (feeMax) p.fee_max = feeMax;
+      if (search.trim()) p.search = search.trim();
       return api.productsAll(p);
     },
   });
@@ -49,7 +51,11 @@ export function Products() {
   const categories = categoriesData ?? [];
   const products = productsData ?? [];
   const chips = [{ slug: 'all', name: 'همه' }, ...categories.map((c) => ({ slug: c.slug, name: c.name }))];
-  const title = category === 'all' ? 'همه‌ی محصولات' : categories.find((c) => c.slug === category)?.name || category;
+  const title = search.trim()
+    ? `نتایج «${search.trim()}»`
+    : category === 'all'
+      ? 'همه‌ی محصولات'
+      : categories.find((c) => c.slug === category)?.name || category;
 
   return (
     <section className="container products-page">
@@ -62,6 +68,41 @@ export function Products() {
         <h1 className="products-title">{title}</h1>
         <div className="products-count">{faNum(products.length)} محصول</div>
       </div>
+
+      <form
+        className="products-search-bar"
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const v = String(fd.get('q') || '').trim();
+          setParams((p) => {
+            if (v) p.set('search', v);
+            else p.delete('search');
+            return p;
+          });
+        }}
+      >
+        <input
+          className="input products-search-input"
+          name="q"
+          type="search"
+          key={search}
+          defaultValue={search}
+          placeholder="جستجو در نام، دسته، توضیحات…"
+          enterKeyHint="search"
+        />
+        <button type="submit" className="gold-btn products-search-submit">جستجو</button>
+        {search ? (
+          <button
+            type="button"
+            className="outline-btn"
+            onClick={() => setParams((p) => { p.delete('search'); return p; })}
+          >
+            پاک کردن
+          </button>
+        ) : null}
+      </form>
 
       <div className="filter-row">
         <div className="filter-chips" role="listbox" aria-label="دسته‌بندی">
@@ -125,6 +166,10 @@ export function Products() {
 
       {isLoading ? (
         <div className="products-loading">در حال بارگذاری…</div>
+      ) : products.length === 0 ? (
+        <div className="products-empty">
+          {search ? `نتیجه‌ای برای «${search}» پیدا نشد.` : 'محصولی در این فیلتر نیست.'}
+        </div>
       ) : (
         <div className={`product-grid cols-${cols}`}>
           {products.map((p) => <ProductCard key={p.id} product={p} />)}

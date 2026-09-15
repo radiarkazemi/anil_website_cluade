@@ -133,7 +133,7 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [permissions.AllowAny]
     filterset_fields = ["tag", "is_featured"]
-    search_fields = ["name", "description"]
+    search_fields = ["name", "description", "sku", "tag", "placeholder_label", "category__name"]
     ordering_fields = ["created_at", "weight_g", "name"]
 
     def get_queryset(self):
