@@ -202,9 +202,15 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     match = {"ts": {"$gte": since}, "device": {"$ne": "bot"}}
+    # Page-path events (new tracker). Legacy product-only rows lack path.
+    page_match = {
+        **match,
+        "path": {"$exists": True, "$nin": [None, ""]},
+    }
     coll = db.page_views
 
     visits = coll.count_documents(match)
+    page_visits = coll.count_documents(page_match)
     visits_today = coll.count_documents({**match, "ts": {"$gte": today_start}})
     product_views = coll.count_documents(
         {**match, "product_id": {"$exists": True, "$nin": [None, ""]}}
