@@ -83,13 +83,13 @@
   --rate-chip-bg: rgba(255,255,255,.88);
   --rate-chip-border: rgba(122,90,16,.22);
   --hero-wash:
-    radial-gradient(ellipse 95% 80% at 5% -5%, rgba(212,175,55,.48), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(255,248,230,.9), transparent 50%),
-    radial-gradient(ellipse 65% 55% at 60% 100%, rgba(170,130,50,.28), transparent 58%),
-    linear-gradient(155deg, #fff6e0 0%, #edd9b0 42%, #dcc48e 100%);
+    radial-gradient(ellipse 100% 90% at 0% -15%, rgba(212,175,55,.55), transparent 58%),
+    radial-gradient(ellipse 75% 65% at 100% -5%, rgba(255,252,245,.98), transparent 52%),
+    radial-gradient(ellipse 70% 60% at 55% 105%, rgba(180,135,45,.34), transparent 58%),
+    linear-gradient(150deg, #fff4d8 0%, #e8d19e 40%, #d4b978 100%);
   --header-atmosphere:
     linear-gradient(180deg, rgba(255,250,238,.95), rgba(247,242,233,.7)),
-    radial-gradient(ellipse 70% 140% at 0% 0%, rgba(212,175,55,.16), transparent 55%);
+    radial-gradient(ellipse 70% 140% at 0% 0%, rgba(212,175,55,.2), transparent 55%);
   --header-rail: rgba(160,122,28,.45);
   --search-shell: rgba(255,255,255,.72);
 }
@@ -565,29 +565,38 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
   vertical-align: middle;
 }
 .nav-item-dropdown.is-open .nav-drop-chev { rotate: 180deg; }
-.nav-mega-panel {
-  position: relative;
-  width: min(560px, 78vw);
-  padding: 18px;
-  border-radius: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border-gold);
-  box-shadow: var(--shadow);
-  animation: navMegaIn .18s ease;
-}
 .nav-mega-bridge {
   position: absolute;
-  top: calc(100% - 10px); /* overlap trigger — no dead gap */
-  inset-inline-start: 50%;
-  translate: -50% 0;
+  top: 100%;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
   z-index: 140;
-  padding-top: 18px; /* hover bridge fills the remaining path */
   display: none;
   pointer-events: auto;
 }
 .nav-mega-bridge.is-open,
 .nav-item-dropdown.is-open .nav-mega-bridge {
   display: block;
+}
+/* Invisible hit bridge — covers the path from trigger to panel */
+.nav-mega-bridge::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -28px;
+  height: 32px;
+}
+.nav-mega-panel {
+  position: relative;
+  width: min(560px, 78vw);
+  margin-top: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border-gold);
+  box-shadow: var(--shadow);
+  animation: navMegaIn .18s ease;
 }
 .nav-item-dropdown.is-open .nav-drop-trigger {
   color: var(--gold-light);
@@ -1110,12 +1119,19 @@ body.nav-open { overflow: hidden; }
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: .72;
+  opacity: .85;
   background-image:
-    radial-gradient(circle at 18% 28%, rgba(212,175,55,.22) 0 1.4px, transparent 2px),
-    radial-gradient(circle at 78% 62%, rgba(160,120,40,.16) 0 1.1px, transparent 1.8px),
-    linear-gradient(115deg, transparent 0 40%, rgba(212,175,55,.12) 50%, transparent 60%);
-  background-size: 26px 26px, 34px 34px, auto;
+    radial-gradient(circle at 18% 28%, rgba(212,175,55,.28) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 78% 62%, rgba(160,120,40,.2) 0 1.2px, transparent 1.9px),
+    linear-gradient(115deg, transparent 0 38%, rgba(212,175,55,.16) 50%, transparent 62%),
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(212,175,55,.35), transparent 55%);
+  background-size: 26px 26px, 34px 34px, auto, auto;
+}
+[data-theme='light'] .home-hero-bleed {
+  background: #e8d4a4;
+}
+[data-theme='light'] .home-hero-bleed::before {
+  opacity: 1;
 }
 .home-hero-bleed > .container {
   position: relative;

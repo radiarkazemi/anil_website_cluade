@@ -186,14 +186,14 @@ export function Header() {
               <div
                 className={`nav-item-dropdown${productsOpen ? ' is-open' : ''}`}
                 ref={productsRef}
-                onPointerEnter={() => {
+                onMouseEnter={() => {
                   if (closeTimer.current) {
                     window.clearTimeout(closeTimer.current);
                     closeTimer.current = null;
                   }
                   setProductsOpen(true);
                 }}
-                onPointerLeave={() => {
+                onMouseLeave={() => {
                   closeTimer.current = window.setTimeout(() => setProductsOpen(false), 400);
                 }}
               >
