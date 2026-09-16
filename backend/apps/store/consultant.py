@@ -19,12 +19,96 @@ SHAPE_ALIASES = {
     "النگو": ["النگو", "الن گو", "بالنگو", "bangle", "alango"],
     "انگشتر": ["انگشتر", "حلقه", "ring"],
     "دستبند": ["دستبند", "bracelet"],
-    "گردنبند": ["گردنبند", "پلاک", "آویز", "necklace", "pendant"],
+    "گردنبند": ["گردنبند", "پلاک", "آویز", "گردنی", "necklace", "pendant"],
     "گوشواره": ["گوشواره", "گوش واره", "earring"],
     "سرویس": ["سرویس", "نیم ست", "نیمست", "set"],
     "زنجیر": ["زنجیر", "chain"],
     "مدال": ["مدال", "مدالیون"],
 }
+
+JEWELRY_CUES = (
+    "طلا",
+    "زیور",
+    "جواهر",
+    "عیار",
+    "وزن",
+    "گرم",
+    "اجرت",
+    "بودجه",
+    "قیمت",
+    "نرخ",
+    "خرید",
+    "فروش",
+    "گالری",
+    "ویترین",
+    "هدیه",
+    "نامزدی",
+    "عروس",
+    "سرمایه",
+    "شمش",
+    "سکه",
+    "فاکتور",
+    "مالیات",
+    "karat",
+    "gold",
+    "jewelry",
+    "jewellery",
+    "ring",
+    "necklace",
+    "bracelet",
+    "bangle",
+    "earring",
+    "fee",
+    "weight",
+    "budget",
+    "price",
+)
+
+OFFTOPIC_REPLY = (
+    "من مشاور موجودی گالری طلا آنیل هستم و فقط درباره انتخاب زیورآلات طلا کمک می‌کنم.\n"
+    "لطفاً یکی از این‌ها را بگویید تا از ویترین پیشنهاد بدهم:\n"
+    "• شکل قطعه (انگشتر، گردنی، دستبند، النگو، نیم‌ست…)\n"
+    "• وزن تقریبی به گرم\n"
+    "• سقف اجرت به درصد\n"
+    "• یا بودجه تقریبی به تومان\n"
+    "مثال: «انگشتر حدود ۳ گرم کم‌اجرت» یا «گردنی تا ۸۰ میلیون»."
+)
+
+
+def is_jewelry_related(
+    message: str = "",
+    *,
+    weight: float | None = None,
+    weight_min: float | None = None,
+    weight_max: float | None = None,
+    fee_max_pct: float | None = None,
+    fee_min_pct: float | None = None,
+    category: str | None = None,
+    budget_toman: float | None = None,
+) -> bool:
+    """True when the request is about jewelry / gold shopping filters."""
+    if any(
+        v is not None
+        for v in (weight, weight_min, weight_max, fee_max_pct, fee_min_pct, budget_toman)
+    ):
+        return True
+    if category and str(category).strip():
+        return True
+
+    text = _norm(message)
+    if not text:
+        return False
+
+    for cue in JEWELRY_CUES:
+        if _norm(cue) in text:
+            return True
+    for aliases in SHAPE_ALIASES.values():
+        if any(_norm(a) in text for a in aliases if len(_norm(a)) >= 3):
+            return True
+    # digits + گرم / میلیون often mean a shopping ask even without other words
+    if re.search(r"\d", text) and re.search(r"(گرم|میلیون|ملیون|تومان|٪|%)", text):
+        return True
+    return False
 
 
 def _norm(text: str) -> str:
@@ -205,6 +289,30 @@ def suggest_products(
     budget_toman: float | None = None,
     limit: int = 6,
 ) -> dict[str, Any]:
+    if not is_jewelry_related(
+        message,
+        weight=weight,
+        weight_min=weight_min,
+        weight_max=weight_max,
+        fee_max_pct=fee_max_pct,
+        fee_min_pct=fee_min_pct,
+        category=category,
+        budget_toman=budget_toman,
+    ):
+        return {
+            "reply": OFFTOPIC_REPLY,
+            "prefs": {
+                "weight_min": None,
+                "weight_max": None,
+                "fee_max_pct": None,
+                "categories": [],
+                "budget": None,
+            },
+            "suggestions": [],
+            "count": 0,
+            "offtopic": True,
+        }
+
     prefs = parse_request(
         message,
         weight_min=weight_min,
@@ -327,6 +435,8 @@ def _maybe_llm_polish(message: str, reply: str, suggestions: list[dict[str, Any]
                     "role": "system",
                     "content": (
                         "تو مشاور فروش گالری طلا آنیل هستی. فقط فارسی، کوتاه و مودب. "
+                        "فقط درباره زیورآلات طلا، وزن، اجرت، بودجه و موجودی گالری حرف بزن. "
+                        "اگر موضوع نامرتبط بود، مؤدبانه بگو فقط مشاور طلا هستی و از مشتری وزن/اجرت/شکل بخواه. "
                         "فقط از روی پیشنهادهای داده‌شده حرف بزن؛ محصول جدید نساز."
                     ),
                 },

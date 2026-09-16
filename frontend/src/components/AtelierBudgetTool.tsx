@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
@@ -42,7 +42,9 @@ function band(weight: number) {
 }
 
 export function AtelierBudgetTool() {
-  const rate = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
+  const liveRate = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
+  const [rateInput, setRateInput] = useState('');
+  const [rateTouched, setRateTouched] = useState(false);
   const [mode, setMode] = useState<Mode>('weight');
   const [weight, setWeight] = useState(4);
   const [budgetM, setBudgetM] = useState(80); // million toman
@@ -51,7 +53,20 @@ export function AtelierBudgetTool() {
   const weightId = useId();
   const budgetId = useId();
   const feeId = useId();
+  const rateId = useId();
 
+  // Sync editable rate from live feed until the user edits it
+  useEffect(() => {
+    if (!rateTouched && liveRate > 0) {
+      setRateInput(String(Math.round(liveRate)));
+    }
+  }, [liveRate, rateTouched]);
+
+  const rate = (() => {
+    const n = Number(String(rateInput).replace(/[^\d.]/g, ''));
+    if (Number.isFinite(n) && n > 0) return n;
+    return liveRate;
+  })();
   const feeRatio = feePct / 100;
   const budget = budgetM * 1_000_000;
 
@@ -125,11 +140,11 @@ export function AtelierBudgetTool() {
     <section className="atelier-tool" aria-labelledby="atelier-tool-title">
       <div className="container atelier-tool-shell">
         <header className="atelier-tool-head">
-          <p className="atelier-section-eyebrow">ابزار زنده گالری</p>
+          <p className="atelier-section-eyebrow">ماشین‌حساب طلا</p>
           <h2 id="atelier-tool-title">استودیو بودجه آنیل</h2>
           <p>
-            وزن یا بودجه را تنظیم کنید — با نرخ لحظه‌ای طلای ۱۸ عیار، قیمت تقریبی و قطعات نزدیک
-            از ویترین را ببینید.
+            وزن، اجرت و نرخ طلا را خودتان تنظیم کنید — قیمت تقریبی با همان فرمول فاکتور رسمی
+            محاسبه می‌شود و قطعات نزدیک از ویترین پیشنهاد می‌گردد.
           </p>
         </header>
 
@@ -155,6 +170,43 @@ export function AtelierBudgetTool() {
                 از روی بودجه
               </button>
             </div>
+
+            <label className="atelier-field atelier-rate-field" htmlFor={rateId}>
+              <span className="atelier-field-label">
+                نرخ طلای ۱۸ عیار
+                <strong>تومان / گرم</strong>
+              </span>
+              <div className="atelier-rate-edit">
+                <input
+                  id={rateId}
+                  type="text"
+                  inputMode="numeric"
+                  className="atelier-rate-input"
+                  value={rateInput}
+                  placeholder={liveRate > 0 ? faPrice(liveRate) : 'نرخ را وارد کنید'}
+                  onChange={(e) => {
+                    setRateTouched(true);
+                    setRateInput(e.target.value.replace(/[^\d]/g, ''));
+                  }}
+                />
+                <button
+                  type="button"
+                  className="atelier-rate-reset"
+                  disabled={!liveRate}
+                  onClick={() => {
+                    setRateTouched(false);
+                    setRateInput(liveRate > 0 ? String(Math.round(liveRate)) : '');
+                  }}
+                >
+                  نرخ روز
+                </button>
+              </div>
+              {liveRate > 0 && rateTouched && Math.round(rate) !== Math.round(liveRate) && (
+                <span className="atelier-rate-hint">
+                  نرخ زنده بازار: {faPrice(liveRate)} — برای مقایسه ویرایش کرده‌اید
+                </span>
+              )}
+            </label>
 
             {mode === 'weight' ? (
               <label className="atelier-field" htmlFor={weightId}>
@@ -242,11 +294,11 @@ export function AtelierBudgetTool() {
 
           <aside className="atelier-tool-result" aria-live="polite">
             <div className="atelier-rate-line">
-              <span>نرخ طلای ۱۸</span>
+              <span>نرخ محاسبه‌شده</span>
               {rate > 0 ? (
                 <strong>{faPrice(rate)} تومان / گرم</strong>
               ) : (
-                <strong className="is-muted">در حال دریافت نرخ…</strong>
+                <strong className="is-muted">نرخ را وارد کنید</strong>
               )}
             </div>
 

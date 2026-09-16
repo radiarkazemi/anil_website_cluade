@@ -4389,20 +4389,40 @@ body.nav-open { overflow: hidden; }
   position: relative;
   isolation: isolate;
   overflow: clip;
-  padding: 64px 0 56px;
-  min-height: min(70vh, 620px);
+  padding: 72px 0 64px;
+  min-height: min(78vh, 680px);
   display: flex;
   align-items: center;
+}
+.atelier-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.atelier-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  transform: scale(1.04);
+}
+.atelier-hero-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 42%, color-mix(in srgb, var(--bg) 28%, transparent) 100%),
+    linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--bg) 55%, transparent) 100%);
 }
 .atelier-hero-wash {
   position: absolute;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
+  opacity: .55;
   background:
     radial-gradient(ellipse 80% 70% at 88% 18%, color-mix(in srgb, var(--gold) 45%, transparent), transparent 58%),
     radial-gradient(ellipse 60% 55% at 10% 80%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 70%),
-    var(--hero-wash, var(--bg-soft));
+    radial-gradient(ellipse 50% 40% at 50% 50%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 70%);
 }
 .atelier-hero-grid {
   position: absolute;
@@ -4419,11 +4439,11 @@ body.nav-open { overflow: hidden; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.15fr .85fr;
+  grid-template-columns: 1fr;
   gap: 36px;
   align-items: center;
 }
-.atelier-hero-copy { display: grid; gap: 16px; max-width: 34rem; }
+.atelier-hero-copy { display: grid; gap: 16px; max-width: 36rem; }
 .atelier-kicker {
   display: inline-flex;
   width: fit-content;
@@ -4908,3 +4928,47 @@ body.nav-open { overflow: hidden; }
   .atelier-tool-layout { grid-template-columns: 1fr; }
   .atelier-match-list { grid-template-columns: 1fr; }
 }
+
+.atelier-rate-edit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.atelier-rate-input {
+  width: 100%;
+  border: 1px solid var(--border-gold);
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-radius: 12px;
+  direction: ltr;
+  text-align: left;
+}
+.atelier-rate-reset {
+  border: 1px solid var(--border-gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  color: var(--gold-deep);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.atelier-rate-reset:disabled { opacity: .5; cursor: not-allowed; }
+.atelier-rate-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+[data-theme='light'] .atelier-hero-veil {
+  background:
+    linear-gradient(105deg, rgba(247,242,233,.92) 0%, rgba(247,242,233,.62) 45%, rgba(247,242,233,.28) 100%),
+    linear-gradient(180deg, transparent 35%, rgba(247,242,233,.5) 100%);
+}
+
