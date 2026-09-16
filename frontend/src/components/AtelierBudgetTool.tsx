@@ -85,18 +85,27 @@ export function AtelierBudgetTool() {
     staleTime: 20_000,
   });
 
-  // Soft fallback: broaden when the tight band is empty
+  // Soft fallback: broaden fee, then drop shape keyword if still empty
   const { data: fallback = [] } = useQuery({
-    queryKey: ['atelier-matches-fallback', feePct, shapeMeta.search],
-    queryFn: () =>
-      api
+    queryKey: ['atelier-matches-fallback', feePct, shapeMeta.search, matches.length],
+    queryFn: async () => {
+      const withShape = await api
         .products({
           fee_max: String(Math.max(feePct, 22)),
           page_size: '6',
           ordering: 'price',
           ...(shapeMeta.search ? { search: shapeMeta.search } : {}),
         })
-        .then((r) => r.data.results as Product[]),
+        .then((r) => r.data.results as Product[]);
+      if (withShape.length || !shapeMeta.search) return withShape;
+      return api
+        .products({
+          fee_max: String(Math.max(feePct, 22)),
+          page_size: '6',
+          ordering: 'price',
+        })
+        .then((r) => r.data.results as Product[]);
+    },
     enabled: rate > 0 && estimatedWeight > 0 && !isFetching && matches.length === 0,
     staleTime: 20_000,
   });
