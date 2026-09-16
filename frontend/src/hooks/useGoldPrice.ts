@@ -46,7 +46,7 @@ async function pollOnce() {
   }
 }
 
-def startPoll(intervalMs: number) {
+function startPoll(intervalMs: number) {
   if (feed.pollId != null) {
     window.clearInterval(feed.pollId);
     feed.pollId = null;
