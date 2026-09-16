@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
@@ -7,6 +7,40 @@ import { bestProductSeo, suggestProductSeo, type SeoSuggestion } from '../../uti
 import { useToast } from '../../store/toastStore';
 import type { Product } from '../../types';
 import { PageHeader } from './adminShared';
+
+class ModalErrorBoundary extends Component<
+  { children: ReactNode; onReset?: () => void },
+  { error: string | null }
+> {
+  state = { error: null as string | null };
+
+  static getDerivedStateFromError(err: Error) {
+    return { error: err?.message || 'خطای نمایش فرم' };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="admin-edit-modal-body">
+          <div className="admin-form-error">
+            نمایش فرم با خطا روبه‌رو شد: {this.state.error}
+          </div>
+          <button
+            type="button"
+            className="outline-btn"
+            onClick={() => {
+              this.setState({ error: null });
+              this.props.onReset?.();
+            }}
+          >
+            بستن و تلاش دوباره
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function productThumb(p: any): string | null {
   return (
@@ -124,14 +158,16 @@ export function AdminProducts() {
   const [formError, setFormError] = useState('');
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [removingImageId, setRemovingImageId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    pendingPreviews.forEach((u) => URL.revokeObjectURL(u));
     const urls = pendingFiles.map((f) => URL.createObjectURL(f));
     setPendingPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
   }, [pendingFiles]);
 
   useEffect(() => {
@@ -333,6 +369,76 @@ export function AdminProducts() {
     applySeo(seoSuggestions[0]);
   };
 
+  const openProductForm = async (p: any) => {
+    setFormError('');
+    setPendingFiles([]);
+    setOpeningId(p.id);
+    try {
+      const full = p?.id ? (await api.adminProduct(p.id)).data : p;
+      const images = normalizeImages(full.images);
+      setForm({
+        id: full.id,
+        name: full.name,
+        slug: full.slug,
+        category: full.category || categories?.find((c) => c.name === full.category_name)?.id,
+        weight_g: full.weight_g ?? '',
+        karat: full.karat ?? 18,
+        fee_ratio: full.fee_ratio ?? '0.20',
+        stone_value: full.stone_value ?? 0,
+        tag: full.tag || '',
+        description: full.description || '',
+        placeholder_label: full.placeholder_label || '',
+        sku: full.sku || '',
+        stock: full.stock ?? 1,
+        is_active: full.is_active ?? true,
+        is_featured: full.is_featured,
+        meta_title: full.meta_title || '',
+        meta_description: full.meta_description || '',
+        primary_image: productThumb(full),
+        images,
+      });
+    } catch (err: any) {
+      toast(formatApiError(err?.response?.data, err?.response?.status));
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const ingestFiles = async (files: File[]) => {
+    if (!files.length || !form) return;
+    // Existing product: upload immediately so the user sees results now
+    if (form.id) {
+      setUploading(true);
+      try {
+        const existingCount = normalizeImages(form.images).length;
+        for (let i = 0; i < files.length; i += 1) {
+          const makePrimary = existingCount === 0 && i === 0;
+          await api.adminUploadImage(form.id, files[i], makePrimary);
+        }
+        const refreshed = (await api.adminProduct(form.id)).data;
+        setForm((f: any) =>
+          f
+            ? {
+                ...f,
+                images: normalizeImages(refreshed.images),
+                primary_image: productThumb(refreshed),
+              }
+            : f,
+        );
+        toast(`${files.length} تصویر افزوده شد`);
+        qc.invalidateQueries({ queryKey: ['admin-products'] });
+        qc.invalidateQueries({ queryKey: ['products'] });
+      } catch (err: any) {
+        toast(formatApiError(err?.response?.data, err?.response?.status));
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+    // New product: queue until save
+    setPendingFiles((prev) => [...prev, ...files]);
+  };
+
   return (
     <div>
       <PageHeader
@@ -394,6 +500,7 @@ export function AdminProducts() {
             aria-labelledby="admin-product-edit-title"
             onClick={(e) => e.stopPropagation()}
           >
+            <ModalErrorBoundary onReset={closeForm}>
             <div className="admin-edit-modal-head">
               <div>
                 <h3 id="admin-product-edit-title">{form.id ? 'ویرایش محصول' : 'محصول جدید'}</h3>
@@ -493,11 +600,11 @@ export function AdminProducts() {
                           <div className="seo-suggest-title">{s.meta_title}</div>
                           <div className="seo-suggest-desc">{s.meta_description}</div>
                           <div className="seo-suggest-keys">
-                            {s.keywords.slice(0, 4).map((k) => (
+                            {(s.keywords || []).slice(0, 4).map((k) => (
                               <span key={k}>{k}</span>
                             ))}
                           </div>
-                          <div className="seo-suggest-tip">{s.tips[0]}</div>
+                          <div className="seo-suggest-tip">{(s.tips && s.tips[0]) || ''}</div>
                         </button>
                       ))}
                     </div>
@@ -525,8 +632,9 @@ export function AdminProducts() {
                     onChange={(e) => setForm({ ...form, meta_description: e.target.value, _seoAppliedId: '' })}
                   />
                 </label>
-                <label className="full">
-                  <span>تصاویر محصول</span>
+
+                <div className="full admin-image-block">
+                  <span className="admin-image-block-label">تصاویر محصول</span>
                   <div className="admin-image-picker">
                     <div className="admin-image-gallery">
                       {normalizeImages(form.images).map((img) => (
@@ -584,9 +692,38 @@ export function AdminProducts() {
                         </div>
                       ))}
                       {!normalizeImages(form.images).length && !pendingPreviews.length && (
-                        <div className="admin-image-empty">هنوز تصویری نیست — می‌توانید چند تصویر اضافه کنید</div>
+                        <div className="admin-image-empty">هنوز تصویری نیست — فایل را بکشید یا انتخاب کنید</div>
                       )}
                     </div>
+
+                    <div
+                      className={`admin-image-dropzone${uploading ? ' is-busy' : ''}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const files = Array.from(e.dataTransfer.files || []).filter((f) => f.type.startsWith('image/'));
+                        void ingestFiles(files);
+                      }}
+                      onClick={() => {
+                        if (!uploading) fileInputRef.current?.click();
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          fileInputRef.current?.click();
+                        }
+                      }}
+                    >
+                      <strong>{uploading ? 'در حال آپلود…' : 'افزودن تصویر محصول'}</strong>
+                      <span>کلیک کنید یا تصویر را اینجا رها کنید · چند فایل مجاز است</span>
+                    </div>
+
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -595,22 +732,25 @@ export function AdminProducts() {
                       className="admin-image-file-input"
                       onChange={(e) => {
                         const picked = Array.from(e.target.files || []);
-                        if (picked.length) setPendingFiles((prev) => [...prev, ...picked]);
                         e.target.value = '';
+                        void ingestFiles(picked);
                       }}
                     />
+
                     <div className="admin-image-actions">
                       <button
                         type="button"
                         className="outline-btn"
+                        disabled={uploading}
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        افزودن تصویر
+                        {uploading ? 'صبر کنید…' : 'انتخاب از سیستم'}
                       </button>
                       {!!normalizeImages(form.images).length && form.id && (
                         <button
                           type="button"
                           className="outline-btn admin-image-remove-btn"
+                          disabled={uploading}
                           onClick={async () => {
                             if (!confirm('همه تصاویر این محصول حذف شوند؟')) return;
                             try {
@@ -628,13 +768,19 @@ export function AdminProducts() {
                         </button>
                       )}
                     </div>
-                    {!!pendingFiles.length && (
+                    {!!pendingFiles.length && !form.id && (
                       <p className="admin-image-hint">
-                        {pendingFiles.length} تصویر جدید بعد از ذخیره به گالری محصول اضافه می‌شود.
+                        {pendingFiles.length} تصویر جدید بعد از ذخیرهٔ محصول آپلود می‌شود.
+                      </p>
+                    )}
+                    {!!form.id && (
+                      <p className="admin-image-hint">
+                        برای محصول ذخیره‌شده، تصویر بلافاصله آپلود و در گالری دیده می‌شود.
                       </p>
                     )}
                   </div>
-                </label>
+                </div>
+
                 <label className="layout-toggle">
                   <input type="checkbox" checked={!!form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} />
                   ویژه / صفحه اصلی
@@ -647,11 +793,12 @@ export function AdminProducts() {
               {formError && <div className="admin-form-error">{formError}</div>}
             </div>
             <div className="admin-edit-modal-foot">
-              <button className="gold-btn" type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+              <button className="gold-btn" type="button" disabled={save.isPending || uploading} onClick={() => save.mutate()}>
                 {save.isPending ? 'در حال ذخیره…' : 'ذخیره'}
               </button>
               <button className="outline-btn" type="button" onClick={closeForm}>انصراف / بستن</button>
             </div>
+            </ModalErrorBoundary>
           </div>
         </div>,
         document.body,
@@ -713,34 +860,10 @@ export function AdminProducts() {
                         type="button"
                         className="outline-btn"
                         style={{ padding: '6px 12px', fontSize: 12, marginLeft: 6 }}
-                        onClick={() => {
-                          setFormError('');
-                          setPendingFiles([]);
-                          const images = normalizeImages(p.images);
-                          setForm({
-                            id: p.id,
-                            name: p.name,
-                            slug: p.slug,
-                            category: p.category || categories?.find((c) => c.name === p.category_name)?.id,
-                            weight_g: p.weight_g ?? '',
-                            karat: p.karat ?? 18,
-                            fee_ratio: p.fee_ratio ?? '0.20',
-                            stone_value: p.stone_value ?? 0,
-                            tag: p.tag || '',
-                            description: p.description || '',
-                            placeholder_label: p.placeholder_label || '',
-                            sku: p.sku || '',
-                            stock: p.stock ?? 1,
-                            is_active: p.is_active ?? true,
-                            is_featured: p.is_featured,
-                            meta_title: p.meta_title || '',
-                            meta_description: p.meta_description || '',
-                            primary_image: productThumb(p),
-                            images,
-                          });
-                        }}
+                        disabled={openingId === p.id}
+                        onClick={() => void openProductForm(p)}
                       >
-                        ویرایش
+                        {openingId === p.id ? '…' : 'ویرایش'}
                       </button>
                       <button
                         type="button"

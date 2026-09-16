@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
+import { ProductImageGallery } from '../components/ProductImageGallery';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
@@ -19,7 +20,6 @@ export function ProductDetail() {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const [qty, setQty] = useState(1);
-  const [imgIdx, setImgIdx] = useState(0);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -43,7 +43,6 @@ export function ProductDetail() {
   }, [product?.id]);
 
   useEffect(() => {
-    setImgIdx(0);
     setQty(1);
   }, [slug]);
 
@@ -71,6 +70,20 @@ export function ProductDetail() {
     };
   }, [product]);
 
+  const images = useMemo(() => {
+    const raw = product?.images?.length
+      ? [...product.images].sort((a, b) => {
+          if (!!a.is_primary === !!b.is_primary) return (a.order ?? 0) - (b.order ?? 0);
+          return a.is_primary ? -1 : 1;
+        })
+      : [];
+    const urls = raw
+      .map((i) => i.image_url || i.image || '')
+      .filter(Boolean) as string[];
+    if (urls.length) return urls;
+    return product?.primary_image ? [product.primary_image] : [];
+  }, [product]);
+
   if (isLoading || !product) {
     return (
       <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>
@@ -83,12 +96,6 @@ export function ProductDetail() {
   const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
-  const images = (product.images?.length
-    ? product.images.map((i) => i.image_url || i.image || '').filter(Boolean)
-    : product.primary_image
-      ? [product.primary_image]
-      : []) as string[];
-  const mainImg = images[imgIdx] || images[0] || '';
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
   const maxQty = Math.max(1, product.stock ?? 99);
 
@@ -105,30 +112,12 @@ export function ProductDetail() {
       </div>
 
       <div className="pd-grid">
-        <div className="pd-gallery">
-          <div className="pd-main-media">
-            {mainImg ? (
-              <img src={mainImg} alt={product.name} />
-            ) : (
-              <span className="pd-placeholder">{product.placeholder_label || product.name}</span>
-            )}
-            {!inStock && <div className="pd-oos">ناموجود</div>}
-          </div>
-          {images.length > 1 && (
-            <div className="pd-thumbs">
-              {images.map((src, i) => (
-                <button
-                  key={`${src ?? 'img'}-${i}`}
-                  type="button"
-                  className={`pd-thumb${i === imgIdx ? ' active' : ''}`}
-                  onClick={() => setImgIdx(i)}
-                >
-                  <img src={src || ''} alt="" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductImageGallery
+          images={images}
+          alt={product.name}
+          placeholder={product.placeholder_label || product.name}
+          outOfStock={!inStock}
+        />
 
         <div className="pd-info">
           <div className="pd-tags">
