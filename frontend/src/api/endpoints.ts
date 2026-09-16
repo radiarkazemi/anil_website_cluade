@@ -155,7 +155,43 @@ export const api = {
   createOrderFromProfile: (data: { items: { product_id: string; qty: number }[]; note?: string }) =>
     client.post<Order>('/orders/', data),
   priceHistory: (limit = 50) => client.get('/analytics/price-history/', { params: { limit } }),
-  logProductView: (product_id: string) => client.post('/analytics/product-view/', { product_id }),
+  logProductView: (product_id: string, extra?: Record<string, string>) =>
+    client.post('/analytics/product-view/', { product_id, ...extra }),
+  logSiteVisit: (data: {
+    path: string;
+    title?: string;
+    referrer?: string;
+    session_id?: string;
+    user_agent?: string;
+    screen?: string;
+    language?: string;
+    product_id?: string;
+  }) => client.post('/analytics/site-visit/', data),
+  adminTraffic: (days = 14) =>
+    client.get<{
+      days: number;
+      available: boolean;
+      totals: {
+        visits: number;
+        unique_visitors: number;
+        visits_today: number;
+        unique_today: number;
+        product_views: number;
+      };
+      series: { date: string; visits: number; unique_visitors: number }[];
+      top_pages: { path: string; views: number; title?: string }[];
+      top_referrers: { host: string; views: number }[];
+      top_products: { product_id: string; views: number; name?: string; slug?: string | null }[];
+      devices: { device: string; views: number }[];
+      recent: {
+        path?: string;
+        title?: string;
+        referrer_host?: string;
+        device?: string;
+        ts?: string;
+        product_id?: string;
+      }[];
+    }>('/admin/traffic/', { params: { days } }),
 
   // Admin panel
   adminDashboard: () => client.get<DashboardStats>('/admin/dashboard/'),

@@ -7,6 +7,7 @@ import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
 import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
+import { useSiteAnalytics } from './hooks/useSiteAnalytics';
 import { api } from './api/endpoints';
 import { useStore } from './store/useStore';
 import { Home } from './pages/Home';
@@ -69,6 +70,7 @@ function useClientSessionBootstrap() {
 function AppInner() {
   useGoldPrice(15000);
   useClientSessionBootstrap();
+  useSiteAnalytics();
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 

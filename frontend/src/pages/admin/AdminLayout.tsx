@@ -15,7 +15,7 @@ const NAV = [
   { to: '/panel/layout', label: 'چیدمان سایت', icon: '▦', group: 'محتوا' },
   { to: '/panel/pages', label: 'صفحات و بلاگ', icon: '✎', group: 'محتوا' },
   { to: '/panel/gold', label: 'نرخ طلا', icon: '◉', group: 'بازار' },
-  { to: '/panel/analytics', label: 'تحلیل و گزارش', icon: '◫', group: 'بازار' },
+  { to: '/panel/analytics', label: 'تحلیل و ترافیک', icon: '◫', group: 'بازار' },
   { to: '/panel/users', label: 'کاربران', icon: '☺', group: 'سیستم' },
   { to: '/panel/settings', label: 'تنظیمات', icon: '⚙', group: 'سیستم' },
 ];
@@ -28,7 +28,7 @@ const COMMANDS = [
   { label: 'چیدمان سایت', path: '/panel/layout', keywords: 'layout elementor چیدمان هیرو' },
   { label: 'صفحات و بلاگ', path: '/panel/pages', keywords: 'pages blog راهنما' },
   { label: 'نرخ طلا', path: '/panel/gold', keywords: 'gold قیمت' },
-  { label: 'تحلیل و گزارش', path: '/panel/analytics', keywords: 'analytics report' },
+  { label: 'تحلیل و ترافیک', path: '/panel/analytics', keywords: 'analytics report traffic visit بازدید' },
   { label: 'کاربران', path: '/panel/users', keywords: 'users' },
   { label: 'تنظیمات', path: '/panel/settings', keywords: 'settings' },
   { label: 'فروشگاه', path: '/', keywords: 'shop storefront' },

@@ -7,5 +7,7 @@ app_name = "analytics"
 urlpatterns = [
     path("analytics/price-history/", views.PriceHistoryView.as_view(), name="price-history"),
     path("analytics/product-view/", views.ProductViewLogView.as_view(), name="product-view"),
+    path("analytics/site-visit/", views.SiteVisitLogView.as_view(), name="site-visit"),
     path("analytics/popular/", views.PopularProductsView.as_view(), name="popular-products"),
+    path("admin/traffic/", views.AdminTrafficView.as_view(), name="admin-traffic"),
 ]

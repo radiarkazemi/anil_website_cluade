@@ -38,9 +38,23 @@ export function ProductDetail() {
 
   useEffect(() => {
     if (product?.id) {
-      api.logProductView(product.id).catch(() => {});
+      let sessionId = '';
+      try {
+        sessionId = sessionStorage.getItem('anil_vid') || '';
+      } catch {
+        sessionId = '';
+      }
+      api
+        .logProductView(product.id, {
+          path: `/products/${product.slug}`,
+          title: document.title,
+          referrer: document.referrer || '',
+          session_id: sessionId,
+          user_agent: navigator.userAgent,
+        })
+        .catch(() => {});
     }
-  }, [product?.id]);
+  }, [product?.id, product?.slug]);
 
   useEffect(() => {
     setQty(1);

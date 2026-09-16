@@ -1,14 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { api } from '../../api/endpoints';
 import { faNum, faPrice } from '../../utils/format';
 import { BarSeries, KpiCard, PageHeader, SparkArea } from './adminShared';
 
+const DEVICE_LABEL: Record<string, string> = {
+  mobile: 'موبایل',
+  desktop: 'دسکتاپ',
+  tablet: 'تبلت',
+  bot: 'ربات',
+  unknown: 'نامشخص',
+};
+
+function faDateLabel(iso: string) {
+  try {
+    const d = new Date(`${iso}T12:00:00Z`);
+    return d.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
+
 export function AdminAnalytics() {
+  const [days, setDays] = useState(14);
   const { data: dash, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.adminDashboard().then((r) => r.data),
     refetchInterval: 45000,
+  });
+  const { data: traffic, isLoading: trafficLoading } = useQuery({
+    queryKey: ['admin-traffic', days],
+    queryFn: () => api.adminTraffic(days).then((r) => r.data),
+    refetchInterval: 60000,
   });
   const { data: history } = useQuery({
     queryKey: ['price-history'],
@@ -22,14 +46,187 @@ export function AdminAnalytics() {
   const histRows = Array.isArray(history) ? history : history?.results || history?.data || [];
   const conv = dash.conversion || { orders_total: 0, paid_rate: 0, cancel_rate: 0 };
   const stock = dash.stock_health || { out_of_stock: 0, low_stock: 0, healthy: 0 };
+  const t = traffic?.totals;
+  const visitSeries = traffic?.series || [];
 
   return (
     <div>
       <PageHeader
         title="مرکز تحلیل پیشرفته"
-        subtitle="فروش، پرداخت، موجودی، نرخ طلا و سلامت عملیات — به‌روزرسانی خودکار"
+        subtitle="بازدید سایت، ترافیک، فروش، موجودی و نرخ طلا — به‌روزرسانی خودکار"
         actions={<Link to="/panel" className="outline-btn">داشبورد</Link>}
       />
+
+      <section className="admin-card" style={{ marginBottom: 18 }}>
+        <div className="admin-card-head" style={{ alignItems: 'center' }}>
+          <div>
+            <h3>بازدید و ترافیک سایت</h3>
+            <p>بازدیدکنندگان، صفحات پربازدید، منابع ورودی و دستگاه‌ها</p>
+          </div>
+          <div className="admin-page-actions" style={{ gap: 8 }}>
+            {[7, 14, 30].map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={days === d ? 'gold-btn' : 'outline-btn'}
+                onClick={() => setDays(d)}
+                style={{ padding: '6px 12px', fontSize: 13 }}
+              >
+                {faNum(d)} روز
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {trafficLoading && !traffic ? (
+          <div className="empty-cell">در حال بارگذاری ترافیک…</div>
+        ) : !traffic?.available ? (
+          <div className="empty-cell">
+            سرویس آمار در دسترس نیست (MongoDB). پس از اتصال، بازدیدها اینجا نمایش داده می‌شوند.
+          </div>
+        ) : (
+          <>
+            <div className="stat-grid analytics-kpi" style={{ marginTop: 8 }}>
+              <KpiCard label="بازدید امروز" value={faNum(t?.visits_today || 0)} tone="gold" hint="page views" />
+              <KpiCard label="بازدیدکننده یکتا امروز" value={faNum(t?.unique_today || 0)} tone="up" />
+              <KpiCard
+                label={`بازدید ${faNum(days)} روز`}
+                value={faNum(t?.visits || 0)}
+                hint="مجموع نمایش صفحات"
+              />
+              <KpiCard
+                label={`بازدیدکننده یکتا ${faNum(days)} روز`}
+                value={faNum(t?.unique_visitors || 0)}
+              />
+              <KpiCard label="بازدید محصول" value={faNum(t?.product_views || 0)} hint="صفحات جزئیات کالا" />
+            </div>
+
+            <div className="admin-grid-2" style={{ marginTop: 18 }}>
+              <div className="chart-card" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                <div className="admin-card-head">
+                  <div>
+                    <h3>روند بازدید</h3>
+                    <p>تعداد نمایش صفحه در روز</p>
+                  </div>
+                  <div className="chart-total">{faNum(visitSeries.reduce((a, b) => a + b.visits, 0))}</div>
+                </div>
+                <SparkArea values={visitSeries.map((s) => s.visits)} />
+                <BarSeries
+                  items={visitSeries.map((s) => ({
+                    label: faDateLabel(s.date),
+                    value: s.visits,
+                  }))}
+                />
+              </div>
+              <div>
+                <div className="admin-card-head"><h3>دستگاه‌ها</h3></div>
+                <BarSeries
+                  items={(traffic.devices || []).map((d) => ({
+                    label: DEVICE_LABEL[d.device] || d.device,
+                    value: d.views,
+                  }))}
+                />
+                {(traffic.devices || []).length === 0 && (
+                  <div className="empty-cell">هنوز دستگاهی ثبت نشده.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="admin-grid-2" style={{ marginTop: 18 }}>
+              <div>
+                <div className="admin-card-head"><h3>صفحات پربازدید</h3></div>
+                <div className="top-products">
+                  {(traffic.top_pages || []).map((p, i) => (
+                    <div key={p.path} className="top-product">
+                      <span className="rank">{faNum(i + 1)}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="top-name" style={{ direction: 'ltr', textAlign: 'right' }}>{p.path}</div>
+                        <div className="kpi-hint">{p.title || '—'}</div>
+                      </div>
+                      <div className="money">{faNum(p.views)}</div>
+                    </div>
+                  ))}
+                  {(traffic.top_pages || []).length === 0 && (
+                    <div className="empty-cell">هنوز بازدیدی ثبت نشده — با گشت‌وگذار در فروشگاه پر می‌شود.</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="admin-card-head"><h3>منابع ورودی (Referrer)</h3></div>
+                <div className="top-products">
+                  {(traffic.top_referrers || []).map((r, i) => (
+                    <div key={`${r.host}-${i}`} className="top-product">
+                      <span className="rank">{faNum(i + 1)}</span>
+                      <div>
+                        <div className="top-name" style={{ direction: 'ltr', textAlign: 'right' }}>
+                          {r.host === 'direct' ? 'ورود مستقیم' : r.host}
+                        </div>
+                      </div>
+                      <div className="money">{faNum(r.views)}</div>
+                    </div>
+                  ))}
+                  {(traffic.top_referrers || []).length === 0 && (
+                    <div className="empty-cell">منبع ورودی ثبت نشده.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-grid-2" style={{ marginTop: 18 }}>
+              <div>
+                <div className="admin-card-head"><h3>محصولات پربازدید</h3></div>
+                <div className="top-products">
+                  {(traffic.top_products || []).map((p, i) => (
+                    <div key={p.product_id} className="top-product">
+                      <span className="rank">{faNum(i + 1)}</span>
+                      <div>
+                        <div className="top-name">{p.name || p.product_id}</div>
+                        <div className="kpi-hint">{p.slug ? `/${p.slug}` : 'محصول'}</div>
+                      </div>
+                      <div className="money">{faNum(p.views)}</div>
+                    </div>
+                  ))}
+                  {(traffic.top_products || []).length === 0 && (
+                    <div className="empty-cell">بازدید محصولی نیست.</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="admin-card-head"><h3>آخرین بازدیدها</h3></div>
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>زمان</th>
+                        <th>مسیر</th>
+                        <th>منبع</th>
+                        <th>دستگاه</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(traffic.recent || []).map((row, idx) => (
+                        <tr key={`${row.ts}-${idx}`}>
+                          <td>{row.ts ? new Date(row.ts).toLocaleString('fa-IR') : '—'}</td>
+                          <td style={{ direction: 'ltr', textAlign: 'right' }}>{row.path || '—'}</td>
+                          <td style={{ direction: 'ltr', textAlign: 'right' }}>
+                            {!row.referrer_host || row.referrer_host === 'direct'
+                              ? 'مستقیم'
+                              : row.referrer_host}
+                          </td>
+                          <td>{DEVICE_LABEL[row.device || ''] || row.device || '—'}</td>
+                        </tr>
+                      ))}
+                      {(traffic.recent || []).length === 0 && (
+                        <tr><td colSpan={4} className="empty-cell">بازدیی نیست.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
 
       <div className="stat-grid analytics-kpi">
         <KpiCard label="درآمد کل" value={faPrice(dash.revenue_total)} tone="gold" hint="بدون سفارش‌های لغو شده" />
@@ -114,7 +311,7 @@ export function AdminAnalytics() {
       </div>
 
       <div className="admin-card" style={{ marginTop: 18 }}>
-        <div className="admin-card-head"><h3>رتبه‌بندی محصولات</h3></div>
+        <div className="admin-card-head"><h3>رتبه‌بندی محصولات (فروش)</h3></div>
         <div className="top-products">
           {(dash.top_products || []).map((p, i) => (
             <div key={p.product_name} className="top-product">
