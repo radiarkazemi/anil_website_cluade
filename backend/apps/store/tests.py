@@ -25,6 +25,26 @@ class FeeRatioParseTests(TestCase):
         self.assertEqual(bd["profit"], profit)
         self.assertEqual(bd["tax"], tax)
 
+    def test_user_invoice_formula(self):
+        """
+        gold = weight × rate
+        ojrat = gold × fee                 # (gold weight × ojrat)
+        profit = (gold + ojrat) × 7%       # then × profit
+        tax = (ojrat + profit) × 9%
+        """
+        weight, rate, fee_ratio = 4.1, 23_451_352, 0.095
+        gold = round(weight * rate)
+        ojrat = round(gold * fee_ratio)
+        profit = round((gold + ojrat) * PROFIT_RATIO)
+        tax = round((ojrat + profit) * TAX_RATIO)
+        total = gold + ojrat + profit + tax
+        bd = compute_breakdown(weight, rate, fee_ratio, 0, include_profit=True)
+        self.assertEqual(bd["gold"], gold)
+        self.assertEqual(bd["fee"], ojrat)
+        self.assertEqual(bd["profit"], profit)
+        self.assertEqual(bd["tax"], tax)
+        self.assertEqual(bd["total"], total)
+
 
 class ApiSmokeTests(TestCase):
     def setUp(self):

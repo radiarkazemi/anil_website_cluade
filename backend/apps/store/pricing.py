@@ -1,11 +1,11 @@
 """
-Iranian jewelry retail price formula.
+Iranian jewelry retail price formula (فاکتور رسمی):
 
-  gold   = weight_g × rate_18k
-  fee    = gold × fee_ratio          (اجرت ساخت / ojrat)
-  profit = (gold + fee) × 0.07       (سود فروشنده — never shown to customer)
-  tax    = (fee + profit) × 0.09     (مالیات ارزش افزوده)
-  total  = gold + fee + profit + stone + tax
+  gold   = weight_g × rate_18k                    # ارزش طلا
+  ojrat  = gold × fee_ratio                       # اجرت = (gold weight × ojrat%)
+  profit = (gold + ojrat) × 0.07                  # سود — after gold×ojrat; hidden in UI
+  tax    = (ojrat + profit) × 0.09                # مالیات = (ojrat + profit) × 9%
+  total  = gold + ojrat + profit + stone + tax
 
 Public API / customer UI must omit the profit line; it is still included in total.
 """
@@ -87,8 +87,11 @@ def compute_breakdown(
         return out
 
     gold_i = round(float(weight_g) * float(gold_price_per_gram))
+    # ojrat = (gold weight value) × fee_ratio
     fee_i = round(gold_i * float(fee_ratio))
+    # profit applied after gold×ojrat: (gold + ojrat) × 7%
     profit_i = round((gold_i + fee_i) * PROFIT_RATIO)
+    # مالیات = (ojrat + profit) × 9%
     tax_i = round((fee_i + profit_i) * TAX_RATIO)
     total_i = gold_i + fee_i + profit_i + stone + tax_i
 
