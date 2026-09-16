@@ -39,7 +39,7 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
         className="site-search-input"
         type="search"
         enterKeyHint="search"
-        placeholder="جستجو: انگشتر، گردنی، نام…"
+        placeholder="جستجو در گالری…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         autoFocus={autoFocus}
