@@ -42,13 +42,13 @@
   --rate-chip-bg: rgba(255,255,255,.04);
   --rate-chip-border: rgba(212,175,55,.22);
   --hero-wash:
-    radial-gradient(ellipse 90% 70% at 8% 18%, rgba(212,175,55,.22), transparent 55%),
-    radial-gradient(ellipse 60% 50% at 92% 8%, rgba(244,217,139,.12), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 70% 90%, rgba(120,80,20,.18), transparent 60%),
-    linear-gradient(165deg, #100c07 0%, #080604 48%, #060504 100%);
+    radial-gradient(ellipse 100% 85% at 12% 0%, rgba(212,175,55,.42), transparent 58%),
+    radial-gradient(ellipse 70% 60% at 95% 10%, rgba(244,217,139,.22), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 70% 95%, rgba(140,90,25,.35), transparent 58%),
+    linear-gradient(165deg, #1a140c 0%, #0c0906 48%, #080604 100%);
   --header-atmosphere:
-    linear-gradient(180deg, rgba(212,175,55,.08), transparent 70%),
-    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(212,175,55,.1), transparent 55%);
+    linear-gradient(180deg, rgba(212,175,55,.12), transparent 70%),
+    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(212,175,55,.14), transparent 55%);
   --header-rail: rgba(212,175,55,.55);
   --search-shell: rgba(255,255,255,.03);
 }
@@ -577,13 +577,13 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; }
 }
 .nav-mega-bridge {
   position: absolute;
-  top: 100%;
+  top: calc(100% - 10px); /* overlap trigger — no dead gap */
   inset-inline-start: 50%;
   translate: -50% 0;
   z-index: 140;
-  padding-top: 22px; /* hover bridge — keep path open to panel */
-  margin-top: -6px; /* overlap trigger so cursor never falls through */
+  padding-top: 18px; /* hover bridge fills the remaining path */
   display: none;
+  pointer-events: auto;
 }
 .nav-mega-bridge.is-open,
 .nav-item-dropdown.is-open .nav-mega-bridge {
@@ -4383,8 +4383,9 @@ body.nav-open { overflow: hidden; }
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 70% 60% at 90% 20%, color-mix(in srgb, var(--gold) 32%, transparent), transparent 58%),
-    radial-gradient(ellipse 55% 50% at 8% 85%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 80% 70% at 88% 18%, color-mix(in srgb, var(--gold) 45%, transparent), transparent 58%),
+    radial-gradient(ellipse 60% 55% at 10% 80%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 70%),
     var(--hero-wash, var(--bg-soft));
 }
 .atelier-hero-grid {

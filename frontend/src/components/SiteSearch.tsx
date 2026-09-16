@@ -78,7 +78,8 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
         <input
           id={inputId}
           className="site-search-input"
-          type="search"
+          type="text"
+          name="anil-product-search"
           enterKeyHint="search"
           placeholder="جستجو در گالری…"
           value={q}
@@ -89,6 +90,11 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
           onFocus={() => setOpen(true)}
           autoFocus={autoFocus}
           autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={showPanel}
         />
         <button type="submit" className="site-search-btn" aria-label="جستجو">
           جستجو
