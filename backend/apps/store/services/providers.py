@@ -151,7 +151,16 @@ def map_catalog_to_payload(entries: list[dict]) -> dict[str, Any] | None:
             for e in candidates
             if "نقدی" in (e.get("name") or "") or "نقد" in (e.get("name") or "")
         ]
-        primary = (preferred or candidates or cleaned)[0]
+        pool = preferred or candidates or cleaned
+
+        def _upd_key(entry: dict) -> str:
+            return str(entry.get("last_update_time") or "")
+
+        # Prefer the freshest quote — day-named rows (e.g. نقدی چهارشنبه) can sit stale.
+        primary = max(pool, key=_upd_key) if pool else None
+
+    if primary is None:
+        return None
 
     g18, mesghal = _gram18_from_entry(primary)
     if g18 <= 0:
