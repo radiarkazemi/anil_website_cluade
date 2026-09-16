@@ -156,8 +156,21 @@ def map_catalog_to_payload(entries: list[dict]) -> dict[str, Any] | None:
         def _upd_key(entry: dict) -> str:
             return str(entry.get("last_update_time") or "")
 
+        def _pick_rank(entry: dict) -> tuple:
+            name = entry.get("name") or ""
+            # Among equally fresh rows, prefer POS/کارتخوان over weekday-named contracts.
+            if "کارتخوان" in name:
+                rank = 0
+            elif "نقدی" in name and not any(
+                d in name for d in ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
+            ):
+                rank = 1
+            else:
+                rank = 2
+            return (_upd_key(entry), -rank)
+
         # Prefer the freshest quote — day-named rows (e.g. نقدی چهارشنبه) can sit stale.
-        primary = max(pool, key=_upd_key) if pool else None
+        primary = max(pool, key=_pick_rank) if pool else None
 
     if primary is None:
         return None
