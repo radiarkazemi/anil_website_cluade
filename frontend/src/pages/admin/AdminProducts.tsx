@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/endpoints';
-import { faNum, faPrice } from '../../utils/format';
+import { faNum, faPrice, parseFeeRatio } from '../../utils/format';
 import { bestProductSeo, suggestProductSeo, type SeoSuggestion } from '../../utils/productSeo';
 import { useToast } from '../../store/toastStore';
 import type { Product } from '../../types';
@@ -228,7 +228,7 @@ export function AdminProducts() {
         slug: String(form.slug || '').trim() || autoSlug,
         category: form.category,
         weight_g: weight,
-        fee_ratio: parseNumber(form.fee_ratio, 0.2),
+        fee_ratio: parseFeeRatio(form.fee_ratio, 0.2),
         stone_value: Math.round(parseNumber(form.stone_value, 0)),
         stock: Math.max(0, Math.round(parseNumber(form.stock, 0))),
         karat: Number(form.karat) || 18,
@@ -545,8 +545,8 @@ export function AdminProducts() {
                   </select>
                 </label>
                 <label>
-                  <span>اجرت (نسبت، مثلاً 0.22)</span>
-                  <input className="input" value={form.fee_ratio ?? ''} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} />
+                  <span>اجرت (نسبت ۰٫۰۹۵ یا ٪۹٫۵ یا ۰٫۹٫۵)</span>
+                  <input className="input" value={form.fee_ratio ?? ''} onChange={(e) => setForm({ ...form, fee_ratio: e.target.value })} dir="ltr" />
                 </label>
                 <label>
                   <span>ارزش سنگ / نگین (تومان)</span>

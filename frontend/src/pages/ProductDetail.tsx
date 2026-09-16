@@ -7,7 +7,7 @@ import { ProductImageGallery } from '../components/ProductImageGallery';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
-import { calcPrice, faNum, faPrice } from '../utils/format';
+import { calcPrice, faFeePct, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
 export function ProductDetail() {
@@ -145,7 +145,7 @@ export function ProductDetail() {
             <div className="pd-breakdown">
               <div className="pd-breakdown-title">تفکیک قیمت</div>
               <div className="pd-breakdown-row"><span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span><span>{faPrice(bd.gold)}</span></div>
-              <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faNum(Math.round(fee * 100))})</span><span>{faPrice(bd.fee)}</span></div>
+              <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faFeePct(fee)})</span><span>{faPrice(bd.fee)}</span></div>
               {bd.stone > 0 && <div className="pd-breakdown-row"><span>سنگ و نگین</span><span>{faPrice(bd.stone)}</span></div>}
               <div className="pd-breakdown-row"><span>مالیات ارزش افزوده ۹٪</span><span>{faPrice(bd.tax)}</span></div>
               <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>

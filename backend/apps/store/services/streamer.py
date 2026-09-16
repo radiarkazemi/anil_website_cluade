@@ -49,7 +49,7 @@ def broadcast_quote(quote: dict[str, Any]) -> None:
             {"type": "gold.price", "data": quote},
         )
     except Exception as exc:
-        logger.debug("gold broadcast skipped: %s", exc)
+        logger.warning("gold broadcast skipped: %s", exc)
 
 
 def _maybe_persist(payload: dict[str, Any], source: str) -> None:

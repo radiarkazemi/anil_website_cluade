@@ -29,6 +29,8 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
     weight_g = serializers.DecimalField(
         max_digits=8, decimal_places=2, required=False, allow_null=True
     )
+    # CharField so shop shorthand like 0.9.5 reaches validate_fee_ratio
+    fee_ratio = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Product
@@ -86,6 +88,12 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
             return None
         value = str(value).strip()
         return value or None
+
+    def validate_fee_ratio(self, value):
+        """Accept ratio (0.095), percent (9.5), or shop shorthand 0.9.5 → 9.5%."""
+        from apps.store.pricing import parse_fee_ratio
+
+        return parse_fee_ratio(value)
 
     def validate(self, attrs):
         name = attrs.get("name") or getattr(self.instance, "name", "")

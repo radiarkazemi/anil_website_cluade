@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
-import { calcPrice, faNum, faPrice, PROFIT_RATIO, TAX_RATIO } from '../utils/format';
+import { calcPrice, faFeePct, faNum, faPrice, PROFIT_RATIO, TAX_RATIO } from '../utils/format';
 import type { Product } from '../types';
 
 type Mode = 'weight' | 'budget';
@@ -372,7 +372,7 @@ export function AtelierBudgetTool() {
                         <small>
                           {p.category_name}
                           {w > 0 ? ` · ${faNum(w)} گرم` : ''}
-                          {` · اجرت ${faNum(Math.round(Number(p.fee_ratio) * 100))}٪`}
+                          {` · اجرت ${faFeePct(p.fee_ratio)}٪`}
                         </small>
                         {total != null && <em>{faPrice(total)} تومان</em>}
                       </span>

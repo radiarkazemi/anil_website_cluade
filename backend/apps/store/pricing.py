@@ -2,7 +2,7 @@
 Iranian jewelry retail price formula.
 
   gold   = weight_g × rate_18k
-  fee    = gold × fee_ratio          (اجرت ساخت)
+  fee    = gold × fee_ratio          (اجرت ساخت / ojrat)
   profit = (gold + fee) × 0.07       (سود فروشنده — never shown to customer)
   tax    = (fee + profit) × 0.09     (مالیات ارزش افزوده)
   total  = gold + fee + profit + stone + tax
@@ -12,8 +12,57 @@ Public API / customer UI must omit the profit line; it is still included in tota
 
 from __future__ import annotations
 
+import re
+from decimal import Decimal
+
 PROFIT_RATIO = 0.07
 TAX_RATIO = 0.09
+
+_PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def parse_fee_ratio(value, default: float | Decimal = 0.2) -> Decimal:
+    """
+    Normalize اجرت input to a ratio Decimal.
+
+    Accepts:
+      - ratio: 0.095 / 0.20
+      - percent: 9.5 / 20
+      - shop shorthand: 0.9.5 → 9.5% → 0.095
+    """
+    if value is None or value == "":
+        return Decimal(str(default))
+    if isinstance(value, (int, float, Decimal)):
+        n = float(value)
+        if n > 1:
+            n = n / 100.0
+        return Decimal(str(round(n, 4)))
+
+    raw = (
+        str(value)
+        .strip()
+        .translate(_PERSIAN_DIGITS)
+        .replace("%", "")
+        .replace("٪", "")
+        .replace(",", "")
+        .replace("٫", ".")
+        .replace("،", ".")
+    )
+    if not raw:
+        return Decimal(str(default))
+
+    shop = re.fullmatch(r"0\.(\d+)\.(\d+)", raw)
+    if shop:
+        pct = float(f"{shop.group(1)}.{shop.group(2)}")
+        return Decimal(str(round(pct / 100.0, 4)))
+
+    try:
+        n = float(raw)
+    except ValueError:
+        return Decimal(str(default))
+    if n > 1:
+        n = n / 100.0
+    return Decimal(str(round(n, 4)))
 
 
 def compute_breakdown(

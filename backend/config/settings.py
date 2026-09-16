@@ -87,13 +87,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# In-memory channel layer is enough for single-process daphne/uvicorn.
-# Set REDIS_URL to use Redis in multi-worker production.
-if REDIS_URL:
+# Gold streamer requires workers=1, so in-memory channel layer is correct by default.
+# Set CHANNEL_REDIS=1 to fan-out across multiple ASGI workers via Redis.
+_channel_redis = os.environ.get("CHANNEL_REDIS", "").strip().lower() in ("1", "true", "yes")
+if REDIS_URL and _channel_redis:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [REDIS_URL]},
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+                "capacity": 1500,
+                "expiry": 10,
+                "symmetric_encryption_keys": [SECRET_KEY],
+            },
         }
     }
 else:
