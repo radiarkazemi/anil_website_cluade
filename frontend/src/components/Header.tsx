@@ -31,6 +31,7 @@ export function Header() {
   const [productsOpen, setProductsOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const productsRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<number | null>(null);
   const productsMenuId = useId();
   const location = useLocation();
   const gp = goldPrice?.price_18k_per_gram ?? 0;
@@ -50,6 +51,12 @@ export function Header() {
     queryFn: () => api.categories().then((r) => r.data),
     staleTime: 120_000,
   });
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle('nav-open', menuOpen);
@@ -179,8 +186,16 @@ export function Header() {
               <div
                 className={`nav-item-dropdown${productsOpen ? ' is-open' : ''}`}
                 ref={productsRef}
-                onMouseEnter={() => setProductsOpen(true)}
-                onMouseLeave={() => setProductsOpen(false)}
+                onMouseEnter={() => {
+                  if (closeTimer.current) {
+                    window.clearTimeout(closeTimer.current);
+                    closeTimer.current = null;
+                  }
+                  setProductsOpen(true);
+                }}
+                onMouseLeave={() => {
+                  closeTimer.current = window.setTimeout(() => setProductsOpen(false), 320);
+                }}
               >
                 <button
                   type="button"
@@ -193,7 +208,9 @@ export function Header() {
                   محصولات
                   <span className="nav-drop-chev" aria-hidden />
                 </button>
-                {productsOpen && productsPanel}
+                <div className={`nav-mega-bridge${productsOpen ? ' is-open' : ''}`} hidden={!productsOpen}>
+                  {productsPanel}
+                </div>
               </div>
 
               <NavLink to="/atelier">آتلیه</NavLink>
