@@ -1,33 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-
-const CHAPTERS = [
-  {
-    n: '۰۱',
-    title: 'ایده و انتخاب',
-    body: 'از سلیقه و مناسبت شروع می‌کنیم — گردنی، انگشتر، یا قطعه‌ای برای ماندگاری.',
-  },
-  {
-    n: '۰۲',
-    title: 'وزن و درخشش',
-    body: 'قیمت لحظه‌ای روی نرخ روز طلای ۱۸؛ اجرت شفاف و فاکتور رسمی.',
-  },
-  {
-    n: '۰۳',
-    title: 'تحویل مطمئن',
-    body: 'بسته‌بندی گالری و ارسال بیمه شده تا همان درخشش به دستتان برسد.',
-  },
-];
+import { AtelierBudgetTool } from '../components/AtelierBudgetTool';
 
 const OCCASIONS = [
-  { title: 'نامزدی و حلقه', hint: 'انتخاب با حس لمس و وزن واقعی', to: '/products?search=انگشتر', mark: '◇' },
-  { title: 'هدیه ماندگار', hint: 'قطعه‌ای که سال‌ها می‌درخشد', to: '/products?search=گردنی', mark: '✦' },
-  { title: 'سرمایه‌ی نرم', hint: 'وزن بالاتر، ارزش ملموس‌تر', to: '/products?sort=-weight_g', mark: '◎' },
+  { title: 'نامزدی و حلقه', hint: 'با بودجه حلقه شروع کنید', to: '/atelier#atelier-tool-title', mark: '◇' },
+  { title: 'هدیه ماندگار', hint: 'وزن هدیه را تخمین بزنید', to: '/atelier#atelier-tool-title', mark: '✦' },
+  { title: 'سرمایه‌ی نرم', hint: 'قطعات سنگین‌تر در گالری', to: '/products?sort=-weight_g', mark: '◎' },
 ];
 
 export function Atelier() {
   useEffect(() => {
-    document.title = 'آتلیه آنیل | گالری طلا آنیل';
+    document.title = 'استودیو بودجه | آتلیه آنیل';
   }, []);
 
   return (
@@ -39,24 +22,24 @@ export function Atelier() {
           <div className="atelier-hero-copy">
             <p className="atelier-kicker">آتلیه آنیل</p>
             <h1 className="atelier-title">
-              طلا،
-              <span> از ایده تا درخشش</span>
+              قیمت را
+              <span> قبل از خرید ببینید</span>
             </h1>
             <p className="atelier-lead">
-              کارگاه دیجیتال گالری — مسیر یک قطعه را ببینید، آگاهانه انتخاب کنید،
-              و با نرخ روز سفارش دهید.
+              هنوز ساخت سفارشی نداریم — به‌جایش یک ابزار زنده دارید:
+              وزن یا بودجه را تنظیم کنید، با نرخ روز حساب کنید، و از ویترین همان بازه را باز کنید.
             </p>
             <div className="atelier-hero-actions">
-              <Link to="/products" className="gold-btn">ورود به گالری</Link>
-              <Link to="/p/راهنمای-خرید" className="outline-btn">راهنمای خرید</Link>
+              <a href="#atelier-tool-title" className="gold-btn">شروع برآورد</a>
+              <Link to="/products" className="outline-btn">ورود به گالری</Link>
             </div>
           </div>
           <aside className="atelier-hero-stage" aria-hidden>
             <div className="atelier-stage-frame">
               <span className="atelier-stage-ring" />
               <span className="atelier-stage-ring delay" />
-              <strong className="atelier-stage-mark">ANIL</strong>
-              <em className="atelier-stage-caption">کارگاه · نور · طلا</em>
+              <strong className="atelier-stage-mark">BUDGET</strong>
+              <em className="atelier-stage-caption">نرخ · وزن · ویترین</em>
             </div>
           </aside>
         </div>
@@ -64,37 +47,22 @@ export function Atelier() {
 
       <section className="atelier-strip">
         <div className="container atelier-strip-inner">
-          <span>نرخ لحظه‌ای</span>
+          <span>نرخ لحظه‌ای ۱۸ عیار</span>
           <i aria-hidden />
-          <span>فاکتور رسمی</span>
+          <span>فرمول شفاف فاکتور</span>
           <i aria-hidden />
-          <span>ارسال بیمه شده</span>
+          <span>پیشنهاد واقعی از موجودی</span>
         </div>
       </section>
 
-      <section className="container atelier-chapters">
-        <header className="atelier-section-head">
-          <p className="atelier-section-eyebrow">مسیر ساخت</p>
-          <h2>سه گام تا قطعه‌ی شما</h2>
-          <p>ساده و شفاف — فقط آنچه برای تصمیم‌گیری لازم است.</p>
-        </header>
-        <ol className="atelier-chapter-list">
-          {CHAPTERS.map((c) => (
-            <li key={c.n} className="atelier-chapter">
-              <span className="atelier-chapter-n">{c.n}</span>
-              <h3>{c.title}</h3>
-              <p>{c.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <AtelierBudgetTool />
 
       <section className="atelier-occasions-bleed">
         <div className="container">
           <header className="atelier-section-head">
-            <p className="atelier-section-eyebrow">ورودی سریع</p>
+            <p className="atelier-section-eyebrow">شروع سریع</p>
             <h2>برای چه مناسبتی؟</h2>
-            <p>سه مسیر کوتاه به گالری.</p>
+            <p>از ابزار بالا شروع کنید، یا مستقیم به گالری بروید.</p>
           </header>
           <div className="atelier-occasion-grid">
             {OCCASIONS.map((o) => (
@@ -102,7 +70,7 @@ export function Atelier() {
                 <span className="atelier-occasion-mark" aria-hidden>{o.mark}</span>
                 <strong>{o.title}</strong>
                 <em>{o.hint}</em>
-                <span className="atelier-occasion-cta">مشاهده</span>
+                <span className="atelier-occasion-cta">ادامه</span>
               </Link>
             ))}
           </div>
@@ -112,15 +80,15 @@ export function Atelier() {
       <section className="container atelier-closing">
         <div className="atelier-closing-card">
           <div className="atelier-closing-copy">
-            <h2>نور کارگاه، قیمت شفاف</h2>
+            <h2>از عدد تا قطعه واقعی</h2>
             <p>
-              هر قطعه با وزن و نرخ زنده قیمت‌گذاری می‌شود.
-              اگر هنوز بین چند مدل مردد هستید، مشاور هوشمند یا تیم گالری کمکتان می‌کند.
+              برآورد تقریبی است و با نرخ زنده‌ی همان لحظه به‌روز می‌شود.
+              برای انتخاب نهایی، قطعه را در گالری باز کنید یا از مشاور هوشمند بپرسید.
             </p>
           </div>
           <div className="atelier-closing-actions">
-            <Link to="/products" className="gold-btn">مشاهده محصولات</Link>
-            <Link to="/blog" className="outline-btn">خواندن بلاگ</Link>
+            <a href="#atelier-tool-title" className="gold-btn">دوباره برآورد کن</a>
+            <Link to="/products" className="outline-btn">گالری محصولات</Link>
           </div>
         </div>
       </section>

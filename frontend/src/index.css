@@ -4660,3 +4660,251 @@ body.nav-open { overflow: hidden; }
   .atelier-closing-actions { justify-content: flex-start; }
   .atelier-hero { min-height: auto; padding: 40px 0 36px; }
 }
+
+
+/* ─── Atelier budget studio tool ─── */
+.atelier-tool {
+  padding: 48px 0 28px;
+  position: relative;
+}
+.atelier-tool-shell { display: grid; gap: 28px; }
+.atelier-tool-head { max-width: 40rem; }
+.atelier-tool-head h2 {
+  font-size: clamp(28px, 4vw, 40px);
+  margin: 6px 0 10px;
+}
+.atelier-tool-head p {
+  color: var(--text-muted);
+  line-height: 1.85;
+}
+.atelier-tool-layout {
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.atelier-tool-controls,
+.atelier-tool-result {
+  border: 1px solid var(--border-gold);
+  border-radius: 22px;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--gold) 10%, transparent), transparent 42%),
+    var(--surface);
+  padding: clamp(18px, 3vw, 26px);
+}
+.atelier-tool-controls { display: grid; gap: 22px; }
+.atelier-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-3) 70%, transparent);
+  border: 1px solid var(--border);
+}
+.atelier-mode button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.atelier-mode button.is-active {
+  background: var(--surface);
+  color: var(--gold-deep);
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.atelier-field { display: grid; gap: 10px; }
+.atelier-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+.atelier-field-label strong {
+  color: var(--text);
+  font-size: 15px;
+}
+.atelier-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--gold);
+  height: 28px;
+  cursor: pointer;
+}
+.atelier-field-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.atelier-field-scale em { font-style: normal; }
+.atelier-fee-presets,
+.atelier-shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.atelier-fee-presets button,
+.atelier-shapes button {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.atelier-fee-presets button.is-active,
+.atelier-shapes button.is-active {
+  border-color: var(--gold);
+  color: var(--gold-deep);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+}
+.atelier-tool-result {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  animation: atelierResultIn .35s ease;
+}
+@keyframes atelierResultIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.atelier-rate-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.atelier-rate-line strong { color: var(--gold-deep); }
+.atelier-rate-line strong.is-muted { color: var(--text-dim); font-weight: 600; }
+.atelier-total { display: grid; gap: 6px; }
+.atelier-total > span {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+}
+.atelier-total > strong {
+  font-size: clamp(26px, 3.4vw, 34px);
+  line-height: 1.2;
+  background: linear-gradient(120deg, var(--gold-light), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.atelier-total > em {
+  font-style: normal;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.atelier-breakdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.atelier-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.atelier-breakdown b { color: var(--text); font-variant-numeric: tabular-nums; }
+.atelier-tool-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+.atelier-tool-cta { justify-self: stretch; text-align: center; }
+
+.atelier-matches { display: grid; gap: 16px; margin-top: 8px; }
+.atelier-matches-head h3 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.atelier-matches-head p {
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.atelier-match-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.atelier-match {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color .18s ease, transform .18s ease;
+  min-height: 88px;
+}
+.atelier-match:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+.atelier-match-media {
+  width: 64px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-3);
+  display: grid;
+  place-items: center;
+}
+.atelier-match-media img { width: 100%; height: 100%; object-fit: cover; }
+.atelier-match-media em { font-style: normal; font-size: 10px; color: var(--text-dim); }
+.atelier-match-copy { display: grid; gap: 3px; min-width: 0; }
+.atelier-match-copy strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.atelier-match-copy small { color: var(--text-dim); font-size: 11.5px; }
+.atelier-match-copy em {
+  font-style: normal;
+  color: var(--gold-deep);
+  font-size: 13px;
+  font-weight: 700;
+}
+.atelier-match-go {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-deep);
+  white-space: nowrap;
+}
+
+.atelier-stage-mark {
+  font-size: clamp(18px, 2.4vw, 24px);
+  letter-spacing: .18em;
+}
+
+@media (max-width: 900px) {
+  .atelier-tool-layout { grid-template-columns: 1fr; }
+  .atelier-match-list { grid-template-columns: 1fr; }
+}
