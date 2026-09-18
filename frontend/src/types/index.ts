@@ -198,6 +198,12 @@ export interface User {
   created_at: string;
 }
 
+export interface WishlistItem {
+  id: string;
+  product: Product;
+  created_at: string;
+}
+
 export interface AuthTokens {
   access: string;
   refresh: string;

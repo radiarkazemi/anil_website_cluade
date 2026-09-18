@@ -135,8 +135,18 @@ export const api = {
   profile: (session: 'client' | 'admin' = 'client') =>
     client.get<User>('/auth/profile/', { authSession: session }),
   updateProfile: (data: Partial<User>) => client.patch<User>('/auth/profile/', data),
+  changePassword: (old_password: string, new_password: string) =>
+    client.post<{ detail: string }>('/auth/change-password/', { old_password, new_password }),
   logout: (refresh: string, session: 'client' | 'admin' = 'client') =>
     client.post('/auth/logout/', { refresh }, { authSession: session }),
+  wishlist: () =>
+    client.get<
+      | { id: string; product: Product; created_at: string }[]
+      | PaginatedResponse<{ id: string; product: Product; created_at: string }>
+    >('/wishlist/'),
+  addWishlist: (product_id: string) =>
+    client.post<{ id: string; product: Product; created_at: string }>('/wishlist/', { product_id }),
+  removeWishlist: (id: string) => client.delete(`/wishlist/${id}/`),
   sendPhoneOtp: () =>
     client.post<{ detail: string; demo_code?: string; expires_in?: number; user?: User }>(
       '/auth/verify/phone/send/',
