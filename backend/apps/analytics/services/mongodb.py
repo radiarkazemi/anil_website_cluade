@@ -209,15 +209,14 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     }
     coll = db.page_views
 
-    visits = coll.count_documents(match)
-    page_visits = coll.count_documents(page_match)
-    visits_today = coll.count_documents({**match, "ts": {"$gte": today_start}})
+    visits = coll.count_documents(page_match)
+    visits_today = coll.count_documents({**page_match, "ts": {"$gte": today_start}})
     product_views = coll.count_documents(
         {**match, "product_id": {"$exists": True, "$nin": [None, ""]}}
     )
 
     def _unique(extra: dict | None = None) -> int:
-        q = dict(match)
+        q = dict(page_match)
         if extra:
             q.update(extra)
         rows = list(
@@ -247,7 +246,7 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     series_raw = list(
         coll.aggregate(
             [
-                {"$match": match},
+                {"$match": page_match},
                 {
                     "$group": {
                         "_id": {
@@ -282,7 +281,7 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     top_pages = list(
         coll.aggregate(
             [
-                {"$match": match},
+                {"$match": page_match},
                 {
                     "$group": {
                         "_id": {"$ifNull": ["$path", "/"]},
@@ -298,7 +297,7 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     top_referrers = list(
         coll.aggregate(
             [
-                {"$match": match},
+                {"$match": page_match},
                 {
                     "$group": {
                         "_id": {"$ifNull": ["$referrer_host", "direct"]},
@@ -328,7 +327,7 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     devices = list(
         coll.aggregate(
             [
-                {"$match": match},
+                {"$match": page_match},
                 {"$group": {"_id": {"$ifNull": ["$device", "unknown"]}, "views": {"$sum": 1}}},
                 {"$sort": {"views": -1}},
             ]
@@ -336,7 +335,7 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
     )
     recent = list(
         coll.find(
-            match,
+            page_match,
             {
                 "_id": 0,
                 "path": 1,
