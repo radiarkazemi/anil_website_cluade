@@ -2,11 +2,12 @@
 Live gold/coin price providers for Anil Gold.
 
 Order:
-  1) Faraz.io public market API  — مثقال ۱۷ / سکه / انس (preferred)
-  2) Goldbridge HTTP API
-  3) Direct sekefarshad.ir list.php
-  4) TGJU ajax.json (browser UA) — when Faraz is Cloudflare-blocked
-  5) Generic GOLD_PROVIDER_URL JSON
+  1) Germany Market Price API  — Faraz/FOREXCOM via DE egress (Iran→Faraz is CF 403)
+  2) Faraz.io public market API  — only works outside Iran Cloudflare
+  3) Goldbridge HTTP API
+  4) Direct sekefarshad.ir list.php
+  5) TGJU ajax.json (browser UA)
+  6) Generic GOLD_PROVIDER_URL JSON
 """
 
 from __future__ import annotations
@@ -320,6 +321,61 @@ def fetch_from_generic_provider() -> tuple[dict[str, Any] | None, str]:
     return None, ""
 
 
+def fetch_from_market_api() -> tuple[dict[str, Any] | None, str]:
+    """
+    Germany Market Price API — primary when MARKET_API_ENABLED=1.
+
+    Iran VPS cannot call Faraz (Cloudflare 403); Germany can and exposes
+    Anil-shaped JSON at GET /api/v1/gold/live/ with X-API-Key.
+    """
+    if not _env_bool("MARKET_API_ENABLED", False):
+        return None, ""
+    base = (os.environ.get("MARKET_API_BASE") or "").strip().rstrip("/")
+    key = (os.environ.get("MARKET_API_KEY") or "").strip()
+    if not base or not key:
+        logger.warning("MARKET_API_ENABLED but MARKET_API_BASE/KEY missing")
+        return None, ""
+
+    url = f"{base}/api/v1/gold/live/"
+    try:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={
+                "Accept": "application/json",
+                "X-API-Key": key,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json() if resp.content else {}
+        if not isinstance(data, dict):
+            return None, ""
+
+        g18 = _to_int(data.get("price_18k_per_gram") or data.get("price_18k") or 0)
+        if g18 <= 0:
+            return None, ""
+
+        g24 = _to_int(data.get("price_24k_per_gram") or data.get("price_24k") or 0)
+        if not g24:
+            g24 = gram18_to_gram24(g18)
+
+        payload = {
+            "price_18k_per_gram": g18,
+            "price_24k_per_gram": g24,
+            "mesghal_17": _to_int(data.get("mesghal_17") or data.get("mesghal") or 0),
+            "coin_emami": _to_int(data.get("coin_emami") or 0),
+            "coin_half": _to_int(data.get("coin_half") or 0),
+            "coin_quarter": _to_int(data.get("coin_quarter") or 0),
+            "usd_toman": _to_int(data.get("usd_toman") or 0),
+            "ounce_usd": float(data.get("ounce_usd") or data.get("ounce") or 0),
+        }
+        upstream = str(data.get("source") or "unknown").strip() or "unknown"
+        return payload, f"market-api:{upstream}"
+    except Exception as exc:
+        logger.warning("market-api gold/live failed: %s", exc)
+    return None, ""
+
+
 def fetch_from_tgju() -> tuple[dict[str, Any] | None, str]:
     """
     TGJU public ajax.json — useful when Faraz is Cloudflare-blocked.
@@ -379,6 +435,7 @@ def fetch_from_tgju() -> tuple[dict[str, Any] | None, str]:
 def fetch_live_market() -> tuple[dict[str, Any] | None, str]:
     """Try providers in order. Returns (payload, source_name)."""
     for fetcher in (
+        fetch_from_market_api,
         fetch_from_faraz,
         fetch_from_goldbridge,
         fetch_from_sekefarshad,
