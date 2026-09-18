@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { api } from '../../api/endpoints';
+import { getSessionTokens } from '../../store/useStore';
 import { faNum, faPrice } from '../../utils/format';
 import { BarSeries, KpiCard, PageHeader, SparkArea } from './adminShared';
 
@@ -71,7 +72,6 @@ export function AdminAnalytics() {
   };
 
   const exportCsv = async () => {
-    const { getSessionTokens } = await import('../../store/useStore');
     const tokens = getSessionTokens('admin');
     const path = api.adminTrafficExportUrl({
       days: applied.days,
