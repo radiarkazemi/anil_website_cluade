@@ -41,7 +41,7 @@ export function AdminAnalytics() {
     queryFn: () => api.adminDashboard().then((r) => r.data),
     refetchInterval: 45000,
   });
-  const { data: traffic, isLoading: trafficLoading, refetch: refetchTraffic } = useQuery({
+  const { data: traffic, isLoading: trafficLoading } = useQuery({
     queryKey: ['admin-traffic', applied],
     queryFn: () =>
       api
