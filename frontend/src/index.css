@@ -1765,7 +1765,8 @@ body.nav-open { overflow: hidden; }
   box-shadow: 0 12px 28px rgba(0,0,0,.18);
 }
 .cat-media {
-  height: 96px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   margin-bottom: 10px;
   background: radial-gradient(circle at 50% 40%, rgba(212,175,55,.18), transparent 65%), var(--surface-2);
   display: flex;
@@ -1777,9 +1778,10 @@ body.nav-open { overflow: hidden; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transition: transform .55s ease;
 }
-.cat-card:hover .cat-media img { transform: scale(1.08); }
+.cat-card:hover .cat-media img { transform: scale(1.04); }
 .cat-icon {
   width: 40px;
   height: 40px;
@@ -2769,7 +2771,8 @@ body.nav-open { overflow: hidden; }
   }
   .cat-card:hover { transform: none; box-shadow: none; }
   .cat-media {
-    height: 110px;
+    aspect-ratio: 4 / 3;
+    height: auto;
     margin-bottom: 12px;
     border-radius: 0;
   }
@@ -3127,7 +3130,6 @@ body.nav-open { overflow: hidden; }
   .m-hero .hero-h1 { font-size: 24px; }
   .m-hero .hero-lead { font-size: 13px; }
   .product-media { height: 100%; aspect-ratio: auto; }
-  .cat-media { height: 100px; }
   .logo-name { font-size: 20px; letter-spacing: 2px; }
 }
 

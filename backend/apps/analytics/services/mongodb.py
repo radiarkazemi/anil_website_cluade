@@ -174,10 +174,20 @@ def get_popular_products(days: int = 30, limit: int = 10) -> list[dict]:
     return list(db.page_views.aggregate(pipeline))
 
 
-def get_traffic_summary(days: int = 14) -> dict[str, Any]:
+def get_traffic_summary(
+    days: int = 14,
+    *,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    path: str | None = None,
+    product_id: str | None = None,
+) -> dict[str, Any]:
     """Admin traffic dashboard payload (visits, viewers, pages, referrers)."""
     empty = {
         "days": days,
+        "date_from": date_from,
+        "date_to": date_to,
+        "filters": {"path": path or "", "product_id": product_id or ""},
         "available": False,
         "totals": {
             "visits": 0,
@@ -198,19 +208,50 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
         return empty
 
     now = datetime.now(timezone.utc)
-    since = now - timedelta(days=max(1, days))
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    match = {"ts": {"$gte": since}, "device": {"$ne": "bot"}}
+    def _parse_day(value: str | None, end: bool = False) -> datetime | None:
+        if not value:
+            return None
+        try:
+            d = datetime.strptime(value.strip()[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            if end:
+                return d + timedelta(days=1)
+            return d
+        except ValueError:
+            return None
+
+    start = _parse_day(date_from)
+    end = _parse_day(date_to, end=True)
+    if start is None and end is None:
+        start = now - timedelta(days=max(1, days))
+        end = now + timedelta(seconds=1)
+        span_days = max(1, days)
+    else:
+        if start is None:
+            start = (end or now) - timedelta(days=max(1, days))
+        if end is None:
+            end = now + timedelta(seconds=1)
+        span_days = max(1, (end - start).days)
+
+    match: dict[str, Any] = {
+        "ts": {"$gte": start, "$lt": end},
+        "device": {"$ne": "bot"},
+    }
+    if path:
+        match["path"] = {"$regex": re.escape(_normalize_path(path)), "$options": "i"}
+    if product_id:
+        match["product_id"] = str(product_id)
+
     # Page-path events (new tracker). Legacy product-only rows lack path.
     page_match = {
         **match,
-        "path": {"$exists": True, "$nin": [None, ""]},
+        "path": match.get("path")
+        or {"$exists": True, "$nin": [None, ""]},
     }
     coll = db.page_views
 
     visits = coll.count_documents(page_match)
-    visits_today = coll.count_documents({**page_match, "ts": {"$gte": today_start}})
     product_views = coll.count_documents(
         {**match, "product_id": {"$exists": True, "$nin": [None, ""]}}
     )
@@ -240,9 +281,11 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
         return int(rows[0]["n"]) if rows else 0
 
     unique_visitors = _unique()
-    unique_today = _unique({"ts": {"$gte": today_start}})
+    today_q = {"ts": {"$gte": max(today_start, start), "$lt": end}}
+    unique_today = _unique(today_q)
+    visits_today = coll.count_documents({**page_match, **today_q})
 
-    # Daily series
+    # Daily series across the selected window
     series_raw = list(
         coll.aggregate(
             [
@@ -269,14 +312,14 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
         for row in series_raw
     }
     series = []
-    for i in range(days - 1, -1, -1):
-        day = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+    cursor_day = start.date()
+    end_day = (end - timedelta(seconds=1)).date()
+    while cursor_day <= end_day:
+        key = cursor_day.strftime("%Y-%m-%d")
         series.append(
-            series_map.get(
-                day,
-                {"date": day, "visits": 0, "unique_visitors": 0},
-            )
+            series_map.get(key, {"date": key, "visits": 0, "unique_visitors": 0})
         )
+        cursor_day += timedelta(days=1)
 
     top_pages = list(
         coll.aggregate(
@@ -355,7 +398,10 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
             row["ts"] = row["ts"].isoformat()
 
     return {
-        "days": days,
+        "days": span_days,
+        "date_from": start.strftime("%Y-%m-%d"),
+        "date_to": (end - timedelta(seconds=1)).strftime("%Y-%m-%d"),
+        "filters": {"path": path or "", "product_id": product_id or ""},
         "available": True,
         "totals": {
             "visits": visits,
@@ -378,6 +424,75 @@ def get_traffic_summary(days: int = 14) -> dict[str, Any]:
         "devices": [{"device": r["_id"] or "unknown", "views": r["views"]} for r in devices],
         "recent": recent,
     }
+
+
+def iter_traffic_rows(
+    *,
+    days: int = 14,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    path: str | None = None,
+    product_id: str | None = None,
+    limit: int = 5000,
+) -> list[dict[str, Any]]:
+    """Flat visit rows for CSV export."""
+    summary = get_traffic_summary(
+        days,
+        date_from=date_from,
+        date_to=date_to,
+        path=path,
+        product_id=product_id,
+    )
+    if not summary.get("available"):
+        return []
+    db = get_db()
+    if db is None:
+        return []
+
+    # Rebuild the same page_match window used by summary
+    now = datetime.now(timezone.utc)
+
+    def _parse_day(value: str | None, end: bool = False) -> datetime | None:
+        if not value:
+            return None
+        try:
+            d = datetime.strptime(value.strip()[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            return d + timedelta(days=1) if end else d
+        except ValueError:
+            return None
+
+    start = _parse_day(date_from) or (now - timedelta(days=max(1, days)))
+    end = _parse_day(date_to, end=True) or (now + timedelta(seconds=1))
+    match: dict[str, Any] = {"ts": {"$gte": start, "$lt": end}, "device": {"$ne": "bot"}}
+    if path:
+        match["path"] = {"$regex": re.escape(_normalize_path(path)), "$options": "i"}
+    else:
+        match["path"] = {"$exists": True, "$nin": [None, ""]}
+    if product_id:
+        match["product_id"] = str(product_id)
+
+    rows = list(
+        db.page_views.find(
+            match,
+            {
+                "_id": 0,
+                "ts": 1,
+                "path": 1,
+                "title": 1,
+                "referrer_host": 1,
+                "device": 1,
+                "session_id": 1,
+                "product_id": 1,
+                "user_id": 1,
+            },
+        )
+        .sort("ts", -1)
+        .limit(min(max(limit, 1), 20000))
+    )
+    for row in rows:
+        if isinstance(row.get("ts"), datetime):
+            row["ts"] = row["ts"].isoformat()
+    return rows
 
 
 def log_audit(action: str, user_id: str | None = None, detail: dict | None = None) -> None:
