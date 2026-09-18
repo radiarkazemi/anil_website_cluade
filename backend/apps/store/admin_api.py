@@ -1,6 +1,8 @@
 from datetime import timedelta
+import logging
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -17,6 +19,7 @@ from apps.store.serializers import CategorySerializer, GoldPriceSerializer, Prod
 from apps.store.services.gold import refresh_gold_price
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class AdminProductWriteSerializer(serializers.ModelSerializer):
@@ -101,7 +104,8 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if slug is None or str(slug).strip() == "":
             attrs["slug"] = self._unique_slug(name, self.instance)
         else:
-            attrs["slug"] = str(slug).strip()
+            # Always uniquify — frontend often sends a name-derived slug that may already exist.
+            attrs["slug"] = self._unique_slug(str(slug).strip(), self.instance)
         if "sku" in attrs and attrs["sku"] == "":
             attrs["sku"] = None
         if "weight_g" in attrs and attrs["weight_g"] in ("", None):
@@ -299,6 +303,26 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Product.objects.select_related("category").prefetch_related("images").all()
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product create integrity: %s", exc)
+            return Response(
+                {"slug": ["این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product update integrity: %s", exc)
+            return Response(
+                {"slug": ["این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class AdminCategoryViewSet(viewsets.ModelViewSet):

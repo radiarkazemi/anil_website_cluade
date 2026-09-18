@@ -112,18 +112,25 @@ function slugifyName(name: string) {
     .slice(0, 180);
 }
 
-function formatApiError(data: unknown, status?: number): string {
+function formatApiError(data: unknown, status?: number, opts?: { isImageUpload?: boolean }): string {
   if (!data) {
     if (status === 413) return 'حجم تصویر بیش از حد مجاز سرور است.';
-    if (status && status >= 500) return 'خطای سرور هنگام ذخیره تصویر. دوباره تلاش کنید.';
+    if (status && status >= 500) {
+      return opts?.isImageUpload
+        ? 'خطای سرور هنگام آپلود تصویر. دوباره تلاش کنید.'
+        : 'خطای سرور هنگام ذخیره محصول. اگر نام تکراری است، نام را کمی تغییر دهید.';
+    }
     return 'خطا در ذخیره';
   }
   if (typeof data === 'string') {
     const trimmed = data.trim();
     if (trimmed.startsWith('<!') || trimmed.toLowerCase().includes('<html')) {
-      return status && status >= 500
-        ? 'خطای سرور هنگام آپلود تصویر. دسترسی پوشه media یا حجم فایل را بررسی کنید.'
-        : 'پاسخ نامعتبر از سرور دریافت شد.';
+      if (status && status >= 500) {
+        return opts?.isImageUpload
+          ? 'خطای سرور هنگام آپلود تصویر. دسترسی پوشه media یا حجم فایل را بررسی کنید.'
+          : 'خطای سرور هنگام ذخیره محصول (احتمالاً نامک تکراری). نام را کمی تغییر دهید و دوباره ذخیره کنید.';
+      }
+      return 'پاسخ نامعتبر از سرور دریافت شد.';
     }
     return trimmed.slice(0, 280) || 'خطا در ذخیره';
   }

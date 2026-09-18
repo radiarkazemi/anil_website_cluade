@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { api } from '../../api/endpoints';
+import { getSessionTokens } from '../../store/useStore';
 import { faNum, faPrice } from '../../utils/format';
 import { BarSeries, KpiCard, PageHeader, SparkArea } from './adminShared';
 
@@ -24,20 +25,73 @@ function faDateLabel(iso: string) {
 
 export function AdminAnalytics() {
   const [days, setDays] = useState(14);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [pathFilter, setPathFilter] = useState('');
+  const [productFilter, setProductFilter] = useState('');
+  const [applied, setApplied] = useState({
+    days: 14,
+    from: '',
+    to: '',
+    path: '',
+    product_id: '',
+  });
+
   const { data: dash, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.adminDashboard().then((r) => r.data),
     refetchInterval: 45000,
   });
   const { data: traffic, isLoading: trafficLoading } = useQuery({
-    queryKey: ['admin-traffic', days],
-    queryFn: () => api.adminTraffic(days).then((r) => r.data),
+    queryKey: ['admin-traffic', applied],
+    queryFn: () =>
+      api
+        .adminTraffic({
+          days: applied.days,
+          from: applied.from || undefined,
+          to: applied.to || undefined,
+          path: applied.path || undefined,
+          product_id: applied.product_id || undefined,
+        })
+        .then((r) => r.data),
     refetchInterval: 60000,
   });
   const { data: history } = useQuery({
     queryKey: ['price-history'],
     queryFn: () => api.priceHistory(40).then((r) => r.data as any),
   });
+
+  const applyFilters = () => {
+    setApplied({
+      days,
+      from: dateFrom,
+      to: dateTo,
+      path: pathFilter.trim(),
+      product_id: productFilter.trim(),
+    });
+  };
+
+  const exportCsv = async () => {
+    const tokens = getSessionTokens('admin');
+    const path = api.adminTrafficExportUrl({
+      days: applied.days,
+      from: applied.from || undefined,
+      to: applied.to || undefined,
+      path: applied.path || undefined,
+      product_id: applied.product_id || undefined,
+    });
+    const res = await fetch(path, {
+      headers: tokens?.access ? { Authorization: `Bearer ${tokens.access}` } : {},
+    });
+    if (!res.ok) throw new Error('export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'anil-traffic.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (isLoading || !dash) return <div className="admin-loading">در حال آماده‌سازی گزارش…</div>;
 
@@ -63,18 +117,52 @@ export function AdminAnalytics() {
             <h3>بازدید و ترافیک سایت</h3>
             <p>بازدیدکنندگان، صفحات پربازدید، منابع ورودی و دستگاه‌ها</p>
           </div>
-          <div className="admin-page-actions" style={{ gap: 8 }}>
+          <div className="admin-page-actions" style={{ gap: 8, flexWrap: 'wrap' }}>
             {[7, 14, 30].map((d) => (
               <button
                 key={d}
                 type="button"
-                className={days === d ? 'gold-btn' : 'outline-btn'}
-                onClick={() => setDays(d)}
+                className={days === d && !dateFrom && !dateTo ? 'gold-btn' : 'outline-btn'}
+                onClick={() => {
+                  setDays(d);
+                  setDateFrom('');
+                  setDateTo('');
+                  setApplied((a) => ({ ...a, days: d, from: '', to: '' }));
+                }}
                 style={{ padding: '6px 12px', fontSize: 13 }}
               >
                 {faNum(d)} روز
               </button>
             ))}
+            <button type="button" className="outline-btn" style={{ padding: '6px 12px', fontSize: 13 }} onClick={() => exportCsv().catch(() => {})}>
+              خروجی CSV
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-grid-2" style={{ marginTop: 8, gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <label className="admin-field">
+              <span>از تاریخ</span>
+              <input className="input" type="date" dir="ltr" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </label>
+            <label className="admin-field">
+              <span>تا تاریخ</span>
+              <input className="input" type="date" dir="ltr" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </label>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+            <label className="admin-field">
+              <span>فیلتر مسیر</span>
+              <input className="input" dir="ltr" placeholder="/products" value={pathFilter} onChange={(e) => setPathFilter(e.target.value)} />
+            </label>
+            <label className="admin-field">
+              <span>شناسه محصول</span>
+              <input className="input" dir="ltr" placeholder="product uuid" value={productFilter} onChange={(e) => setProductFilter(e.target.value)} />
+            </label>
+            <button type="button" className="gold-btn" style={{ padding: '10px 14px' }} onClick={applyFilters}>
+              اعمال
+            </button>
           </div>
         </div>
 
@@ -90,12 +178,20 @@ export function AdminAnalytics() {
               <KpiCard label="بازدید امروز" value={faNum(t?.visits_today || 0)} tone="gold" hint="page views" />
               <KpiCard label="بازدیدکننده یکتا امروز" value={faNum(t?.unique_today || 0)} tone="up" />
               <KpiCard
-                label={`بازدید ${faNum(days)} روز`}
+                label={
+                  applied.from || applied.to
+                    ? 'بازدید بازه'
+                    : `بازدید ${faNum(applied.days)} روز`
+                }
                 value={faNum(t?.visits || 0)}
                 hint="مجموع نمایش صفحات"
               />
               <KpiCard
-                label={`بازدیدکننده یکتا ${faNum(days)} روز`}
+                label={
+                  applied.from || applied.to
+                    ? 'بازدیدکننده یکتا بازه'
+                    : `بازدیدکننده یکتا ${faNum(applied.days)} روز`
+                }
                 value={faNum(t?.unique_visitors || 0)}
               />
               <KpiCard label="بازدید محصول" value={faNum(t?.product_views || 0)} hint="صفحات جزئیات کالا" />
