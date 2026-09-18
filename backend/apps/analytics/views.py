@@ -1,3 +1,7 @@
+import csv
+import io
+
+from django.http import HttpResponse
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,9 +13,40 @@ from .services.mongodb import (
     get_popular_products,
     get_price_history,
     get_traffic_summary,
+    iter_traffic_rows,
     log_product_view,
     log_site_visit,
 )
+
+
+def _traffic_params(request):
+    days = min(int(request.query_params.get("days", 14) or 14), 90)
+    return {
+        "days": days,
+        "date_from": (request.query_params.get("from") or request.query_params.get("date_from") or "").strip() or None,
+        "date_to": (request.query_params.get("to") or request.query_params.get("date_to") or "").strip() or None,
+        "path": (request.query_params.get("path") or "").strip() or None,
+        "product_id": (request.query_params.get("product_id") or "").strip() or None,
+    }
+
+
+def _enrich_products(summary: dict) -> dict:
+    ids = [p["product_id"] for p in summary.get("top_products") or [] if p.get("product_id")]
+    if not ids:
+        return summary
+    products = {
+        str(p.id): p
+        for p in Product.objects.filter(id__in=ids).only("id", "name", "slug")
+    }
+    for row in summary["top_products"]:
+        prod = products.get(str(row["product_id"]))
+        if prod:
+            row["name"] = prod.name
+            row["slug"] = prod.slug
+        else:
+            row["name"] = row["product_id"]
+            row["slug"] = None
+    return summary
 
 
 class PriceHistoryView(APIView):
@@ -43,7 +78,6 @@ class ProductViewLogView(APIView):
             "screen": request.data.get("screen"),
             "language": request.data.get("language"),
         }
-        # Drop empty meta keys
         meta = {k: v for k, v in meta.items() if v}
         log_product_view(str(product_id), user_id, meta=meta or None)
         return Response({"detail": "ok"})
@@ -56,7 +90,6 @@ class SiteVisitLogView(APIView):
 
     def post(self, request):
         path = request.data.get("path") or "/"
-        # Never track admin panel traffic as storefront visits
         if str(path).startswith("/panel"):
             return Response({"detail": "skipped"})
         user_id = str(request.user.id) if request.user.is_authenticated else None
@@ -90,23 +123,50 @@ class AdminTrafficView(APIView):
     permission_classes = [IsAdminRole]
 
     def get(self, request):
-        days = min(int(request.query_params.get("days", 14)), 90)
-        summary = get_traffic_summary(days=days)
+        params = _traffic_params(request)
+        summary = get_traffic_summary(**params)
+        return Response(_enrich_products(summary))
 
-        # Enrich product ids with names/slugs when possible
-        ids = [p["product_id"] for p in summary.get("top_products") or [] if p.get("product_id")]
+
+class AdminTrafficExportView(APIView):
+    """CSV export of filtered visit rows."""
+
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        params = _traffic_params(request)
+        rows = iter_traffic_rows(**params, limit=int(request.query_params.get("limit", 5000) or 5000))
+
+        # Enrich product names
+        ids = [r.get("product_id") for r in rows if r.get("product_id")]
+        names = {}
         if ids:
-            products = {
-                str(p.id): p
-                for p in Product.objects.filter(id__in=ids).only("id", "name", "slug")
+            names = {
+                str(p.id): p.name
+                for p in Product.objects.filter(id__in=ids).only("id", "name")
             }
-            for row in summary["top_products"]:
-                prod = products.get(str(row["product_id"]))
-                if prod:
-                    row["name"] = prod.name
-                    row["slug"] = prod.slug
-                else:
-                    row["name"] = row["product_id"]
-                    row["slug"] = None
 
-        return Response(summary)
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(
+            ["ts", "path", "title", "referrer_host", "device", "session_id", "product_id", "product_name", "user_id"]
+        )
+        for r in rows:
+            pid = r.get("product_id") or ""
+            writer.writerow(
+                [
+                    r.get("ts") or "",
+                    r.get("path") or "",
+                    r.get("title") or "",
+                    r.get("referrer_host") or "direct",
+                    r.get("device") or "",
+                    r.get("session_id") or "",
+                    pid,
+                    names.get(str(pid), ""),
+                    r.get("user_id") or "",
+                ]
+            )
+
+        resp = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="anil-traffic.csv"'
+        return resp

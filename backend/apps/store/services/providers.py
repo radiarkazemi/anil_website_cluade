@@ -5,7 +5,8 @@ Order:
   1) Faraz.io public market API  — مثقال ۱۷ / سکه / انس (preferred)
   2) Goldbridge HTTP API
   3) Direct sekefarshad.ir list.php
-  4) Generic GOLD_PROVIDER_URL JSON
+  4) TGJU ajax.json (browser UA) — when Faraz is Cloudflare-blocked
+  5) Generic GOLD_PROVIDER_URL JSON
 """
 
 from __future__ import annotations
@@ -319,12 +320,69 @@ def fetch_from_generic_provider() -> tuple[dict[str, Any] | None, str]:
     return None, ""
 
 
+def fetch_from_tgju() -> tuple[dict[str, Any] | None, str]:
+    """
+    TGJU public ajax.json — useful when Faraz is Cloudflare-blocked.
+    Prices for gold/coins are in Rial; convert to Toman (/10).
+    """
+    url = os.environ.get("TGJU_URL", "https://call1.tgju.org/ajax.json").strip()
+    try:
+        resp = requests.get(
+            url,
+            timeout=12,
+            headers={
+                "Accept": "application/json,text/plain,*/*",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Referer": "https://www.tgju.org/",
+            },
+        )
+        resp.raise_for_status()
+        cur = (resp.json() or {}).get("current") or {}
+        if not isinstance(cur, dict):
+            return None, ""
+
+        def rial_to_toman(key: str) -> int:
+            entry = cur.get(key) or {}
+            raw = entry.get("p") if isinstance(entry, dict) else None
+            n = _to_int(raw)
+            # TGJU gold/coin quotes are typically Rial (≥ ~10× toman scale)
+            if n >= 10_000_000:
+                return int(round(n / 10.0))
+            return n
+
+        g18 = rial_to_toman("geram18")
+        if g18 <= 0:
+            return None, ""
+        g24 = rial_to_toman("geram24") or gram18_to_gram24(g18)
+        mesghal = rial_to_toman("mesghal")
+        payload = {
+            "price_18k_per_gram": g18,
+            "price_24k_per_gram": g24,
+            "mesghal_17": mesghal,
+            "coin_emami": rial_to_toman("sekee") or rial_to_toman("sekee_real"),
+            "coin_half": rial_to_toman("nim"),
+            "coin_quarter": rial_to_toman("rob"),
+            "usd_toman": 0,
+            "ounce_usd": float(
+                str((cur.get("ons") or {}).get("p") or 0).replace(",", "") or 0
+            ),
+        }
+        return payload, "tgju"
+    except Exception as exc:
+        logger.warning("tgju fetch failed: %s", exc)
+    return None, ""
+
+
 def fetch_live_market() -> tuple[dict[str, Any] | None, str]:
     """Try providers in order. Returns (payload, source_name)."""
     for fetcher in (
         fetch_from_faraz,
         fetch_from_goldbridge,
         fetch_from_sekefarshad,
+        fetch_from_tgju,
         fetch_from_generic_provider,
     ):
         payload, source = fetcher()
