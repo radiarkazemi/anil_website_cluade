@@ -344,21 +344,47 @@ export function Home() {
   const gp = goldPrice?.price_18k_per_gram ?? 0;
 
   usePageSeo({
-    title: `${site?.brand_name || 'گالری طلا آنیل'} | Anil Gold`,
+    title: 'گالری طلا آنیل | Anil Gold | فروشگاه طلا',
     description:
       site?.hero_subtitle
-      || site?.footer_tagline
-      || 'گالری طلا آنیل — زیورآلات طلا با قیمت‌گذاری لحظه‌ای بر اساس طلای ۱۸ عیار.',
+        ? `گالری طلا آنیل (Anil Gold) — ${site.hero_subtitle}`
+        : 'گالری طلا آنیل (Anil Gold) — خرید زیورآلات طلا با قیمت لحظه‌ای ۱۸ عیار. سایت رسمی آنیل: goldanil.ir',
     canonicalPath: '/',
-    image: site?.hero_image_url || site?.hero_album?.find((s) => s.is_active)?.image_url,
+    image: site?.hero_image_url || site?.brand_logo_url || site?.hero_album?.find((s) => s.is_active)?.image_url,
     type: 'website',
     jsonLd: {
       '@context': 'https://schema.org',
-      '@type': 'JewelryStore',
-      name: site?.brand_name || 'گالری طلا آنیل',
-      url: 'https://goldanil.ir',
-      image: site?.hero_image_url || undefined,
-      inLanguage: 'fa-IR',
+      '@graph': [
+        {
+          '@type': 'JewelryStore',
+          '@id': 'https://goldanil.ir/#organization',
+          name: 'گالری طلا آنیل',
+          alternateName: ['آنیل', 'Anil', 'Anil Gold', 'گالری آنیل', 'goldanil', 'goldanil.ir', 'طلا آنیل'],
+          url: 'https://goldanil.ir',
+          logo: site?.brand_logo_url || 'https://goldanil.ir/logo.jpg',
+          image: site?.hero_image_url || site?.brand_logo_url || undefined,
+          telephone: site?.contact_phone || undefined,
+          email: site?.contact_email || undefined,
+          address: site?.contact_address
+            ? { '@type': 'PostalAddress', streetAddress: site.contact_address, addressCountry: 'IR' }
+            : undefined,
+          inLanguage: 'fa-IR',
+        },
+        {
+          '@type': 'WebSite',
+          '@id': 'https://goldanil.ir/#website',
+          name: 'گالری طلا آنیل',
+          alternateName: ['آنیل', 'Anil', 'Anil Gold', 'goldanil.ir'],
+          url: 'https://goldanil.ir',
+          publisher: { '@id': 'https://goldanil.ir/#organization' },
+          inLanguage: 'fa-IR',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://goldanil.ir/products?q={search_term_string}',
+            'query-input': 'required name=search_term_string',
+          },
+        },
+      ],
     },
   });
 

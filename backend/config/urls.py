@@ -53,6 +53,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("robots.txt", seo.robots_txt, name="robots-txt"),
     path("sitemap.xml", seo.sitemap_xml, name="sitemap-xml"),
+    path("", seo.seo_home, name="seo-home"),
     path("blog/", seo.seo_blog_list, name="seo-blog-list"),
     path("blog/<path:slug>/", seo.seo_blog_detail, name="seo-blog-detail"),
     path("b/<str:code>/", seo.seo_share_redirect, name="seo-share-redirect"),

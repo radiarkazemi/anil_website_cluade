@@ -55,9 +55,91 @@ def _abs_media(request, url: str | None) -> str | None:
 def _brand_name() -> str:
     try:
         site = SiteSettings.get_solo()
-        return (site.brand_name or "").strip() or "گالری طلا آنیل"
+        # Prefer Persian storefront name for SERP titles
+        badge = (getattr(site, "hero_badge", "") or "").strip()
+        name = (site.brand_name or "").strip()
+        if badge:
+            return badge
+        if name and name.lower() not in ("anil", "anil gold"):
+            return name
+        return "گالری طلا آنیل"
     except Exception:
         return "گالری طلا آنیل"
+
+
+def _brand_aliases() -> list[str]:
+    return [
+        "آنیل",
+        "Anil",
+        "Anil Gold",
+        "گالری طلا آنیل",
+        "گالری آنیل",
+        "goldanil",
+        "goldanil.ir",
+        "طلا آنیل",
+    ]
+
+
+def _organization_ld(origin: str, request=None) -> dict:
+    brand = _brand_name()
+    logo = f"{origin}/logo.jpg"
+    phone = ""
+    email = ""
+    address = ""
+    try:
+        site = SiteSettings.get_solo()
+        phone = (site.contact_phone or "").strip()
+        email = (site.contact_email or "").strip()
+        address = (site.contact_address or "").strip()
+        if site.brand_logo:
+            try:
+                logo = _abs_media(request, site.brand_logo.url) if request else logo
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    org: dict = {
+        "@type": "JewelryStore",
+        "@id": f"{origin}/#organization",
+        "name": brand,
+        "alternateName": _brand_aliases(),
+        "url": origin,
+        "logo": {"@type": "ImageObject", "url": logo},
+        "image": logo,
+        "inLanguage": "fa-IR",
+        "areaServed": {"@type": "Country", "name": "Iran"},
+        "priceRange": "$$",
+    }
+    if phone:
+        org["telephone"] = phone
+    if email:
+        org["email"] = email
+    if address:
+        org["address"] = {
+            "@type": "PostalAddress",
+            "streetAddress": address,
+            "addressCountry": "IR",
+        }
+    return org
+
+
+def _website_ld(origin: str) -> dict:
+    brand = _brand_name()
+    return {
+        "@type": "WebSite",
+        "@id": f"{origin}/#website",
+        "name": brand,
+        "alternateName": _brand_aliases(),
+        "url": origin,
+        "inLanguage": "fa-IR",
+        "publisher": {"@id": f"{origin}/#organization"},
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": f"{origin}/products?q={{search_term_string}}",
+            "query-input": "required name=search_term_string",
+        },
+    }
 
 
 @require_http_methods(["GET", "HEAD"])
@@ -186,7 +268,7 @@ def _inject_spa_seo(
             + "</script>"
         )
 
-    # Replace default title / description if present
+    # Replace default title / description / static brand tags if present
     html = re.sub(r"<title>.*?</title>", "", html, count=1, flags=re.I | re.S)
     html = re.sub(
         r'<meta\s+name="description"\s+content="[^"]*"\s*/?>',
@@ -194,6 +276,27 @@ def _inject_spa_seo(
         html,
         count=1,
         flags=re.I,
+    )
+    html = re.sub(
+        r'<meta\s+name="keywords"\s+content="[^"]*"\s*/?>',
+        "",
+        html,
+        count=1,
+        flags=re.I,
+    )
+    html = re.sub(
+        r'<link\s+rel="canonical"\s+href="[^"]*"\s*/?>',
+        "",
+        html,
+        count=1,
+        flags=re.I,
+    )
+    html = re.sub(
+        r'<script\s+type="application/ld\+json">.*?</script>',
+        "",
+        html,
+        count=1,
+        flags=re.I | re.S,
     )
     if "</head>" in html:
         html = html.replace("</head>", meta_block + "\n</head>", 1)
@@ -236,6 +339,74 @@ def _article_markup(page: ContentPage, *, cover_url: str | None) -> str:
 
 
 @require_http_methods(["GET", "HEAD"])
+def seo_home(request):
+    """Brand-rich crawlable homepage shell — critical for 'آنیل / Anil' queries."""
+    origin = _site_origin(request)
+    brand = _brand_name()
+    title = f"{brand} | Anil Gold | فروشگاه طلا"
+    description = (
+        "گالری طلا آنیل (Anil Gold) — خرید زیورآلات طلا با قیمت لحظه‌ای ۱۸ عیار، "
+        "فاکتور رسمی و ارسال بیمه‌شده. سایت رسمی آنیل: goldanil.ir"
+    )
+    canonical = f"{origin}/"
+    try:
+        site = SiteSettings.get_solo()
+        if site.hero_subtitle:
+            description = _plain_text(
+                f"{brand} (Anil Gold) — {site.hero_subtitle} سایت رسمی: goldanil.ir",
+                170,
+            )
+        image = None
+        if site.hero_image:
+            try:
+                image = _abs_media(request, site.hero_image.url)
+            except Exception:
+                image = None
+        if not image and site.brand_logo:
+            try:
+                image = _abs_media(request, site.brand_logo.url)
+            except Exception:
+                image = None
+    except Exception:
+        image = None
+
+    posts = (
+        ContentPage.objects.filter(is_published=True, page_type=ContentPage.PageType.BLOG)
+        .exclude(slug="بلاگ")
+        .order_by("order", "-created_at")[:8]
+    )
+    blog_links = "".join(
+        f'<li><a href="{html_escape(origin)}/blog/{html_escape(p.slug)}">{html_escape(p.title)}</a></li>'
+        for p in posts
+    )
+    article_html = (
+        f"<main>"
+        f"<h1>{html_escape(brand)} — Anil Gold</h1>"
+        f"<p>{html_escape(description)}</p>"
+        f"<p>نام‌های برند: آنیل، Anil، Anil Gold، گالری طلا آنیل، goldanil.ir</p>"
+        f'<p><a href="{html_escape(origin)}/products">محصولات</a> · '
+        f'<a href="{html_escape(origin)}/blog">بلاگ</a> · '
+        f'<a href="{html_escape(origin)}/atelier">آتلیه</a></p>'
+        + (f"<h2>آخرین نوشته‌های بلاگ</h2><ul>{blog_links}</ul>" if blog_links else "")
+        + "</main>"
+    )
+    json_ld = {
+        "@context": "https://schema.org",
+        "@graph": [_organization_ld(origin, request), _website_ld(origin)],
+    }
+    return _inject_spa_seo(
+        request=request,
+        title=title,
+        description=description,
+        canonical=canonical,
+        image=image,
+        json_ld=json_ld,
+        article_html=article_html,
+        og_type="website",
+    )
+
+
+@require_http_methods(["GET", "HEAD"])
 def seo_blog_list(request):
     origin = _site_origin(request)
     brand = _brand_name()
@@ -266,7 +437,8 @@ def seo_blog_list(request):
         "description": description,
         "url": canonical,
         "inLanguage": "fa-IR",
-        "publisher": {"@type": "Organization", "name": brand, "url": origin},
+        "publisher": _organization_ld(origin, request),
+        "isPartOf": {"@id": f"{origin}/#website"},
     }
     return _inject_spa_seo(
         request=request,
@@ -311,14 +483,11 @@ def seo_blog_detail(request, slug: str):
         "datePublished": page.created_at.isoformat() if page.created_at else None,
         "dateModified": page.updated_at.isoformat() if page.updated_at else None,
         "image": [cover] if cover else None,
-        "author": {"@type": "Organization", "name": brand},
-        "publisher": {
-            "@type": "Organization",
-            "name": brand,
-            "logo": {"@type": "ImageObject", "url": f"{origin}/logo.jpg"},
-        },
+        "author": {"@id": f"{origin}/#organization"},
+        "publisher": _organization_ld(origin, request),
         "mainEntityOfPage": {"@type": "WebPage", "@id": canonical},
         "url": canonical,
+        "isPartOf": {"@id": f"{origin}/#website"},
     }
     # Drop nulls for cleaner JSON-LD
     json_ld = {k: v for k, v in json_ld.items() if v is not None}
