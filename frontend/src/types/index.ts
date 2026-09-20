@@ -74,6 +74,9 @@ export interface SiteSettings {
   contact_email: string;
   contact_address: string;
   top_banner: string;
+  /** When false, storefront checkout/order creation is blocked. */
+  orders_enabled?: boolean;
+  sales_closed_message?: string;
   updated_at?: string;
 }
 

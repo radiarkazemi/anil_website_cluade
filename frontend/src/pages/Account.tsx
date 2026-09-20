@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
+import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
 import { faNum, faPrice } from '../utils/format';
 import { getProfileGaps, isProfileReady, PROFILE_FIELD_LABELS, profileGapMessage } from '../utils/profileGate';
 import type { Order, WishlistItem } from '../types';
@@ -54,6 +55,7 @@ export function Account() {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const qc = useQueryClient();
+  const { ordersEnabled, salesClosedMessage } = useOrdersEnabled();
   const [params, setParams] = useSearchParams();
   const paidFlash = params.get('paid');
   const completeMode = params.get('complete') === '1';
@@ -494,7 +496,12 @@ export function Account() {
                         <button
                           type="button"
                           className="gold-btn"
+                          disabled={!ordersEnabled}
                           onClick={() => {
+                            if (!ordersEnabled) {
+                              toast(salesClosedMessage);
+                              return;
+                            }
                             if (!isProfileReady(user)) {
                               toast(profileGapMessage(user));
                               switchTab('profile');
@@ -508,7 +515,7 @@ export function Account() {
                             toast(`«${p.name}» به گلد باکس افزوده شد`);
                           }}
                         >
-                          گلد باکس
+                          {ordersEnabled ? 'گلد باکس' : 'فروش بسته'}
                         </button>
                         <button
                           type="button"

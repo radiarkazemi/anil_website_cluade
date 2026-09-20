@@ -2,6 +2,30 @@ export function faNum(n: number | string): string {
   return Number(n).toLocaleString('fa-IR');
 }
 
+/** Persian calendar date, e.g. ۱۴۰۴/۰۶/۲۹ */
+export function faDate(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(d);
+  } catch {
+    return d.toLocaleDateString('fa-IR');
+  }
+}
+
+/** Rough reading time from body text (words ≈ chars/5 for Persian). */
+export function readingMinutes(body?: string | null): number {
+  const text = (body || '').trim();
+  if (!text) return 1;
+  const chars = text.replace(/\s+/g, '').length;
+  return Math.max(1, Math.round(chars / 900));
+}
+
 export function faPrice(n: number): string {
   return Math.round(n).toLocaleString('fa-IR');
 }

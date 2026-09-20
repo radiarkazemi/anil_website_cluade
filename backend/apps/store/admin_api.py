@@ -554,7 +554,7 @@ class AdminSiteSettingsView(APIView):
                 data["section_order"] = json.loads(data["section_order"])
             except Exception:
                 pass
-        for flag in ("show_rates", "show_categories", "show_featured", "show_trust"):
+        for flag in ("show_rates", "show_categories", "show_featured", "show_trust", "orders_enabled"):
             if flag in data:
                 val = data.get(flag)
                 data[flag] = str(val).lower() in ("1", "true", "yes", "on")
@@ -738,6 +738,7 @@ class AdminHeroAlbumReorderView(APIView):
 
 class AdminContentPageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
     lookup_field = "id"
     search_fields = ["title", "slug", "excerpt"]
     filterset_fields = ["page_type", "is_published", "show_in_nav"]
@@ -751,6 +752,35 @@ class AdminContentPageViewSet(viewsets.ModelViewSet):
         from apps.store.serializers import ContentPageSerializer
 
         return ContentPageSerializer
+
+    def _coerce_bools(self, data):
+        mutable = data.copy() if hasattr(data, "copy") else dict(data)
+        for flag in ("is_published", "show_in_nav"):
+            if flag in mutable:
+                val = mutable.get(flag)
+                mutable[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        return mutable
+
+    def create(self, request, *args, **kwargs):
+        ser = self.get_serializer(data=self._coerce_bools(request.data))
+        ser.is_valid(raise_exception=True)
+        self.perform_create(ser)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        ser = self.get_serializer(instance, data=self._coerce_bools(request.data), partial=True)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        return Response(ser.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        ser = self.get_serializer(instance, data=self._coerce_bools(request.data), partial=partial)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        return Response(ser.data)
 
 
 class AdminCategoryImageUploadView(APIView):

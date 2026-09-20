@@ -5,6 +5,7 @@ import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
+import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
@@ -17,6 +18,7 @@ export function ProductCard({ product }: { product: Product }) {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const qc = useQueryClient();
+  const { ordersEnabled, salesClosedMessage } = useOrdersEnabled();
 
   const { data: wishlist = [] } = useQuery({
     queryKey: ['my-wishlist'],
@@ -52,6 +54,10 @@ export function ProductCard({ product }: { product: Product }) {
   const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
 
   const tryAdd = () => {
+    if (!ordersEnabled) {
+      toast(salesClosedMessage);
+      return;
+    }
     if (!hasWeight) {
       toast('وزن این قطعه هنوز تأیید نشده؛ از مشاور هوشمند کمک بگیرید یا با گالری تماس بگیرید.');
       return;
@@ -131,7 +137,14 @@ export function ProductCard({ product }: { product: Product }) {
               {total != null ? 'تومان · قیمت پویا' : 'با مشاور یا گالری هماهنگ کنید'}
             </div>
           </div>
-          <button type="button" className="add-btn" aria-label="افزودن به سبد" onClick={tryAdd} disabled={!hasWeight}>
+          <button
+            type="button"
+            className="add-btn"
+            aria-label={ordersEnabled ? 'افزودن به سبد' : 'فروش بسته است'}
+            onClick={tryAdd}
+            disabled={!hasWeight || !ordersEnabled}
+            title={!ordersEnabled ? salesClosedMessage : undefined}
+          >
             +
           </button>
         </div>

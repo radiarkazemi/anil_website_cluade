@@ -30,6 +30,17 @@ class OrderCreateView(APIView):
 
     def post(self, request):
         from apps.accounts.validators import PROFILE_FIELD_LABELS, is_profile_ready, profile_missing_fields
+        from .availability import orders_are_enabled, sales_closed_message
+
+        if not orders_are_enabled():
+            return Response(
+                {
+                    "detail": sales_closed_message(),
+                    "orders_enabled": False,
+                    "code": "sales_closed",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         user = request.user
         if getattr(settings, "REQUIRE_VERIFIED_PROFILE_FOR_ORDERS", True) and not is_profile_ready(user):
@@ -119,6 +130,18 @@ class OrderPayView(APIView):
     throttle_classes = [PaymentStartThrottle]
 
     def post(self, request, order_number):
+        from .availability import orders_are_enabled, sales_closed_message
+
+        if not orders_are_enabled():
+            return Response(
+                {
+                    "detail": sales_closed_message(),
+                    "orders_enabled": False,
+                    "code": "sales_closed",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         gateway_code = (request.data.get("gateway") or "zarinpal").strip().lower()
         phone = (request.data.get("phone") or "").strip()
         order = Order.objects.filter(order_number=order_number).first()

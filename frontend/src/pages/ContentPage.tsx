@@ -1,50 +1,144 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
+import { ContentBody } from '../components/ContentBody';
+import { faDate, faNum, readingMinutes } from '../utils/format';
 
 export function ContentPageView() {
   const { slug = '' } = useParams();
+  const { pathname } = useLocation();
+  const isBlogRoute = pathname.startsWith('/blog/');
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['page', slug],
     queryFn: () => api.page(slug).then((r) => r.data),
     enabled: !!slug,
   });
 
+  const isBlog = data?.page_type === 'blog' || isBlogRoute;
+
+  const { data: related = [] } = useQuery({
+    queryKey: ['blog-pages'],
+    queryFn: () => api.pages({ type: 'blog' }).then((r) => r.data),
+    enabled: isBlog,
+  });
+
+  useEffect(() => {
+    if (data?.title) {
+      document.title = `${data.title} | آنیل`;
+    }
+  }, [data?.title]);
+
   if (isLoading) {
-    return <div className="container section-pad content-page"><p>در حال بارگذاری…</p></div>;
-  }
-  if (isError || !data) {
     return (
-      <div className="container section-pad content-page">
-        <h1 className="section-title">صفحه یافت نشد</h1>
-        <Link to="/" className="text-link">بازگشت به خانه</Link>
+      <div className={`content-shell${isBlog ? ' is-blog' : ''}`}>
+        <div className="container section-pad"><p className="blog-loading">در حال بارگذاری…</p></div>
       </div>
     );
   }
 
-  const paragraphs = (data.body || '').split(/\n+/).filter(Boolean);
+  if (isError || !data) {
+    return (
+      <div className="content-shell">
+        <div className="container section-pad content-page">
+          <h1 className="section-title">صفحه یافت نشد</h1>
+          <Link to={isBlog ? '/blog' : '/'} className="text-link">بازگشت</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const mins = readingMinutes(data.body);
+  const siblings = related
+    .filter((p) => p.slug !== 'بلاگ' && p.slug !== data.slug)
+    .slice(0, 3);
+
+  if (isBlog) {
+    return (
+      <article className="blog-article-page">
+        <header className="blog-article-hero">
+          {data.cover_url ? (
+            <div className="blog-article-cover">
+              <img src={data.cover_url} alt="" />
+              <div className="blog-article-veil" />
+            </div>
+          ) : (
+            <div className="blog-article-cover blog-article-cover-empty" aria-hidden>
+              <div className="blog-article-veil" />
+            </div>
+          )}
+          <div className="container blog-article-head">
+            <Link to="/blog" className="blog-back-link">← بازگشت به بلاگ</Link>
+            <p className="blog-kicker">بلاگ آنیل</p>
+            <h1>{data.title}</h1>
+            {data.excerpt && <p className="blog-article-deck">{data.excerpt}</p>}
+            <div className="blog-article-meta">
+              <time dateTime={data.created_at}>{faDate(data.created_at)}</time>
+              <span aria-hidden>·</span>
+              <span>{faNum(mins)} دقیقه مطالعه</span>
+            </div>
+          </div>
+        </header>
+
+        <div className="container blog-article-layout">
+          <ContentBody body={data.body} className="blog-article-body" />
+        </div>
+
+        {siblings.length > 0 && (
+          <aside className="container blog-related">
+            <header className="blog-related-head">
+              <p className="blog-kicker">ادامه بخوانید</p>
+              <h2>نوشته‌های مرتبط</h2>
+            </header>
+            <div className="blog-grid-modern compact">
+              {siblings.map((p) => (
+                <Link key={p.id} to={`/blog/${p.slug}`} className="blog-post-card">
+                  <div className="blog-post-media">
+                    {p.cover_url ? (
+                      <img src={p.cover_url} alt="" loading="lazy" />
+                    ) : (
+                      <div className="blog-post-fallback" aria-hidden />
+                    )}
+                  </div>
+                  <div className="blog-post-body">
+                    <div className="blog-post-meta">
+                      <time dateTime={p.created_at}>{faDate(p.created_at)}</time>
+                    </div>
+                    <h2>{p.title}</h2>
+                    {p.excerpt && <p>{p.excerpt}</p>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        <div className="container blog-article-foot">
+          <Link to="/blog" className="outline-btn">همه نوشته‌ها</Link>
+          <Link to="/products" className="gold-btn">مشاهده گالری</Link>
+        </div>
+      </article>
+    );
+  }
 
   return (
-    <article className="container section-pad content-page">
-      <div className="content-page-head">
-        <div className="section-eyebrow">{data.page_type === 'blog' ? 'بلاگ آنیل' : 'راهنما'}</div>
-        <h1 className="section-title tight">{data.title}</h1>
-        {data.excerpt && <p className="content-excerpt">{data.excerpt}</p>}
-      </div>
-      {data.cover_url && (
-        <div className="content-cover">
-          <img src={data.cover_url} alt={data.title} />
+    <article className="content-shell">
+      <div className="container section-pad content-page">
+        <div className="content-page-head">
+          <div className="section-eyebrow">راهنما</div>
+          <h1 className="section-title tight">{data.title}</h1>
+          {data.excerpt && <p className="content-excerpt">{data.excerpt}</p>}
         </div>
-      )}
-      <div className="content-body">
-        {paragraphs.map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
-      </div>
-      <div className="content-page-foot">
-        <Link to={data.page_type === 'blog' ? '/blog' : '/'} className="outline-btn">
-          {data.page_type === 'blog' ? 'بازگشت به بلاگ' : 'بازگشت'}
-        </Link>
+        {data.cover_url && (
+          <div className="content-cover">
+            <img src={data.cover_url} alt={data.title} />
+          </div>
+        )}
+        <ContentBody body={data.body} />
+        <div className="content-page-foot">
+          <Link to="/" className="outline-btn">بازگشت</Link>
+        </div>
       </div>
     </article>
   );

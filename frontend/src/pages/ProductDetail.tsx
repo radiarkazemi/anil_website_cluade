@@ -7,6 +7,7 @@ import { ProductImageGallery } from '../components/ProductImageGallery';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
+import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
 import { calcPrice, faFeePct, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
@@ -20,6 +21,7 @@ export function ProductDetail() {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const [qty, setQty] = useState(1);
+  const { ordersEnabled, salesClosedMessage } = useOrdersEnabled();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -197,8 +199,12 @@ export function ProductDetail() {
             <button
               type="button"
               className="gold-btn"
-              disabled={!inStock || !hasWeight}
+              disabled={!inStock || !hasWeight || !ordersEnabled}
               onClick={() => {
+                if (!ordersEnabled) {
+                  toast(salesClosedMessage);
+                  return;
+                }
                 if (!hasWeight) {
                   toast('تا تأیید وزن، امکان افزودن به سبد نیست.');
                   return;
@@ -218,7 +224,13 @@ export function ProductDetail() {
                 openCart();
               }}
             >
-              {!hasWeight ? 'منتظر تأیید وزن' : inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
+              {!ordersEnabled
+                ? 'فروش موقتاً بسته است'
+                : !hasWeight
+                  ? 'منتظر تأیید وزن'
+                  : inStock
+                    ? 'افزودن به گلد باکس'
+                    : 'ناموجود'}
             </button>
           </div>
 

@@ -289,8 +289,10 @@ export const api = {
     client.post<SiteSettings>('/admin/site-settings/hero-album/reorder/', { order: ids }),
   adminPages: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<ContentPage> | ContentPage[]>('/admin/pages/', { params }),
-  adminCreatePage: (data: Partial<ContentPage>) => client.post<ContentPage>('/admin/pages/', data),
-  adminUpdatePage: (id: string, data: Partial<ContentPage>) => client.patch<ContentPage>(`/admin/pages/${id}/`, data),
+  adminCreatePage: (data: Partial<ContentPage> | FormData) =>
+    client.post<ContentPage>('/admin/pages/', data),
+  adminUpdatePage: (id: string, data: Partial<ContentPage> | FormData) =>
+    client.patch<ContentPage>(`/admin/pages/${id}/`, data),
   adminDeletePage: (id: string) => client.delete(`/admin/pages/${id}/`),
   adminOrders: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<Order>>('/admin/orders/', { params }),

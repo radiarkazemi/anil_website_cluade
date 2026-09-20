@@ -347,3 +347,11 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@anil.gold")
 REQUIRE_VERIFIED_PROFILE_FOR_ORDERS = os.environ.get(
     "REQUIRE_VERIFIED_PROFILE_FOR_ORDERS", "1"
 ).lower() in ("1", "true", "yes")
+# Hard kill-switch for storefront orders (overrides SiteSettings when set).
+# When unset, SiteSettings.orders_enabled controls checkout.
+_ORDERS_ENV = os.environ.get("ORDERS_ENABLED")
+ORDERS_ENABLED_ENV = (
+    None
+    if _ORDERS_ENV is None
+    else _ORDERS_ENV.lower() in ("1", "true", "yes")
+)

@@ -142,7 +142,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "trust_heading", "footer_tagline",
             "contact_phone", "contact_email", "contact_address",
-            "top_banner", "updated_at",
+            "top_banner", "orders_enabled", "sales_closed_message", "updated_at",
         ]
         read_only_fields = ["updated_at"]
 

@@ -222,6 +222,16 @@ class SiteSettings(models.Model):
         max_length=300,
         default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
     )
+    orders_enabled = models.BooleanField(
+        default=False,
+        help_text="اگر خاموش باشد، ثبت سفارش و پرداخت در فروشگاه غیرفعال است",
+    )
+    sales_closed_message = models.CharField(
+        max_length=300,
+        blank=True,
+        default="فروش آنلاین موقتاً بسته است. به‌زودی با درگاه پرداخت باز می‌شود.",
+        help_text="پیام نمایشی وقتی سفارش‌گیری بسته است",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
