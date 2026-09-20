@@ -95,6 +95,8 @@ export interface ContentPage {
   order: number;
   created_at: string;
   updated_at?: string;
+  /** Lifetime blog read / view count from analytics */
+  reads?: number;
 }
 
 export interface ProductImage {

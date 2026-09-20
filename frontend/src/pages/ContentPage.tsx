@@ -114,6 +114,12 @@ export function ContentPageView() {
               <time dateTime={data.created_at}>{faDate(data.created_at)}</time>
               <span aria-hidden>·</span>
               <span>{faNum(mins)} دقیقه مطالعه</span>
+              {(data.reads ?? 0) > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="blog-reads-label">{faNum(data.reads || 0)} بازدید</span>
+                </>
+              )}
             </div>
             <ShareBar
               className="blog-share-bar"
@@ -151,6 +157,12 @@ export function ContentPageView() {
                   <div className="blog-post-body">
                     <div className="blog-post-meta">
                       <time dateTime={p.created_at}>{faDate(p.created_at)}</time>
+                      {(p.reads ?? 0) > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="blog-reads-label">{faNum(p.reads || 0)} بازدید</span>
+                        </>
+                      )}
                     </div>
                     <h2>{p.title}</h2>
                     {p.excerpt && <p>{p.excerpt}</p>}

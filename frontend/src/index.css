@@ -3349,6 +3349,20 @@ body.nav-open { overflow: hidden; }
   color: var(--text-dim);
   letter-spacing: .02em;
 }
+.blog-reads-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
 .blog-post-body h2 {
   font-family: var(--font-brand);
   font-size: 22px;
