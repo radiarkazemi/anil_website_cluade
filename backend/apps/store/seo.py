@@ -11,7 +11,7 @@ from xml.sax.saxutils import escape
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.utils.html import escape as html_escape
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
 
 from .models import ContentPage, Product, SiteSettings
 
@@ -60,7 +60,7 @@ def _brand_name() -> str:
         return "گالری طلا آنیل"
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 def robots_txt(request):
     origin = _site_origin(request)
     body = (
@@ -77,7 +77,7 @@ def robots_txt(request):
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 def sitemap_xml(request):
     origin = _site_origin(request)
     urls: list[tuple[str, str | None, str]] = [
@@ -235,7 +235,7 @@ def _article_markup(page: ContentPage, *, cover_url: str | None) -> str:
     )
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 def seo_blog_list(request):
     origin = _site_origin(request)
     brand = _brand_name()
@@ -278,7 +278,7 @@ def seo_blog_list(request):
     )
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 def seo_blog_detail(request, slug: str):
     origin = _site_origin(request)
     brand = _brand_name()
@@ -335,7 +335,7 @@ def seo_blog_detail(request, slug: str):
     )
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD"])
 def seo_share_redirect(request, code: str):
     origin = _site_origin(request)
     try:
