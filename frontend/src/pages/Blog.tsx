@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
+import { CopyShortLinkButton } from '../components/ShareBar';
 import { useSiteSettings } from '../hooks/useOrdersEnabled';
 import { faDate, faNum, readingMinutes } from '../utils/format';
 import type { ContentPage } from '../types';
@@ -11,28 +12,37 @@ const FALLBACK_HERO = '/hero/anil-gallery.jpg';
 function PostCard({ post, featured = false }: { post: ContentPage; featured?: boolean }) {
   const mins = readingMinutes(post.excerpt || post.body);
   return (
-    <Link
-      to={`/blog/${post.slug}`}
-      className={`blog-post-card${featured ? ' is-featured' : ''}`}
-    >
-      <div className="blog-post-media">
+    <article className={`blog-post-card${featured ? ' is-featured' : ''}`}>
+      <Link to={`/blog/${post.slug}`} className="blog-post-media">
         {post.cover_url ? (
           <img src={post.cover_url} alt="" loading={featured ? 'eager' : 'lazy'} />
         ) : (
           <div className="blog-post-fallback" aria-hidden />
         )}
-      </div>
+      </Link>
       <div className="blog-post-body">
         <div className="blog-post-meta">
           <time dateTime={post.created_at}>{faDate(post.created_at)}</time>
           <span aria-hidden>·</span>
           <span>{faNum(mins)} دقیقه مطالعه</span>
         </div>
-        <h2>{post.title}</h2>
+        <Link to={`/blog/${post.slug}`} className="blog-post-title-link">
+          <h2>{post.title}</h2>
+        </Link>
         {post.excerpt && <p>{post.excerpt}</p>}
-        <span className="blog-post-more">ادامه مطلب</span>
+        <div className="blog-post-actions">
+          <Link to={`/blog/${post.slug}`} className="blog-post-more">ادامه مطلب</Link>
+          {post.share_code && (
+            <CopyShortLinkButton shareCode={post.share_code} label="کپی لینک کوتاه" />
+          )}
+        </div>
+        {post.share_code && (
+          <div className="blog-post-short" dir="ltr">
+            goldanil.ir/b/{post.share_code}
+          </div>
+        )}
       </div>
-    </Link>
+    </article>
   );
 }
 

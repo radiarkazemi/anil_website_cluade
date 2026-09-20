@@ -448,15 +448,15 @@ export function AdminPages() {
               )}
               {form.share_code && (
                 <div className="admin-share-box">
-                  <div className="admin-share-box-label">لینک کوتاه برای شبکه‌های اجتماعی</div>
+                  <div className="admin-share-box-label">لینک کوتاه برای اینستاگرام / تلگرام / واتساپ</div>
                   <div className="admin-share-box-row">
-                    <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/b/${form.share_code}`}</code>
+                    <code>{`https://goldanil.ir/b/${form.share_code}`}</code>
                     <button
                       type="button"
-                      className="outline-btn"
-                      style={{ padding: '6px 12px', fontSize: 12 }}
+                      className="gold-btn"
+                      style={{ padding: '6px 14px', fontSize: 12 }}
                       onClick={async () => {
-                        const link = `${window.location.origin}/b/${form.share_code}`;
+                        const link = `https://goldanil.ir/b/${form.share_code}`;
                         try {
                           await navigator.clipboard.writeText(link);
                           toast('لینک کوتاه کپی شد');
@@ -465,17 +465,26 @@ export function AdminPages() {
                         }
                       }}
                     >
-                      کپی لینک
+                      کپی لینک کوتاه
                     </button>
-                    <Link
+                    <a
                       className="outline-btn"
                       style={{ padding: '6px 12px', fontSize: 12 }}
-                      to={`/b/${form.share_code}`}
+                      href={`https://wa.me/?text=${encodeURIComponent(`${form.title || ''}\nhttps://goldanil.ir/b/${form.share_code}`)}`}
                       target="_blank"
                       rel="noreferrer"
                     >
-                      باز کردن
-                    </Link>
+                      واتساپ
+                    </a>
+                    <a
+                      className="outline-btn"
+                      style={{ padding: '6px 12px', fontSize: 12 }}
+                      href={`https://t.me/share/url?url=${encodeURIComponent(`https://goldanil.ir/b/${form.share_code}`)}&text=${encodeURIComponent(form.title || '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      تلگرام
+                    </a>
                   </div>
                 </div>
               )}
@@ -553,11 +562,11 @@ export function AdminPages() {
                     {p.share_code ? (
                       <button
                         type="button"
-                        className="outline-btn"
+                        className="gold-btn"
                         style={{ padding: '4px 10px', fontSize: 11 }}
                         title={`کپی https://goldanil.ir/b/${p.share_code}`}
                         onClick={async () => {
-                          const link = `${window.location.origin}/b/${p.share_code}`;
+                          const link = `https://goldanil.ir/b/${p.share_code}`;
                           try {
                             await navigator.clipboard.writeText(link);
                             toast('لینک کوتاه کپی شد');
@@ -566,7 +575,7 @@ export function AdminPages() {
                           }
                         }}
                       >
-                        /b/{p.share_code}
+                        goldanil.ir/b/{p.share_code}
                       </button>
                     ) : (
                       '—'
