@@ -613,13 +613,7 @@ def get_blog_post_traffic_summary(
     if share_code:
         code = str(share_code).strip()
         share_link_views = coll.count_documents(
-            {
-                **base_window,
-                "$or": [
-                    {"path": _normalize_path(f"/b/{code}")},
-                    {"share_code": code},
-                ],
-            }
+            {**base_window, "path": _normalize_path(f"/b/{code}")}
         )
     if slug:
         slug_path = _normalize_path(f"/blog/{slug}")
