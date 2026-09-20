@@ -87,13 +87,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# In-memory channel layer is enough for single-process daphne/uvicorn.
-# Set REDIS_URL to use Redis in multi-worker production.
-if REDIS_URL:
+# Gold streamer requires workers=1, so in-memory channel layer is correct by default.
+# Set CHANNEL_REDIS=1 to fan-out across multiple ASGI workers via Redis.
+_channel_redis = os.environ.get("CHANNEL_REDIS", "").strip().lower() in ("1", "true", "yes")
+if REDIS_URL and _channel_redis:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [REDIS_URL]},
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+                "capacity": 1500,
+                "expiry": 10,
+                "symmetric_encryption_keys": [SECRET_KEY],
+            },
         }
     }
 else:
@@ -251,8 +257,8 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 MEDIA_SERVE = os.environ.get("MEDIA_SERVE", "0").lower() in ("1", "true", "yes")
 MAX_UPLOAD_IMAGE_MB = int(os.environ.get("MAX_UPLOAD_IMAGE_MB", "8"))
 MAX_UPLOAD_IMAGE_PIXELS = int(os.environ.get("MAX_UPLOAD_IMAGE_PIXELS", str(6000 * 6000)))
-IMAGE_MAX_SIDE = int(os.environ.get("IMAGE_MAX_SIDE", "1600"))
-IMAGE_JPEG_QUALITY = int(os.environ.get("IMAGE_JPEG_QUALITY", "82"))
+IMAGE_MAX_SIDE = int(os.environ.get("IMAGE_MAX_SIDE", "2048"))
+IMAGE_JPEG_QUALITY = int(os.environ.get("IMAGE_JPEG_QUALITY", "90"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 
@@ -341,3 +347,11 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@anil.gold")
 REQUIRE_VERIFIED_PROFILE_FOR_ORDERS = os.environ.get(
     "REQUIRE_VERIFIED_PROFILE_FOR_ORDERS", "1"
 ).lower() in ("1", "true", "yes")
+# Hard kill-switch for storefront orders (overrides SiteSettings when set).
+# When unset, SiteSettings.orders_enabled controls checkout.
+_ORDERS_ENV = os.environ.get("ORDERS_ENABLED")
+ORDERS_ENABLED_ENV = (
+    None
+    if _ORDERS_ENV is None
+    else _ORDERS_ENV.lower() in ("1", "true", "yes")
+)

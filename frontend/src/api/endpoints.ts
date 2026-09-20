@@ -48,6 +48,7 @@ export const api = {
   siteSettings: () => client.get<SiteSettings>('/site-settings/'),
   pages: (params?: Record<string, string>) => client.get<ContentPage[]>('/pages/', { params }),
   page: (slug: string) => client.get<ContentPage>(`/pages/${slug}/`),
+  pageByShareCode: (code: string) => client.get<ContentPage>(`/pages/by-code/${code}/`),
   products: (params?: Record<string, string>) => client.get<PaginatedResponse<Product>>('/products/', { params }),
   /** Load every page so «همه» never silently truncates the catalog. */
   productsAll: async (params?: Record<string, string>) => {
@@ -135,8 +136,18 @@ export const api = {
   profile: (session: 'client' | 'admin' = 'client') =>
     client.get<User>('/auth/profile/', { authSession: session }),
   updateProfile: (data: Partial<User>) => client.patch<User>('/auth/profile/', data),
+  changePassword: (old_password: string, new_password: string) =>
+    client.post<{ detail: string }>('/auth/change-password/', { old_password, new_password }),
   logout: (refresh: string, session: 'client' | 'admin' = 'client') =>
     client.post('/auth/logout/', { refresh }, { authSession: session }),
+  wishlist: () =>
+    client.get<
+      | { id: string; product: Product; created_at: string }[]
+      | PaginatedResponse<{ id: string; product: Product; created_at: string }>
+    >('/wishlist/'),
+  addWishlist: (product_id: string) =>
+    client.post<{ id: string; product: Product; created_at: string }>('/wishlist/', { product_id }),
+  removeWishlist: (id: string) => client.delete(`/wishlist/${id}/`),
   sendPhoneOtp: () =>
     client.post<{ detail: string; demo_code?: string; expires_in?: number; user?: User }>(
       '/auth/verify/phone/send/',
@@ -155,7 +166,132 @@ export const api = {
   createOrderFromProfile: (data: { items: { product_id: string; qty: number }[]; note?: string }) =>
     client.post<Order>('/orders/', data),
   priceHistory: (limit = 50) => client.get('/analytics/price-history/', { params: { limit } }),
-  logProductView: (product_id: string) => client.post('/analytics/product-view/', { product_id }),
+  logProductView: (product_id: string, extra?: Record<string, string>) =>
+    client.post('/analytics/product-view/', { product_id, ...extra }),
+  logSiteVisit: (data: {
+    path: string;
+    title?: string;
+    referrer?: string;
+    session_id?: string;
+    user_agent?: string;
+    screen?: string;
+    language?: string;
+    product_id?: string;
+    content_page_id?: string;
+    page_type?: 'blog' | 'page';
+    share_code?: string;
+  }) => client.post('/analytics/site-visit/', data),
+  adminTraffic: (params?: {
+    days?: number;
+    from?: string;
+    to?: string;
+    path?: string;
+    product_id?: string;
+  }) =>
+    client.get<{
+      days: number;
+      date_from?: string;
+      date_to?: string;
+      filters?: { path?: string; product_id?: string };
+      available: boolean;
+      totals: {
+        visits: number;
+        unique_visitors: number;
+        visits_today: number;
+        unique_today: number;
+        product_views: number;
+      };
+      series: { date: string; visits: number; unique_visitors: number }[];
+      top_pages: { path: string; views: number; title?: string }[];
+      top_referrers: { host: string; views: number }[];
+      top_products: { product_id: string; views: number; name?: string; slug?: string | null }[];
+      devices: { device: string; views: number }[];
+      recent: {
+        path?: string;
+        title?: string;
+        referrer_host?: string;
+        device?: string;
+        ts?: string;
+        product_id?: string;
+      }[];
+    }>('/admin/traffic/', {
+      params: {
+        days: params?.days ?? 14,
+        from: params?.from || undefined,
+        to: params?.to || undefined,
+        path: params?.path || undefined,
+        product_id: params?.product_id || undefined,
+      },
+    }),
+  adminBlogTraffic: (params?: { days?: number; from?: string; to?: string }) =>
+    client.get<{
+      days: number;
+      date_from?: string;
+      date_to?: string;
+      available: boolean;
+      totals: {
+        visits: number;
+        unique_visitors: number;
+        visits_today: number;
+        unique_today: number;
+        article_views: number;
+        list_views: number;
+        posts_viewed: number;
+        avg_views_per_visitor: number;
+      };
+      series: { date: string; visits: number; unique_visitors: number }[];
+      top_posts: {
+        path: string;
+        views: number;
+        unique_visitors?: number;
+        title?: string;
+        slug?: string | null;
+        share_code?: string | null;
+        content_page_id?: string | null;
+        cover_url?: string | null;
+        excerpt?: string;
+        is_list?: boolean;
+        is_published?: boolean;
+      }[];
+      top_referrers: { host: string; views: number }[];
+      devices: { device: string; views: number }[];
+      recent: {
+        path?: string;
+        title?: string;
+        referrer_host?: string;
+        device?: string;
+        ts?: string;
+        content_page_id?: string;
+        share_code?: string;
+      }[];
+      engagement: {
+        returning_visitors: number;
+        new_visitors: number;
+        returning_rate: number;
+      };
+      catalog?: { published_posts: number; total_blog_pages: number };
+    }>('/admin/traffic/blog/', {
+      params: {
+        days: params?.days ?? 14,
+        from: params?.from || undefined,
+        to: params?.to || undefined,
+      },
+    }),
+  adminTrafficExportUrl: (params?: {
+    days?: number;
+    from?: string;
+    to?: string;
+    path?: string;
+    product_id?: string;
+  }) => {
+    const q = new URLSearchParams();
+    q.set('days', String(params?.days ?? 14));
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    if (params?.path) q.set('path', params.path);
+    if (params?.product_id) q.set('product_id', params.product_id);
+    return `/api/v1/admin/traffic/export/?${q.toString()}`;
+  },
 
   // Admin panel
   adminDashboard: () => client.get<DashboardStats>('/admin/dashboard/'),
@@ -175,6 +311,10 @@ export const api = {
     fd.append('is_primary', String(isPrimary));
     return client.post(`/admin/products/${productId}/images/`, fd);
   },
+  adminDeleteProductImage: (productId: string, imageId: string) =>
+    client.delete(`/admin/products/${productId}/images/`, { params: { image_id: imageId } }),
+  adminClearProductImages: (productId: string) =>
+    client.delete(`/admin/products/${productId}/images/`, { params: { all: '1' } }),
   adminApplyAutoSeo: (onlyEmpty = false) =>
     client.post<{ updated: number; total: number }>('/admin/products/apply-seo/', { only_empty: onlyEmpty }),
   adminCategories: () => client.get<Category[]>('/admin/categories/'),
@@ -207,8 +347,10 @@ export const api = {
     client.post<SiteSettings>('/admin/site-settings/hero-album/reorder/', { order: ids }),
   adminPages: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<ContentPage> | ContentPage[]>('/admin/pages/', { params }),
-  adminCreatePage: (data: Partial<ContentPage>) => client.post<ContentPage>('/admin/pages/', data),
-  adminUpdatePage: (id: string, data: Partial<ContentPage>) => client.patch<ContentPage>(`/admin/pages/${id}/`, data),
+  adminCreatePage: (data: Partial<ContentPage> | FormData) =>
+    client.post<ContentPage>('/admin/pages/', data),
+  adminUpdatePage: (id: string, data: Partial<ContentPage> | FormData) =>
+    client.patch<ContentPage>(`/admin/pages/${id}/`, data),
   adminDeletePage: (id: string) => client.delete(`/admin/pages/${id}/`),
   adminOrders: (params?: Record<string, string>) =>
     client.get<PaginatedResponse<Order>>('/admin/orders/', { params }),

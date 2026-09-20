@@ -2,6 +2,48 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.store.models import Category, GoldPrice, Product
+from apps.store.pricing import PROFIT_RATIO, TAX_RATIO, compute_breakdown, parse_fee_ratio
+
+
+class FeeRatioParseTests(TestCase):
+    def test_shop_shorthand_0_9_5(self):
+        self.assertEqual(parse_fee_ratio("0.9.5"), parse_fee_ratio("0.095"))
+        self.assertEqual(float(parse_fee_ratio("0.9.5")), 0.095)
+
+    def test_percent_and_ratio(self):
+        self.assertEqual(float(parse_fee_ratio("9.5")), 0.095)
+        self.assertEqual(float(parse_fee_ratio("0.095")), 0.095)
+        self.assertEqual(float(parse_fee_ratio("20")), 0.2)
+        self.assertEqual(float(parse_fee_ratio("٪۹٫۵")), 0.095)
+
+    def test_breakdown_keeps_9_5_percent(self):
+        bd = compute_breakdown(10, 1_000_000, 0.095, 0, include_profit=True)
+        self.assertEqual(bd["gold"], 10_000_000)
+        self.assertEqual(bd["fee"], 950_000)  # not rounded as 10%
+        profit = round((10_000_000 + 950_000) * PROFIT_RATIO)
+        tax = round((950_000 + profit) * TAX_RATIO)
+        self.assertEqual(bd["profit"], profit)
+        self.assertEqual(bd["tax"], tax)
+
+    def test_user_invoice_formula(self):
+        """
+        gold = weight × rate
+        ojrat = gold × fee                 # (gold weight × ojrat)
+        profit = (gold + ojrat) × 7%       # then × profit
+        tax = (ojrat + profit) × 9%
+        """
+        weight, rate, fee_ratio = 4.1, 23_451_352, 0.095
+        gold = round(weight * rate)
+        ojrat = round(gold * fee_ratio)
+        profit = round((gold + ojrat) * PROFIT_RATIO)
+        tax = round((ojrat + profit) * TAX_RATIO)
+        total = gold + ojrat + profit + tax
+        bd = compute_breakdown(weight, rate, fee_ratio, 0, include_profit=True)
+        self.assertEqual(bd["gold"], gold)
+        self.assertEqual(bd["fee"], ojrat)
+        self.assertEqual(bd["profit"], profit)
+        self.assertEqual(bd["tax"], tax)
+        self.assertEqual(bd["total"], total)
 
 
 class ApiSmokeTests(TestCase):
@@ -66,10 +108,8 @@ class ApiSmokeTests(TestCase):
         self.assertEqual(r.status_code, 200)
         results = r.json()["results"]
         self.assertEqual(len(results), 1)
-        gold = 4.2 * 3_850_000
-        fee = gold * 0.22
-        tax = fee * 0.09
-        expected = round(gold + fee + 8_500_000 + tax)
+        # gold + fee + profit(7% on gold+fee) + stone + tax(9% on fee+profit)
+        expected = compute_breakdown(4.2, 3_850_000, 0.22, 8_500_000)["total"]
         self.assertEqual(results[0]["price"], expected)
 
     def test_product_detail(self):

@@ -47,7 +47,10 @@ async function pollOnce() {
 }
 
 function startPoll(intervalMs: number) {
-  if (feed.pollId != null) return;
+  if (feed.pollId != null) {
+    window.clearInterval(feed.pollId);
+    feed.pollId = null;
+  }
   void pollOnce();
   feed.pollId = window.setInterval(() => void pollOnce(), intervalMs);
 }
@@ -82,7 +85,8 @@ function connect(intervalMs: number) {
 
     ws.onopen = () => {
       feed.retry = 0;
-      stopPoll();
+      // Keep a slower REST backup — WS can stay open while Redis group_send times out.
+      startPoll(Math.max(intervalMs, 15000));
     };
 
     ws.onmessage = (ev) => {

@@ -1,6 +1,8 @@
 from datetime import timedelta
+import logging
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -17,6 +19,7 @@ from apps.store.serializers import CategorySerializer, GoldPriceSerializer, Prod
 from apps.store.services.gold import refresh_gold_price
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class AdminProductWriteSerializer(serializers.ModelSerializer):
@@ -29,6 +32,8 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
     weight_g = serializers.DecimalField(
         max_digits=8, decimal_places=2, required=False, allow_null=True
     )
+    # CharField so shop shorthand like 0.9.5 reaches validate_fee_ratio
+    fee_ratio = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Product
@@ -85,7 +90,22 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if value is None:
             return None
         value = str(value).strip()
-        return value or None
+        if not value:
+            return None
+        qs = Product.objects.filter(sku=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "این کد کالا (SKU) قبلاً برای محصول دیگری ثبت شده. خالی بگذارید یا کد یکتا وارد کنید."
+            )
+        return value
+
+    def validate_fee_ratio(self, value):
+        """Accept ratio (0.095), percent (9.5), or shop shorthand 0.9.5 → 9.5%."""
+        from apps.store.pricing import parse_fee_ratio
+
+        return parse_fee_ratio(value)
 
     def validate(self, attrs):
         name = attrs.get("name") or getattr(self.instance, "name", "")
@@ -93,12 +113,31 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if slug is None or str(slug).strip() == "":
             attrs["slug"] = self._unique_slug(name, self.instance)
         else:
-            attrs["slug"] = str(slug).strip()
+            # Always uniquify — frontend often sends a name-derived slug that may already exist.
+            attrs["slug"] = self._unique_slug(str(slug).strip(), self.instance)
         if "sku" in attrs and attrs["sku"] == "":
             attrs["sku"] = None
         if "weight_g" in attrs and attrs["weight_g"] in ("", None):
             attrs["weight_g"] = None
         return attrs
+
+
+def _integrity_field_errors(exc: IntegrityError) -> dict:
+    """Map Postgres unique violations to field errors (sku vs slug)."""
+    raw = " ".join(str(a) for a in exc.args).lower()
+    if "store_product_sku_key" in raw or "(sku)" in raw:
+        return {
+            "sku": [
+                "این کد کالا (SKU) قبلاً استفاده شده. فیلد SKU را خالی کنید یا مقدار یکتا بگذارید."
+            ]
+        }
+    if "store_product_slug_key" in raw or "(slug)" in raw:
+        return {
+            "slug": [
+                "این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."
+            ]
+        }
+    return {"detail": "رکورد تکراری است. SKU یا نامک را بررسی کنید."}
 
 class AdminUserManageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -292,6 +331,20 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Product.objects.select_related("category").prefetch_related("images").all()
 
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product create integrity: %s", exc)
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product update integrity: %s", exc)
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
+
 
 class AdminCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
@@ -387,16 +440,47 @@ class AdminProductImageUploadView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         if obj.is_primary:
+            # Keep gallery: only demote other primaries (do NOT delete them).
             ProductImage.objects.filter(product=product).exclude(id=obj.id).update(is_primary=False)
+        elif not ProductImage.objects.filter(product=product).exclude(id=obj.id).exists():
+            # First image on an empty product becomes primary.
+            obj.is_primary = True
+            obj.save(update_fields=["is_primary"])
         data = ProductImageSerializer(obj, context={"request": request}).data
         data["processed"] = meta
         return Response(data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, product_id):
+        """Delete one image (?image_id=) or all product images (?all=1)."""
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "محصول یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        clear_all = str(request.query_params.get("all", "")).lower() in ("1", "true", "yes")
         image_id = request.query_params.get("image_id")
-        deleted, _ = ProductImage.objects.filter(product_id=product_id, id=image_id).delete()
-        if not deleted:
+
+        if clear_all:
+            qs = ProductImage.objects.filter(product=product)
+        elif image_id:
+            qs = ProductImage.objects.filter(product=product, id=image_id)
+        else:
+            return Response(
+                {"detail": "image_id یا all=1 لازم است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        objs = list(qs)
+        if not objs:
             return Response({"detail": "تصویر یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        for obj in objs:
+            if obj.image:
+                try:
+                    obj.image.delete(save=False)
+                except Exception:
+                    pass
+            obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -470,7 +554,7 @@ class AdminSiteSettingsView(APIView):
                 data["section_order"] = json.loads(data["section_order"])
             except Exception:
                 pass
-        for flag in ("show_rates", "show_categories", "show_featured", "show_trust"):
+        for flag in ("show_rates", "show_categories", "show_featured", "show_trust", "orders_enabled"):
             if flag in data:
                 val = data.get(flag)
                 data[flag] = str(val).lower() in ("1", "true", "yes", "on")
@@ -654,6 +738,7 @@ class AdminHeroAlbumReorderView(APIView):
 
 class AdminContentPageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
     lookup_field = "id"
     search_fields = ["title", "slug", "excerpt"]
     filterset_fields = ["page_type", "is_published", "show_in_nav"]
@@ -667,6 +752,35 @@ class AdminContentPageViewSet(viewsets.ModelViewSet):
         from apps.store.serializers import ContentPageSerializer
 
         return ContentPageSerializer
+
+    def _coerce_bools(self, data):
+        mutable = data.copy() if hasattr(data, "copy") else dict(data)
+        for flag in ("is_published", "show_in_nav"):
+            if flag in mutable:
+                val = mutable.get(flag)
+                mutable[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        return mutable
+
+    def create(self, request, *args, **kwargs):
+        ser = self.get_serializer(data=self._coerce_bools(request.data))
+        ser.is_valid(raise_exception=True)
+        self.perform_create(ser)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        ser = self.get_serializer(instance, data=self._coerce_bools(request.data), partial=True)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        return Response(ser.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        ser = self.get_serializer(instance, data=self._coerce_bools(request.data), partial=partial)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        return Response(ser.data)
 
 
 class AdminCategoryImageUploadView(APIView):

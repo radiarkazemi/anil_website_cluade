@@ -5,6 +5,7 @@ import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useToast } from '../store/toastStore';
+import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import type { Product } from '../types';
@@ -41,11 +42,20 @@ export function CartDrawer() {
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
+  const { ordersEnabled, salesClosedMessage } = useOrdersEnabled();
 
+  const cartIds = cart.map((c) => c.productId).join(',');
   const { data } = useQuery({
-    queryKey: ['products-all'],
-    queryFn: () => api.productsAll({ page_size: '200' }),
-    staleTime: 60000,
+    queryKey: ['products-cart', cartIds],
+    queryFn: () =>
+      api
+        .products({
+          ids: cartIds,
+          page_size: String(Math.max(cart.length, 1)),
+        })
+        .then((r) => r.data.results),
+    enabled: cartOpen && cart.length > 0 && Boolean(cartIds),
+    staleTime: 60_000,
   });
 
   const products = data ?? [];
@@ -81,6 +91,10 @@ export function CartDrawer() {
   };
 
   const handleContinue = () => {
+    if (!ordersEnabled) {
+      toast(salesClosedMessage);
+      return;
+    }
     if (!user) {
       toast('برای ادامه خرید وارد شوید یا ثبت‌نام کنید.');
       resetAndClose();
@@ -98,6 +112,11 @@ export function CartDrawer() {
 
   const handleCheckout = async () => {
     if (busy) return;
+    if (!ordersEnabled) {
+      setError(salesClosedMessage);
+      toast(salesClosedMessage);
+      return;
+    }
     if (!user || !isProfileReady(user)) {
       toast(profileGapMessage(user));
       goCompleteProfile();
@@ -120,7 +139,13 @@ export function CartDrawer() {
       nav(`/payment/demo/${order.order_number}`);
     } catch (e: any) {
       const status = e.response?.status;
+      const code = e.response?.data?.code;
       const formatted = formatApiErrors(e.response?.data);
+      if (code === 'sales_closed' || (status === 403 && e.response?.data?.orders_enabled === false)) {
+        setError(formatted || salesClosedMessage);
+        toast(formatted || salesClosedMessage);
+        return;
+      }
       if (status === 403 || status === 401) {
         toast(formatted || profileGapMessage(user));
         goCompleteProfile();
@@ -159,7 +184,13 @@ export function CartDrawer() {
           </button>
         </header>
 
-        {step === 'checkout' ? (
+        {!ordersEnabled && (
+          <div className="goldbox-sales-closed" role="status">
+            {salesClosedMessage}
+          </div>
+        )}
+
+        {step === 'checkout' && ordersEnabled ? (
           <div className="goldbox-body">
             <div className="goldbox-sum">
               جمع قابل پرداخت: <strong>{faPrice(subtotal)}</strong> تومان
@@ -234,8 +265,12 @@ export function CartDrawer() {
                   {faPrice(subtotal)} <small>تومان</small>
                 </strong>
               </div>
-              <p className="goldbox-note">قیمت بر اساس نرخ لحظه‌ای طلا · پرداخت آزمایشی فعال است</p>
-              {!user && (
+              <p className="goldbox-note">
+                {ordersEnabled
+                  ? 'قیمت بر اساس نرخ لحظه‌ای طلا · پرداخت آزمایشی فعال است'
+                  : 'گالری باز است؛ ثبت سفارش تا راه‌اندازی پرداخت غیرفعال است'}
+              </p>
+              {ordersEnabled && !user && (
                 <p className="goldbox-note" style={{ color: 'var(--down)' }}>
                   برای ادامه باید وارد شوید.{' '}
                   <Link to="/login" onClick={resetAndClose}>
@@ -243,20 +278,26 @@ export function CartDrawer() {
                   </Link>
                 </p>
               )}
-              {user && !isProfileReady(user) && (
+              {ordersEnabled && user && !isProfileReady(user) && (
                 <p className="goldbox-note" style={{ color: 'var(--down)' }}>
                   {profileGapMessage(user)}
                 </p>
               )}
-              <button type="button" className="gold-btn" onClick={handleContinue}>
-                ادامه خرید و پرداخت
-              </button>
+              {ordersEnabled ? (
+                <button type="button" className="gold-btn" onClick={handleContinue}>
+                  ادامه خرید و پرداخت
+                </button>
+              ) : (
+                <button type="button" className="outline-btn" disabled>
+                  فروش موقتاً بسته است
+                </button>
+              )}
             </footer>
           </>
         ) : (
           <div className="goldbox-empty">
             <div className="goldbox-empty-title">گلد باکس خالی است</div>
-            <p>زیورآلات مورد علاقه‌تان را اضافه کنید.</p>
+            <p>{ordersEnabled ? 'زیورآلات مورد علاقه‌تان را اضافه کنید.' : salesClosedMessage}</p>
             <button type="button" className="gold-btn" onClick={resetAndClose}>
               مشاهده محصولات
             </button>

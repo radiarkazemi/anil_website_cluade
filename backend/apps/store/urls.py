@@ -18,6 +18,7 @@ urlpatterns = [
     path("categories/", views.CategoryListView.as_view(), name="categories"),
     path("site-settings/", views.SiteSettingsView.as_view(), name="site-settings"),
     path("pages/", views.ContentPageListView.as_view(), name="pages"),
+    path("pages/by-code/<str:share_code>/", views.ContentPageByShareCodeView.as_view(), name="page-by-code"),
     path("pages/<str:slug>/", views.ContentPageDetailView.as_view(), name="page-detail"),
     path("products/", views.ProductListView.as_view(), name="products"),
     path("products/<str:slug>/", views.ProductDetailView.as_view(), name="product-detail"),

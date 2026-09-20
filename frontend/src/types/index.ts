@@ -74,6 +74,9 @@ export interface SiteSettings {
   contact_email: string;
   contact_address: string;
   top_banner: string;
+  /** When false, storefront checkout/order creation is blocked. */
+  orders_enabled?: boolean;
+  sales_closed_message?: string;
   updated_at?: string;
 }
 
@@ -81,6 +84,7 @@ export interface ContentPage {
   id: string;
   title: string;
   slug: string;
+  share_code?: string;
   page_type: 'page' | 'blog';
   excerpt: string;
   body?: string;
@@ -95,7 +99,8 @@ export interface ContentPage {
 
 export interface ProductImage {
   id: string;
-  image: string;
+  image?: string;
+  image_url?: string | null;
   alt: string;
   order: number;
   is_primary: boolean;
@@ -194,6 +199,12 @@ export interface User {
   profile_complete?: boolean;
   missing_fields?: string[];
   missing_field_labels?: string[];
+  created_at: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  product: Product;
   created_at: string;
 }
 

@@ -7,6 +7,7 @@ import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
 import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
+import { useSiteAnalytics } from './hooks/useSiteAnalytics';
 import { api } from './api/endpoints';
 import { useStore } from './store/useStore';
 import { Home } from './pages/Home';
@@ -15,7 +16,8 @@ import { ProductDetail } from './pages/ProductDetail';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
-import { ContentPageView } from './pages/ContentPage';
+import { BlogShareRedirect, ContentPageView } from './pages/ContentPage';
+import { Atelier } from './pages/Atelier';
 import { Account } from './pages/Account';
 import { DemoPayment } from './pages/DemoPayment';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -27,6 +29,7 @@ import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminGold } from './pages/admin/AdminGold';
 import { AdminUsers } from './pages/admin/AdminUsers';
 import { AdminAnalytics } from './pages/admin/AdminAnalytics';
+import { AdminBlogAnalytics } from './pages/admin/AdminBlogAnalytics';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminSiteLayout } from './pages/admin/AdminSiteLayout';
 import { AdminPages } from './pages/admin/AdminPages';
@@ -68,6 +71,7 @@ function useClientSessionBootstrap() {
 function AppInner() {
   useGoldPrice(15000);
   useClientSessionBootstrap();
+  useSiteAnalytics();
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 
@@ -78,8 +82,10 @@ function AppInner() {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
+        <Route path="/atelier" element={<Atelier />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<ContentPageView />} />
+        <Route path="/b/:code" element={<BlogShareRedirect />} />
         <Route path="/p/:slug" element={<ContentPageView />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -93,6 +99,7 @@ function AppInner() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="gold" element={<AdminGold />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="blog-analytics" element={<AdminBlogAnalytics />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="layout" element={<AdminSiteLayout />} />
           <Route path="pages" element={<AdminPages />} />

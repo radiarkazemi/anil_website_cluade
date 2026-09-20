@@ -1,4 +1,4 @@
-"""Background Faraz poller → channel-layer broadcast + occasional DB persist."""
+"""Background gold poller → channel-layer broadcast + occasional DB persist."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from channels.layers import get_channel_layer
 from django.utils import timezone
 
 from apps.store.services import price_cache
-from apps.store.services.faraz import fetch_from_faraz
 from apps.store.services.gold import _db_kwargs, refresh_gold_price
+from apps.store.services.providers import fetch_live_market
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def broadcast_quote(quote: dict[str, Any]) -> None:
             {"type": "gold.price", "data": quote},
         )
     except Exception as exc:
-        logger.debug("gold broadcast skipped: %s", exc)
+        logger.warning("gold broadcast skipped: %s", exc)
 
 
 def _maybe_persist(payload: dict[str, Any], source: str) -> None:
@@ -83,17 +83,18 @@ def _maybe_persist(payload: dict[str, Any], source: str) -> None:
         )
         _last_persist_sig = sig
         _last_persist_at = now
-        logger.info("persisted faraz snapshot id=%s g18=%s", row.id, row.price_18k_per_gram)
+        logger.info("persisted gold snapshot id=%s source=%s g18=%s", row.id, source, row.price_18k_per_gram)
     except Exception as exc:
         logger.warning("persist gold snapshot failed: %s", exc)
 
 
 def tick_once() -> dict[str, Any] | None:
-    payload, source = fetch_from_faraz()
+    # Prefer Germany Market API (then Faraz / sekefarshad / …) — not Faraz-only.
+    payload, source = fetch_live_market()
     if not payload:
         # Keep streaming last known cache; try full refresh path once
         try:
-            row = refresh_gold_price(force_live=True, allow_jitter=False)
+            refresh_gold_price(force_live=True, allow_jitter=False)
             quote = price_cache.get_latest()
             if quote:
                 broadcast_quote(quote)
@@ -104,10 +105,10 @@ def tick_once() -> dict[str, Any] | None:
                 broadcast_quote(quote)
             return quote
 
-    quote = price_cache.public_quote(payload, source=source or "faraz")
+    quote = price_cache.public_quote(payload, source=source or "live")
     price_cache.set_latest(quote)
     broadcast_quote(quote)
-    _maybe_persist(payload, source or "faraz")
+    _maybe_persist(payload, source or "live")
     return quote
 
 

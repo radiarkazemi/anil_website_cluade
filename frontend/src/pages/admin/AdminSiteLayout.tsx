@@ -106,6 +106,8 @@ export function AdminSiteLayout() {
         show_categories: !!form.show_categories,
         show_featured: !!form.show_featured,
         show_trust: !!form.show_trust,
+        orders_enabled: !!form.orders_enabled,
+        sales_closed_message: form.sales_closed_message || '',
       };
     }
 
@@ -134,6 +136,8 @@ export function AdminSiteLayout() {
       fd.append('show_categories', String(!!form.show_categories));
       fd.append('show_featured', String(!!form.show_featured));
       fd.append('show_trust', String(!!form.show_trust));
+      fd.append('orders_enabled', String(!!form.orders_enabled));
+      fd.append('sales_closed_message', form.sales_closed_message || '');
       fd.append('section_order', JSON.stringify(form.section_order || DEFAULT_ORDER));
       if (logoFile) fd.append('brand_logo', logoFile);
       return fd;
@@ -161,6 +165,8 @@ export function AdminSiteLayout() {
       show_categories: !!form.show_categories,
       show_featured: !!form.show_featured,
       show_trust: !!form.show_trust,
+      orders_enabled: !!form.orders_enabled,
+      sales_closed_message: form.sales_closed_message || '',
       section_order: form.section_order || DEFAULT_ORDER,
     };
   };
@@ -543,6 +549,29 @@ export function AdminSiteLayout() {
                 {label}
               </label>
             ))}
+          </div>
+          <div className="layout-sales-gate" style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <h4 style={{ marginBottom: 10, fontSize: 15 }}>فروش و سفارش</h4>
+            <label className="layout-toggle">
+              <input
+                type="checkbox"
+                checked={!!form.orders_enabled}
+                onChange={(e) => set({ orders_enabled: e.target.checked })}
+              />
+              فعال‌سازی ثبت سفارش آنلاین
+            </label>
+            <p style={{ fontSize: 12.5, color: 'var(--text-dim)', margin: '8px 0 12px', lineHeight: 1.7 }}>
+              تا اتصال درگاه پرداخت، این گزینه را خاموش نگه دارید. گالری و قیمت‌ها باز می‌مانند؛ فقط خرید بسته است.
+            </p>
+            <label>
+              <span style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>پیام بسته بودن فروش</span>
+              <input
+                className="input"
+                value={form.sales_closed_message || ''}
+                onChange={(e) => set({ sales_closed_message: e.target.value })}
+                placeholder="فروش آنلاین موقتاً بسته است…"
+              />
+            </label>
           </div>
           <SectionSaveBar
             label="ذخیره نمایش"

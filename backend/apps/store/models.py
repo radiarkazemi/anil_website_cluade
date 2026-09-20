@@ -121,23 +121,20 @@ class Product(models.Model):
             self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
 
-    def price_breakdown(self, gp=None):
-        if self.weight_g is None:
-            return {"gold": 0, "fee": 0, "stone": int(self.stone_value or 0), "tax": 0, "total": None}
+    def price_breakdown(self, gp=None, *, include_profit=False):
+        """Customer-facing breakdown omits profit; total still includes 7% سود."""
+        from .pricing import compute_breakdown
+
         if gp is None:
             current = GoldPrice.current()
             gp = current.price_18k_per_gram if current else 0
-        gold = float(self.weight_g) * float(gp)
-        fee = gold * float(self.fee_ratio)
-        tax = fee * 0.09
-        total = gold + fee + float(self.stone_value) + tax
-        return {
-            "gold": round(gold),
-            "fee": round(fee),
-            "stone": int(self.stone_value),
-            "tax": round(tax),
-            "total": round(total),
-        }
+        return compute_breakdown(
+            float(self.weight_g) if self.weight_g is not None else None,
+            gp,
+            float(self.fee_ratio),
+            self.stone_value,
+            include_profit=include_profit,
+        )
 
     @property
     def has_weight(self):
@@ -225,6 +222,26 @@ class SiteSettings(models.Model):
         max_length=300,
         default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
     )
+    made_to_order_deposit = models.BigIntegerField(
+        default=5_000_000,
+        help_text="مبلغ رزرو جایگزین وقتی تخمین قیمت ممکن نیست (تومان)",
+    )
+    made_to_order_deposit_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=20,
+        help_text="درصد مبلغ رزرو از قیمت تقریبی (شامل اجرت/سود/مالیات — فقط مبلغ نهایی به مشتری)",
+    )
+    orders_enabled = models.BooleanField(
+        default=False,
+        help_text="اگر خاموش باشد، ثبت سفارش و پرداخت در فروشگاه غیرفعال است",
+    )
+    sales_closed_message = models.CharField(
+        max_length=300,
+        blank=True,
+        default="فروش آنلاین موقتاً بسته است. به‌زودی با درگاه پرداخت باز می‌شود.",
+        help_text="پیام نمایشی وقتی سفارش‌گیری بسته است",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -276,6 +293,12 @@ class ContentPage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, allow_unicode=True)
+    share_code = models.CharField(
+        max_length=12,
+        unique=True,
+        blank=True,
+        help_text="کد کوتاه اشتراک‌گذاری — /b/<code>",
+    )
     page_type = models.CharField(max_length=10, choices=PageType.choices, default=PageType.PAGE)
     excerpt = models.CharField(max_length=300, blank=True)
     body = models.TextField(help_text="متن صفحه — هر خط یک پاراگراف")
@@ -294,7 +317,24 @@ class ContentPage(models.Model):
     def __str__(self):
         return self.title
 
+    def ensure_share_code(self):
+        if self.share_code:
+            return
+        import secrets
+        import string
+
+        alphabet = string.ascii_lowercase + string.digits
+        for _ in range(20):
+            code = "".join(secrets.choice(alphabet) for _ in range(8))
+            if not ContentPage.objects.filter(share_code=code).exists():
+                self.share_code = code
+                return
+        self.share_code = uuid.uuid4().hex[:10]
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title, allow_unicode=True)
+        creating = self._state.adding
+        if creating or not self.share_code:
+            self.ensure_share_code()
         super().save(*args, **kwargs)

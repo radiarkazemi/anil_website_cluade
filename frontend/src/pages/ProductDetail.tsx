@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
+import { ProductImageGallery } from '../components/ProductImageGallery';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
-import { calcPrice, faNum, faPrice } from '../utils/format';
+import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
+import { calcPrice, faFeePct, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
 export function ProductDetail() {
@@ -19,7 +21,7 @@ export function ProductDetail() {
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
   const [qty, setQty] = useState(1);
-  const [imgIdx, setImgIdx] = useState(0);
+  const { ordersEnabled, salesClosedMessage } = useOrdersEnabled();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -38,12 +40,25 @@ export function ProductDetail() {
 
   useEffect(() => {
     if (product?.id) {
-      api.logProductView(product.id).catch(() => {});
+      let sessionId = '';
+      try {
+        sessionId = sessionStorage.getItem('anil_vid') || '';
+      } catch {
+        sessionId = '';
+      }
+      api
+        .logProductView(product.id, {
+          path: `/products/${product.slug}`,
+          title: document.title,
+          referrer: document.referrer || '',
+          session_id: sessionId,
+          user_agent: navigator.userAgent,
+        })
+        .catch(() => {});
     }
-  }, [product?.id]);
+  }, [product?.id, product?.slug]);
 
   useEffect(() => {
-    setImgIdx(0);
     setQty(1);
   }, [slug]);
 
@@ -71,6 +86,20 @@ export function ProductDetail() {
     };
   }, [product]);
 
+  const images = useMemo(() => {
+    const raw = product?.images?.length
+      ? [...product.images].sort((a, b) => {
+          if (!!a.is_primary === !!b.is_primary) return (a.order ?? 0) - (b.order ?? 0);
+          return a.is_primary ? -1 : 1;
+        })
+      : [];
+    const urls = raw
+      .map((i) => i.image_url || i.image || '')
+      .filter(Boolean) as string[];
+    if (urls.length) return urls;
+    return product?.primary_image ? [product.primary_image] : [];
+  }, [product]);
+
   if (isLoading || !product) {
     return (
       <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>
@@ -83,12 +112,6 @@ export function ProductDetail() {
   const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
-  const images = product.images?.length
-    ? product.images.map((i) => i.image)
-    : product.primary_image
-      ? [product.primary_image]
-      : [];
-  const mainImg = images[imgIdx] || images[0];
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
   const maxQty = Math.max(1, product.stock ?? 99);
 
@@ -105,30 +128,12 @@ export function ProductDetail() {
       </div>
 
       <div className="pd-grid">
-        <div className="pd-gallery">
-          <div className="pd-main-media">
-            {mainImg ? (
-              <img src={mainImg} alt={product.name} />
-            ) : (
-              <span className="pd-placeholder">{product.placeholder_label || product.name}</span>
-            )}
-            {!inStock && <div className="pd-oos">ناموجود</div>}
-          </div>
-          {images.length > 1 && (
-            <div className="pd-thumbs">
-              {images.map((src, i) => (
-                <button
-                  key={src + i}
-                  type="button"
-                  className={`pd-thumb${i === imgIdx ? ' active' : ''}`}
-                  onClick={() => setImgIdx(i)}
-                >
-                  <img src={src} alt="" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductImageGallery
+          images={images}
+          alt={product.name}
+          placeholder={product.placeholder_label || product.name}
+          outOfStock={!inStock}
+        />
 
         <div className="pd-info">
           <div className="pd-tags">
@@ -156,9 +161,9 @@ export function ProductDetail() {
             <div className="pd-breakdown">
               <div className="pd-breakdown-title">تفکیک قیمت</div>
               <div className="pd-breakdown-row"><span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span><span>{faPrice(bd.gold)}</span></div>
-              <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faNum(Math.round(fee * 100))})</span><span>{faPrice(bd.fee)}</span></div>
+              <div className="pd-breakdown-row"><span>اجرت ساخت (٪{faFeePct(fee)})</span><span>{faPrice(bd.fee)}</span></div>
               {bd.stone > 0 && <div className="pd-breakdown-row"><span>سنگ و نگین</span><span>{faPrice(bd.stone)}</span></div>}
-              <div className="pd-breakdown-row"><span>مالیات ۹٪ اجرت</span><span>{faPrice(bd.tax)}</span></div>
+              <div className="pd-breakdown-row"><span>مالیات ارزش افزوده ۹٪</span><span>{faPrice(bd.tax)}</span></div>
               <div className="pd-breakdown-total"><span>قیمت نهایی</span><span>{faPrice(bd.total)} تومان</span></div>
             </div>
           ) : (
@@ -194,8 +199,12 @@ export function ProductDetail() {
             <button
               type="button"
               className="gold-btn"
-              disabled={!inStock || !hasWeight}
+              disabled={!inStock || !hasWeight || !ordersEnabled}
               onClick={() => {
+                if (!ordersEnabled) {
+                  toast(salesClosedMessage);
+                  return;
+                }
                 if (!hasWeight) {
                   toast('تا تأیید وزن، امکان افزودن به سبد نیست.');
                   return;
@@ -215,7 +224,13 @@ export function ProductDetail() {
                 openCart();
               }}
             >
-              {!hasWeight ? 'منتظر تأیید وزن' : inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
+              {!ordersEnabled
+                ? 'فروش موقتاً بسته است'
+                : !hasWeight
+                  ? 'منتظر تأیید وزن'
+                  : inStock
+                    ? 'افزودن به گلد باکس'
+                    : 'ناموجود'}
             </button>
           </div>
 

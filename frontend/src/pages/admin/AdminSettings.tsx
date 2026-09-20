@@ -9,7 +9,7 @@ const DEFAULTS = {
   address: 'تهران، بازار بزرگ طلا',
   shipping_note: 'ارسال بیمه‌شده به سراسر کشور ظرف ۲ تا ۴ روز کاری',
   low_stock_threshold: 2,
-  tax_note: 'مالیات ۹٪ فقط روی اجرت ساخت اعمال می‌شود',
+  tax_note: 'مالیات ۹٪ روی (اجرت + سود) اعمال می‌شود',
 };
 
 export function AdminSettings() {

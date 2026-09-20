@@ -50,10 +50,13 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_price(self, obj):
-        return obj.price_breakdown()["total"]
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)["total"]
 
     def get_primary_image(self, obj):
-        img = obj.images.filter(is_primary=True).first() or obj.images.first()
+        # Use prefetched related manager — avoid per-row .filter() queries.
+        images = list(obj.images.all())
+        img = next((i for i in images if i.is_primary), None) or (images[0] if images else None)
         if img and img.image:
             request = self.context.get("request")
             return request.build_absolute_uri(img.image.url) if request else img.image.url
@@ -82,10 +85,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_price(self, obj):
-        return obj.price_breakdown()["total"]
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)["total"]
 
     def get_breakdown(self, obj):
-        return obj.price_breakdown()
+        gp = self.context.get("gold_price")
+        return obj.price_breakdown(gp=gp)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -137,7 +142,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "trust_heading", "footer_tagline",
             "contact_phone", "contact_email", "contact_address",
-            "top_banner", "updated_at",
+            "top_banner",
+            "made_to_order_deposit", "made_to_order_deposit_percent",
+            "orders_enabled", "sales_closed_message", "updated_at",
         ]
         read_only_fields = ["updated_at"]
 
@@ -190,11 +197,11 @@ class ContentPageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "body",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "body",
             "cover", "cover_url", "is_published", "show_in_nav", "order",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "share_code", "created_at", "updated_at"]
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
@@ -206,7 +213,7 @@ class ContentPageListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "cover_url",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "cover_url",
             "show_in_nav", "order", "created_at",
         ]
 
