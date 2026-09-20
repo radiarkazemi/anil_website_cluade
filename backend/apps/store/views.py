@@ -264,6 +264,16 @@ class ContentPageDetailView(generics.RetrieveAPIView):
     queryset = ContentPage.objects.filter(is_published=True)
 
 
+class ContentPageByShareCodeView(generics.RetrieveAPIView):
+    """Resolve short /b/<share_code> links for social sharing."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ContentPageSerializer
+    lookup_field = "share_code"
+    queryset = ContentPage.objects.filter(is_published=True)
+
+
 class ConsultantView(APIView):
     """Inventory AI consultant — weight / اجرت / shape → product suggestions."""
 

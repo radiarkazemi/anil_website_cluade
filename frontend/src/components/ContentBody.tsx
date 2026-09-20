@@ -1,6 +1,16 @@
 import type { ReactNode } from 'react';
 
-/** Escape HTML entities for safe inline rendering of simple marks. */
+/** Normalize odd spaces / BOM so markdown markers match reliably (esp. mobile paste). */
+function normalizeBody(body: string): string {
+  return (body || '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\u00A0\u202F\u2007]/g, ' ')
+    // zero-width space / word joiner only — keep ZWNJ (U+200C) for Persian orthography
+    .replace(/[\u200B\u2060]/g, '');
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -9,11 +19,13 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Apply **bold** and *italic* inside a line (already escaped). */
+/** Apply **bold** and *italic* — tolerant of Persian text and missing closers. */
 function inlineFormat(raw: string): string {
   let s = escapeHtml(raw);
-  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/(^|[^*])\*(?!\s)(.+?)(?!\s)\*(?!\*)/g, '$1<em>$2</em>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // leftover ** pairs → strip markers so mobile never shows raw stars
+  s = s.replace(/\*\*/g, '');
+  s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
   return s;
 }
 
@@ -24,8 +36,12 @@ type Block =
   | { type: 'ul'; items: string[] }
   | { type: 'quote'; text: string };
 
+const HEADING_RE = /^(#{1,3})[\s\u00A0\u200C]+(.+?)\s*$/;
+const LIST_RE = /^[-•*][\s\u00A0]+(.+)$/;
+const QUOTE_RE = /^>[\s\u00A0]+(.+)$/;
+
 function parseBlocks(body: string): Block[] {
-  const lines = (body || '').replace(/\r\n/g, '\n').split('\n');
+  const lines = normalizeBody(body).split('\n');
   const blocks: Block[] = [];
   let listBuf: string[] = [];
   let paraBuf: string[] = [];
@@ -50,30 +66,33 @@ function parseBlocks(body: string): Block[] {
       flushPara();
       continue;
     }
-    if (trimmed.startsWith('### ')) {
+
+    const heading = trimmed.match(HEADING_RE);
+    if (heading) {
       flushList();
       flushPara();
-      blocks.push({ type: 'h3', text: trimmed.slice(4) });
+      const level = heading[1].length;
+      const text = heading[2].trim();
+      blocks.push({ type: level >= 3 ? 'h3' : 'h2', text });
       continue;
     }
-    if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+
+    const quote = trimmed.match(QUOTE_RE);
+    if (quote) {
       flushList();
       flushPara();
-      const text = trimmed.startsWith('## ') ? trimmed.slice(3) : trimmed.slice(2);
-      blocks.push({ type: 'h2', text });
+      blocks.push({ type: 'quote', text: quote[1].trim() });
       continue;
     }
-    if (trimmed.startsWith('> ')) {
-      flushList();
+
+    const list = trimmed.match(LIST_RE);
+    // Avoid treating **bold** lines as list items
+    if (list && !trimmed.startsWith('**')) {
       flushPara();
-      blocks.push({ type: 'quote', text: trimmed.slice(2) });
+      listBuf.push(list[1].trim());
       continue;
     }
-    if (/^[-•*]\s+/.test(trimmed)) {
-      flushPara();
-      listBuf.push(trimmed.replace(/^[-•*]\s+/, ''));
-      continue;
-    }
+
     flushList();
     paraBuf.push(trimmed);
   }
@@ -85,7 +104,11 @@ function parseBlocks(body: string): Block[] {
 export function ContentBody({ body, className = '' }: { body?: string | null; className?: string }) {
   const blocks = parseBlocks(body || '');
   if (!blocks.length) {
-    return <div className={`content-body ${className}`.trim()}><p>محتوایی ثبت نشده است.</p></div>;
+    return (
+      <div className={`content-body ${className}`.trim()}>
+        <p>محتوایی ثبت نشده است.</p>
+      </div>
+    );
   }
 
   const nodes: ReactNode[] = blocks.map((b, i) => {
@@ -96,9 +119,7 @@ export function ContentBody({ body, className = '' }: { body?: string | null; cl
       return <h3 key={i} dangerouslySetInnerHTML={{ __html: inlineFormat(b.text) }} />;
     }
     if (b.type === 'quote') {
-      return (
-        <blockquote key={i} dangerouslySetInnerHTML={{ __html: inlineFormat(b.text) }} />
-      );
+      return <blockquote key={i} dangerouslySetInnerHTML={{ __html: inlineFormat(b.text) }} />;
     }
     if (b.type === 'ul') {
       return (
@@ -113,4 +134,16 @@ export function ContentBody({ body, className = '' }: { body?: string | null; cl
   });
 
   return <div className={`content-body ${className}`.trim()}>{nodes}</div>;
+}
+
+/** Pure helper for tests / admin preview sanity checks. */
+export function renderContentPreviewText(body: string): string {
+  return parseBlocks(body)
+    .map((b) => {
+      if (b.type === 'h2' || b.type === 'h3') return b.text;
+      if (b.type === 'ul') return b.items.join(' · ');
+      if (b.type === 'quote') return b.text;
+      return b.text.replace(/\*\*/g, '');
+    })
+    .join('\n');
 }

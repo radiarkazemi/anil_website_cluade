@@ -84,6 +84,7 @@ export interface ContentPage {
   id: string;
   title: string;
   slug: string;
+  share_code?: string;
   page_type: 'page' | 'blog';
   excerpt: string;
   body?: string;

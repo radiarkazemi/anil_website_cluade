@@ -197,11 +197,11 @@ class ContentPageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "body",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "body",
             "cover", "cover_url", "is_published", "show_in_nav", "order",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "share_code", "created_at", "updated_at"]
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
@@ -213,7 +213,7 @@ class ContentPageListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "cover_url",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "cover_url",
             "show_in_nav", "order", "created_at",
         ]
 

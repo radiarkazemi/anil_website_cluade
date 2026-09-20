@@ -3442,6 +3442,122 @@ body.nav-open { overflow: hidden; }
   padding-block: 28px 12px;
 }
 .blog-article-body p { font-size: 16.5px; }
+.blog-article-body h2,
+.content-body h2 {
+  font-family: var(--font-brand);
+  font-size: clamp(22px, 2.4vw, 28px);
+  margin: 32px 0 14px;
+  color: var(--text);
+  font-weight: 600;
+}
+.blog-article-body h3,
+.content-body h3 {
+  font-size: clamp(17px, 2vw, 19px);
+  margin: 24px 0 10px;
+  color: var(--text);
+  font-weight: 700;
+}
+.blog-article-body strong,
+.content-body strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Share bar */
+.share-bar {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px 0 0;
+}
+.share-bar-label {
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.share-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.share-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-gold);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-chip:hover { border-color: var(--gold); color: var(--gold-light); }
+.share-chip.primary {
+  background: var(--gold-grad);
+  color: #1a1208;
+  border-color: transparent;
+}
+.share-bar-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.share-bar-url code {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.share-bar-copy-mini {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.blog-share-bar { margin-top: 16px; max-width: 28rem; }
+.blog-share-foot {
+  padding-block: 8px 4px;
+  max-width: 720px;
+}
+.admin-share-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-gold);
+  background: var(--surface-2);
+  display: grid;
+  gap: 8px;
+}
+.admin-share-box-label { font-size: 12.5px; color: var(--text-dim); }
+.admin-share-box-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-share-box code {
+  flex: 1;
+  min-width: 160px;
+  font-size: 12.5px;
+  direction: ltr;
+  text-align: left;
+}
 .blog-related {
   padding-block: 36px 12px;
   border-top: 1px solid var(--border);

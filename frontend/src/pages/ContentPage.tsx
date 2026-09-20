@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ContentBody } from '../components/ContentBody';
+import { ShareBar } from '../components/ShareBar';
 import { faDate, faNum, readingMinutes } from '../utils/format';
 
 export function ContentPageView() {
@@ -53,6 +54,7 @@ export function ContentPageView() {
   const siblings = related
     .filter((p) => p.slug !== 'بلاگ' && p.slug !== data.slug)
     .slice(0, 3);
+  const sharePath = data.share_code ? `/b/${data.share_code}` : `/blog/${data.slug}`;
 
   if (isBlog) {
     return (
@@ -78,11 +80,21 @@ export function ContentPageView() {
               <span aria-hidden>·</span>
               <span>{faNum(mins)} دقیقه مطالعه</span>
             </div>
+            <ShareBar
+              className="blog-share-bar"
+              title={data.title}
+              excerpt={data.excerpt}
+              path={sharePath}
+            />
           </div>
         </header>
 
         <div className="container blog-article-layout">
           <ContentBody body={data.body} className="blog-article-body" />
+        </div>
+
+        <div className="container blog-share-foot">
+          <ShareBar title={data.title} excerpt={data.excerpt} path={sharePath} />
         </div>
 
         {siblings.length > 0 && (
@@ -142,4 +154,33 @@ export function ContentPageView() {
       </div>
     </article>
   );
+}
+
+/** Short link landing: /b/:code → canonical blog (or page) URL. */
+export function BlogShareRedirect() {
+  const { code = '' } = useParams();
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['page-by-code', code],
+    queryFn: () => api.pageByShareCode(code).then((r) => r.data),
+    enabled: !!code,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="container section-pad">
+        <p className="blog-loading">در حال انتقال…</p>
+      </div>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <div className="container section-pad content-page">
+        <h1 className="section-title">لینک نامعتبر است</h1>
+        <Link to="/blog" className="text-link">بازگشت به بلاگ</Link>
+      </div>
+    );
+  }
+
+  const to = data.page_type === 'blog' ? `/blog/${data.slug}` : `/p/${data.slug}`;
+  return <Navigate to={to} replace />;
 }

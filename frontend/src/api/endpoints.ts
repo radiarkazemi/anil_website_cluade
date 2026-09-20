@@ -48,6 +48,7 @@ export const api = {
   siteSettings: () => client.get<SiteSettings>('/site-settings/'),
   pages: (params?: Record<string, string>) => client.get<ContentPage[]>('/pages/', { params }),
   page: (slug: string) => client.get<ContentPage>(`/pages/${slug}/`),
+  pageByShareCode: (code: string) => client.get<ContentPage>(`/pages/by-code/${code}/`),
   products: (params?: Record<string, string>) => client.get<PaginatedResponse<Product>>('/products/', { params }),
   /** Load every page so «همه» never silently truncates the catalog. */
   productsAll: async (params?: Record<string, string>) => {

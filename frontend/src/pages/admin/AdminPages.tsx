@@ -446,6 +446,39 @@ export function AdminPages() {
                   مشاهده در سایت ↗
                 </Link>
               )}
+              {form.share_code && (
+                <div className="admin-share-box">
+                  <div className="admin-share-box-label">لینک کوتاه برای شبکه‌های اجتماعی</div>
+                  <div className="admin-share-box-row">
+                    <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/b/${form.share_code}`}</code>
+                    <button
+                      type="button"
+                      className="outline-btn"
+                      style={{ padding: '6px 12px', fontSize: 12 }}
+                      onClick={async () => {
+                        const link = `${window.location.origin}/b/${form.share_code}`;
+                        try {
+                          await navigator.clipboard.writeText(link);
+                          toast('لینک کوتاه کپی شد');
+                        } catch {
+                          toast(link);
+                        }
+                      }}
+                    >
+                      کپی لینک
+                    </button>
+                    <Link
+                      className="outline-btn"
+                      style={{ padding: '6px 12px', fontSize: 12 }}
+                      to={`/b/${form.share_code}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      باز کردن
+                    </Link>
+                  </div>
+                </div>
+              )}
             </aside>
           )}
         </div>
@@ -488,6 +521,7 @@ export function AdminPages() {
                 <th>عنوان</th>
                 <th>نوع</th>
                 <th>اسلاگ</th>
+                <th>لینک کوتاه</th>
                 <th>تاریخ</th>
                 <th>منو</th>
                 <th>وضعیت</th>
@@ -515,6 +549,29 @@ export function AdminPages() {
                   </td>
                   <td>{p.page_type === 'blog' ? 'بلاگ' : 'صفحه'}</td>
                   <td dir="ltr" style={{ fontSize: 12 }}>{p.slug}</td>
+                  <td>
+                    {p.share_code ? (
+                      <button
+                        type="button"
+                        className="outline-btn"
+                        style={{ padding: '4px 10px', fontSize: 11 }}
+                        title={`کپی https://goldanil.ir/b/${p.share_code}`}
+                        onClick={async () => {
+                          const link = `${window.location.origin}/b/${p.share_code}`;
+                          try {
+                            await navigator.clipboard.writeText(link);
+                            toast('لینک کوتاه کپی شد');
+                          } catch {
+                            toast(link);
+                          }
+                        }}
+                      >
+                        /b/{p.share_code}
+                      </button>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                   <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{faDate(p.created_at)}</td>
                   <td>{p.show_in_nav ? 'بله' : '—'}</td>
                   <td>
@@ -557,7 +614,7 @@ export function AdminPages() {
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: 28, color: 'var(--text-dim)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: 28, color: 'var(--text-dim)' }}>
                     موردی یافت نشد — یک نوشته بلاگ جدید بسازید.
                   </td>
                 </tr>
