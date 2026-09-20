@@ -297,7 +297,6 @@ class ContentPage(models.Model):
         max_length=12,
         unique=True,
         blank=True,
-        db_index=True,
         help_text="کد کوتاه اشتراک‌گذاری — /b/<code>",
     )
     page_type = models.CharField(max_length=10, choices=PageType.choices, default=PageType.PAGE)
