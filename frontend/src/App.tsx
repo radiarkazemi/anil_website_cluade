@@ -29,6 +29,7 @@ import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminGold } from './pages/admin/AdminGold';
 import { AdminUsers } from './pages/admin/AdminUsers';
 import { AdminAnalytics } from './pages/admin/AdminAnalytics';
+import { AdminBlogAnalytics } from './pages/admin/AdminBlogAnalytics';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminSiteLayout } from './pages/admin/AdminSiteLayout';
 import { AdminPages } from './pages/admin/AdminPages';
@@ -98,6 +99,7 @@ function AppInner() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="gold" element={<AdminGold />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="blog-analytics" element={<AdminBlogAnalytics />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="layout" element={<AdminSiteLayout />} />
           <Route path="pages" element={<AdminPages />} />

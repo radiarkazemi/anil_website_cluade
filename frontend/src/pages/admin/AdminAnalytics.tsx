@@ -108,14 +108,14 @@ export function AdminAnalytics() {
       <PageHeader
         title="مرکز تحلیل پیشرفته"
         subtitle="بازدید سایت، ترافیک، فروش، موجودی و نرخ طلا — به‌روزرسانی خودکار"
-        actions={<Link to="/panel" className="outline-btn">داشبورد</Link>}
+        actions={<Link to="/panel/blog-analytics" className="outline-btn">تحلیل بلاگ</Link>}
       />
 
       <section className="admin-card" style={{ marginBottom: 18 }}>
         <div className="admin-card-head" style={{ alignItems: 'center' }}>
           <div>
             <h3>بازدید و ترافیک سایت</h3>
-            <p>بازدیدکنندگان، صفحات پربازدید، منابع ورودی و دستگاه‌ها</p>
+            <p>بازدیدکنندگان، صفحات پربازدید، منابع ورودی و دستگاه‌ها — برای مجله: <Link to="/panel/blog-analytics" className="text-link">داشبورد تحلیل بلاگ</Link></p>
           </div>
           <div className="admin-page-actions" style={{ gap: 8, flexWrap: 'wrap' }}>
             {[7, 14, 30].map((d) => (

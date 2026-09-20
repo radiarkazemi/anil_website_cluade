@@ -177,6 +177,9 @@ export const api = {
     screen?: string;
     language?: string;
     product_id?: string;
+    content_page_id?: string;
+    page_type?: 'blog' | 'page';
+    share_code?: string;
   }) => client.post('/analytics/site-visit/', data),
   adminTraffic: (params?: {
     days?: number;
@@ -218,6 +221,60 @@ export const api = {
         to: params?.to || undefined,
         path: params?.path || undefined,
         product_id: params?.product_id || undefined,
+      },
+    }),
+  adminBlogTraffic: (params?: { days?: number; from?: string; to?: string }) =>
+    client.get<{
+      days: number;
+      date_from?: string;
+      date_to?: string;
+      available: boolean;
+      totals: {
+        visits: number;
+        unique_visitors: number;
+        visits_today: number;
+        unique_today: number;
+        article_views: number;
+        list_views: number;
+        posts_viewed: number;
+        avg_views_per_visitor: number;
+      };
+      series: { date: string; visits: number; unique_visitors: number }[];
+      top_posts: {
+        path: string;
+        views: number;
+        unique_visitors?: number;
+        title?: string;
+        slug?: string | null;
+        share_code?: string | null;
+        content_page_id?: string | null;
+        cover_url?: string | null;
+        excerpt?: string;
+        is_list?: boolean;
+        is_published?: boolean;
+      }[];
+      top_referrers: { host: string; views: number }[];
+      devices: { device: string; views: number }[];
+      recent: {
+        path?: string;
+        title?: string;
+        referrer_host?: string;
+        device?: string;
+        ts?: string;
+        content_page_id?: string;
+        share_code?: string;
+      }[];
+      engagement: {
+        returning_visitors: number;
+        new_visitors: number;
+        returning_rate: number;
+      };
+      catalog?: { published_posts: number; total_blog_pages: number };
+    }>('/admin/traffic/blog/', {
+      params: {
+        days: params?.days ?? 14,
+        from: params?.from || undefined,
+        to: params?.to || undefined,
       },
     }),
   adminTrafficExportUrl: (params?: {

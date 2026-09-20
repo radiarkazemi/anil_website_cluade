@@ -31,6 +31,41 @@ export function ContentPageView() {
     }
   }, [data?.title]);
 
+  useEffect(() => {
+    if (!data?.id || data.page_type !== 'blog') return;
+    const SESSION_KEY = 'anil_vid';
+    let sessionId = '';
+    try {
+      sessionId = sessionStorage.getItem(SESSION_KEY) || '';
+      if (!sessionId) {
+        sessionId =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `v_${Date.now().toString(36)}`;
+        sessionStorage.setItem(SESSION_KEY, sessionId);
+      }
+    } catch {
+      sessionId = `v_${Date.now().toString(36)}`;
+    }
+    api
+      .logSiteVisit({
+        path: pathname || `/blog/${data.slug}`,
+        title: data.title,
+        referrer: typeof document !== 'undefined' ? document.referrer : '',
+        session_id: sessionId,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        screen:
+          typeof window !== 'undefined'
+            ? `${window.screen?.width || 0}x${window.screen?.height || 0}`
+            : '',
+        language: typeof navigator !== 'undefined' ? navigator.language : '',
+        content_page_id: data.id,
+        page_type: 'blog',
+        share_code: data.share_code || undefined,
+      })
+      .catch(() => {});
+  }, [data?.id, data?.page_type, data?.slug, data?.title, data?.share_code, pathname]);
+
   if (isLoading) {
     return (
       <div className={`content-shell${isBlog ? ' is-blog' : ''}`}>

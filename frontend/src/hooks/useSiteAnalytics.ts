@@ -34,11 +34,15 @@ export function useSiteAnalytics() {
 
   useEffect(() => {
     if (pathname.startsWith('/panel')) return;
+    // Article detail + short links are logged from ContentPage with content_page_id
+    if (pathname.startsWith('/blog/') && pathname !== '/blog') return;
+    if (pathname.startsWith('/b/')) return;
+
     const key = `${pathname}${search}`;
     if (last.current === key) return;
     last.current = key;
 
-    const payload = {
+    const payload: Parameters<typeof api.logSiteVisit>[0] = {
       path: pathname || '/',
       title: typeof document !== 'undefined' ? document.title : '',
       referrer: typeof document !== 'undefined' ? document.referrer : '',
@@ -51,6 +55,9 @@ export function useSiteAnalytics() {
       language: typeof navigator !== 'undefined' ? navigator.language : '',
       product_id: productIdFromPath(pathname),
     };
+    if (pathname === '/blog') {
+      payload.page_type = 'blog';
+    }
 
     // Small delay so document.title settles after route change
     const t = window.setTimeout(() => {

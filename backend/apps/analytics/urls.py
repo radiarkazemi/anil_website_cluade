@@ -10,5 +10,6 @@ urlpatterns = [
     path("analytics/site-visit/", views.SiteVisitLogView.as_view(), name="site-visit"),
     path("analytics/popular/", views.PopularProductsView.as_view(), name="popular-products"),
     path("admin/traffic/", views.AdminTrafficView.as_view(), name="admin-traffic"),
+    path("admin/traffic/blog/", views.AdminBlogTrafficView.as_view(), name="admin-blog-traffic"),
     path("admin/traffic/export/", views.AdminTrafficExportView.as_view(), name="admin-traffic-export"),
 ]

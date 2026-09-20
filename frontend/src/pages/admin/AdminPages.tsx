@@ -195,6 +195,7 @@ export function AdminPages() {
             <button type="button" className="outline-btn" onClick={() => openNew('page')}>
               + صفحه راهنما
             </button>
+            <Link to="/panel/blog-analytics" className="outline-btn">تحلیل بلاگ</Link>
           </div>
         )}
       />
