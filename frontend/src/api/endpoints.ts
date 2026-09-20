@@ -135,8 +135,18 @@ export const api = {
   profile: (session: 'client' | 'admin' = 'client') =>
     client.get<User>('/auth/profile/', { authSession: session }),
   updateProfile: (data: Partial<User>) => client.patch<User>('/auth/profile/', data),
+  changePassword: (old_password: string, new_password: string) =>
+    client.post<{ detail: string }>('/auth/change-password/', { old_password, new_password }),
   logout: (refresh: string, session: 'client' | 'admin' = 'client') =>
     client.post('/auth/logout/', { refresh }, { authSession: session }),
+  wishlist: () =>
+    client.get<
+      | { id: string; product: Product; created_at: string }[]
+      | PaginatedResponse<{ id: string; product: Product; created_at: string }>
+    >('/wishlist/'),
+  addWishlist: (product_id: string) =>
+    client.post<{ id: string; product: Product; created_at: string }>('/wishlist/', { product_id }),
+  removeWishlist: (id: string) => client.delete(`/wishlist/${id}/`),
   sendPhoneOtp: () =>
     client.post<{ detail: string; demo_code?: string; expires_in?: number; user?: User }>(
       '/auth/verify/phone/send/',
@@ -167,9 +177,18 @@ export const api = {
     language?: string;
     product_id?: string;
   }) => client.post('/analytics/site-visit/', data),
-  adminTraffic: (days = 14) =>
+  adminTraffic: (params?: {
+    days?: number;
+    from?: string;
+    to?: string;
+    path?: string;
+    product_id?: string;
+  }) =>
     client.get<{
       days: number;
+      date_from?: string;
+      date_to?: string;
+      filters?: { path?: string; product_id?: string };
       available: boolean;
       totals: {
         visits: number;
@@ -191,7 +210,30 @@ export const api = {
         ts?: string;
         product_id?: string;
       }[];
-    }>('/admin/traffic/', { params: { days } }),
+    }>('/admin/traffic/', {
+      params: {
+        days: params?.days ?? 14,
+        from: params?.from || undefined,
+        to: params?.to || undefined,
+        path: params?.path || undefined,
+        product_id: params?.product_id || undefined,
+      },
+    }),
+  adminTrafficExportUrl: (params?: {
+    days?: number;
+    from?: string;
+    to?: string;
+    path?: string;
+    product_id?: string;
+  }) => {
+    const q = new URLSearchParams();
+    q.set('days', String(params?.days ?? 14));
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    if (params?.path) q.set('path', params.path);
+    if (params?.product_id) q.set('product_id', params.product_id);
+    return `/api/v1/admin/traffic/export/?${q.toString()}`;
+  },
 
   // Admin panel
   adminDashboard: () => client.get<DashboardStats>('/admin/dashboard/'),

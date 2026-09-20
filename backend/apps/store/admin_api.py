@@ -1,6 +1,8 @@
 from datetime import timedelta
+import logging
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -17,6 +19,7 @@ from apps.store.serializers import CategorySerializer, GoldPriceSerializer, Prod
 from apps.store.services.gold import refresh_gold_price
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class AdminProductWriteSerializer(serializers.ModelSerializer):
@@ -87,7 +90,16 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if value is None:
             return None
         value = str(value).strip()
-        return value or None
+        if not value:
+            return None
+        qs = Product.objects.filter(sku=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "این کد کالا (SKU) قبلاً برای محصول دیگری ثبت شده. خالی بگذارید یا کد یکتا وارد کنید."
+            )
+        return value
 
     def validate_fee_ratio(self, value):
         """Accept ratio (0.095), percent (9.5), or shop shorthand 0.9.5 → 9.5%."""
@@ -101,12 +113,31 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if slug is None or str(slug).strip() == "":
             attrs["slug"] = self._unique_slug(name, self.instance)
         else:
-            attrs["slug"] = str(slug).strip()
+            # Always uniquify — frontend often sends a name-derived slug that may already exist.
+            attrs["slug"] = self._unique_slug(str(slug).strip(), self.instance)
         if "sku" in attrs and attrs["sku"] == "":
             attrs["sku"] = None
         if "weight_g" in attrs and attrs["weight_g"] in ("", None):
             attrs["weight_g"] = None
         return attrs
+
+
+def _integrity_field_errors(exc: IntegrityError) -> dict:
+    """Map Postgres unique violations to field errors (sku vs slug)."""
+    raw = " ".join(str(a) for a in exc.args).lower()
+    if "store_product_sku_key" in raw or "(sku)" in raw:
+        return {
+            "sku": [
+                "این کد کالا (SKU) قبلاً استفاده شده. فیلد SKU را خالی کنید یا مقدار یکتا بگذارید."
+            ]
+        }
+    if "store_product_slug_key" in raw or "(slug)" in raw:
+        return {
+            "slug": [
+                "این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."
+            ]
+        }
+    return {"detail": "رکورد تکراری است. SKU یا نامک را بررسی کنید."}
 
 class AdminUserManageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -299,6 +330,20 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Product.objects.select_related("category").prefetch_related("images").all()
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product create integrity: %s", exc)
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except IntegrityError as exc:
+            logger.warning("admin product update integrity: %s", exc)
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminCategoryViewSet(viewsets.ModelViewSet):

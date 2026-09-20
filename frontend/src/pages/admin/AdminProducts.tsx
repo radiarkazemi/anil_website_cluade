@@ -76,7 +76,7 @@ const empty = {
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'نام محصول',
-  slug: 'اسلاگ',
+  slug: 'نامک / اسلاگ',
   category: 'دسته‌بندی',
   weight_g: 'وزن',
   karat: 'عیار',
@@ -112,18 +112,25 @@ function slugifyName(name: string) {
     .slice(0, 180);
 }
 
-function formatApiError(data: unknown, status?: number): string {
+function formatApiError(data: unknown, status?: number, opts?: { isImageUpload?: boolean }): string {
   if (!data) {
     if (status === 413) return 'حجم تصویر بیش از حد مجاز سرور است.';
-    if (status && status >= 500) return 'خطای سرور هنگام ذخیره تصویر. دوباره تلاش کنید.';
+    if (status && status >= 500) {
+      return opts?.isImageUpload
+        ? 'خطای سرور هنگام آپلود تصویر. دوباره تلاش کنید.'
+        : 'خطای سرور هنگام ذخیره محصول. اگر نام تکراری است، نام را کمی تغییر دهید.';
+    }
     return 'خطا در ذخیره';
   }
   if (typeof data === 'string') {
     const trimmed = data.trim();
     if (trimmed.startsWith('<!') || trimmed.toLowerCase().includes('<html')) {
-      return status && status >= 500
-        ? 'خطای سرور هنگام آپلود تصویر. دسترسی پوشه media یا حجم فایل را بررسی کنید.'
-        : 'پاسخ نامعتبر از سرور دریافت شد.';
+      if (status && status >= 500) {
+        return opts?.isImageUpload
+          ? 'خطای سرور هنگام آپلود تصویر. دسترسی پوشه media یا حجم فایل را بررسی کنید.'
+          : 'خطای سرور هنگام ذخیره محصول (احتمالاً نامک تکراری). نام را کمی تغییر دهید و دوباره ذخیره کنید.';
+      }
+      return 'پاسخ نامعتبر از سرور دریافت شد.';
     }
     return trimmed.slice(0, 280) || 'خطا در ذخیره';
   }
@@ -256,7 +263,9 @@ export function AdminProducts() {
             await api.adminUploadImage(product.id, pendingFiles[i], makePrimary);
           }
         } catch (uploadErr: any) {
-          const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
+          const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status, {
+            isImageUpload: true,
+          });
           throw Object.assign(new Error(msg), {
             response: uploadErr?.response,
             isImageUpload: true,
@@ -274,7 +283,9 @@ export function AdminProducts() {
       qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
     onError: (e: any) => {
-      const msg = formatApiError(e?.response?.data, e?.response?.status);
+      const msg = formatApiError(e?.response?.data, e?.response?.status, {
+        isImageUpload: !!e?.isImageUpload,
+      });
       const prefix = e?.isImageUpload || e?.productSaved ? 'محصول ذخیره شد؛ خطا در آپلود تصویر: ' : '';
       const full = `${prefix}${msg}`;
       setFormError(full);
