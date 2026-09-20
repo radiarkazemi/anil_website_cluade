@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("store", "0008_product_weight_nullable_needs_review"),
+        ("store", "0011_set_deposit_percent_20"),
     ]
 
     operations = [

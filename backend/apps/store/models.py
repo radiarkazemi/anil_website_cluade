@@ -222,6 +222,16 @@ class SiteSettings(models.Model):
         max_length=300,
         default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
     )
+    made_to_order_deposit = models.BigIntegerField(
+        default=5_000_000,
+        help_text="مبلغ رزرو جایگزین وقتی تخمین قیمت ممکن نیست (تومان)",
+    )
+    made_to_order_deposit_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=20,
+        help_text="درصد مبلغ رزرو از قیمت تقریبی (شامل اجرت/سود/مالیات — فقط مبلغ نهایی به مشتری)",
+    )
     orders_enabled = models.BooleanField(
         default=False,
         help_text="اگر خاموش باشد، ثبت سفارش و پرداخت در فروشگاه غیرفعال است",
