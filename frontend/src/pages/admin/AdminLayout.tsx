@@ -2,6 +2,7 @@ import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-route
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/endpoints';
+import { usePageSeo } from '../../hooks/usePageSeo';
 import { useStore } from '../../store/useStore';
 import { THEME_META, useTheme } from '../../store/themeStore';
 import { faNum, faPrice } from '../../utils/format';
@@ -50,6 +51,13 @@ export function AdminLayout() {
   const [cmdQ, setCmdQ] = useState('');
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  usePageSeo({
+    title: 'پنل مدیریت | آنیل',
+    description: 'پنل مدیریت گالری طلا آنیل',
+    canonicalPath: pathname,
+    noindex: true,
+  });
 
   const { data: dash } = useQuery({
     queryKey: ['admin-dashboard'],

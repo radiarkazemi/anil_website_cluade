@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ContentBody } from '../components/ContentBody';
 import { ShareBar } from '../components/ShareBar';
+import { usePageSeo } from '../hooks/usePageSeo';
 import { faDate, faNum, readingMinutes } from '../utils/format';
 
 export function ContentPageView() {
@@ -26,9 +27,8 @@ export function ContentPageView() {
   });
 
   useEffect(() => {
-    if (data?.title) {
-      document.title = `${data.title} | آنیل`;
-    }
+    // title handled by usePageSeo when data loads; keep fallback while loading
+    if (!data?.title) document.title = 'آنیل';
   }, [data?.title]);
 
   useEffect(() => {
@@ -65,6 +65,31 @@ export function ContentPageView() {
       })
       .catch(() => {});
   }, [data?.id, data?.page_type, data?.slug, data?.title, data?.share_code, pathname]);
+
+  usePageSeo({
+    title: data?.title ? `${data.title} | گالری طلا آنیل` : 'گالری طلا آنیل',
+    description: data?.excerpt || data?.title || 'گالری طلا آنیل',
+    canonicalPath: data
+      ? ((data.page_type === 'blog' || isBlogRoute) ? `/blog/${data.slug}` : `/p/${data.slug}`)
+      : pathname,
+    image: data?.cover_url,
+    type: (data?.page_type === 'blog' || isBlogRoute) ? 'article' : 'website',
+    jsonLd:
+      data && (data.page_type === 'blog' || isBlogRoute)
+        ? {
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            headline: data.title,
+            description: data.excerpt || data.title,
+            image: data.cover_url || undefined,
+            datePublished: data.created_at,
+            dateModified: data.updated_at || data.created_at,
+            inLanguage: 'fa-IR',
+            author: { '@type': 'Organization', name: 'گالری طلا آنیل' },
+            mainEntityOfPage: `https://goldanil.ir/blog/${data.slug}`,
+          }
+        : undefined,
+  });
 
   if (isLoading) {
     return (
@@ -114,6 +139,8 @@ export function ContentPageView() {
               <time dateTime={data.created_at}>{faDate(data.created_at)}</time>
               <span aria-hidden>·</span>
               <span>{faNum(mins)} دقیقه مطالعه</span>
+              <span aria-hidden>·</span>
+              <span className="blog-reads-label">{faNum(data.reads || 0)} بازدید</span>
             </div>
             <ShareBar
               className="blog-share-bar"
@@ -151,6 +178,8 @@ export function ContentPageView() {
                   <div className="blog-post-body">
                     <div className="blog-post-meta">
                       <time dateTime={p.created_at}>{faDate(p.created_at)}</time>
+                      <span aria-hidden>·</span>
+                      <span className="blog-reads-label">{faNum(p.reads || 0)} بازدید</span>
                     </div>
                     <h2>{p.title}</h2>
                     {p.excerpt && <p>{p.excerpt}</p>}

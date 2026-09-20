@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 're
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { IconBuyback, IconConsult, IconInsuredShip, IconShieldCheck } from '../components/icons';
+import { usePageSeo } from '../hooks/usePageSeo';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
 import type { HeroAlbumSlide, MarketRow, SiteSettings } from '../types';
@@ -341,6 +342,51 @@ export function Home() {
   const products = productsData ?? [];
   const featured = products.slice(0, 8);
   const gp = goldPrice?.price_18k_per_gram ?? 0;
+
+  usePageSeo({
+    title: 'گالری طلا آنیل | Anil Gold | فروشگاه طلا',
+    description:
+      site?.hero_subtitle
+        ? `گالری طلا آنیل (Anil Gold) — ${site.hero_subtitle}`
+        : 'گالری طلا آنیل (Anil Gold) — خرید زیورآلات طلا با قیمت لحظه‌ای ۱۸ عیار. سایت رسمی آنیل: goldanil.ir',
+    canonicalPath: '/',
+    image: site?.hero_image_url || site?.brand_logo_url || site?.hero_album?.find((s) => s.is_active)?.image_url,
+    type: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'JewelryStore',
+          '@id': 'https://goldanil.ir/#organization',
+          name: 'گالری طلا آنیل',
+          alternateName: ['آنیل', 'Anil', 'Anil Gold', 'گالری آنیل', 'goldanil', 'goldanil.ir', 'طلا آنیل'],
+          url: 'https://goldanil.ir',
+          logo: site?.brand_logo_url || 'https://goldanil.ir/logo.jpg',
+          image: site?.hero_image_url || site?.brand_logo_url || undefined,
+          telephone: site?.contact_phone || undefined,
+          email: site?.contact_email || undefined,
+          address: site?.contact_address
+            ? { '@type': 'PostalAddress', streetAddress: site.contact_address, addressCountry: 'IR' }
+            : undefined,
+          inLanguage: 'fa-IR',
+        },
+        {
+          '@type': 'WebSite',
+          '@id': 'https://goldanil.ir/#website',
+          name: 'گالری طلا آنیل',
+          alternateName: ['آنیل', 'Anil', 'Anil Gold', 'goldanil.ir'],
+          url: 'https://goldanil.ir',
+          publisher: { '@id': 'https://goldanil.ir/#organization' },
+          inLanguage: 'fa-IR',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://goldanil.ir/products?q={search_term_string}',
+            'query-input': 'required name=search_term_string',
+          },
+        },
+      ],
+    },
+  });
 
   const order = site?.section_order?.length
     ? site.section_order

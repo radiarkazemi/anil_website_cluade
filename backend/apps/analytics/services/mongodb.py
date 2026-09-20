@@ -489,6 +489,365 @@ def get_blog_traffic_summary(
     }
 
 
+def get_blog_post_traffic_summary(
+    *,
+    content_page_id: str,
+    slug: str | None = None,
+    share_code: str | None = None,
+    days: int = 14,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
+    """Traffic for a single blog post (by id, slug path, and short /b/ link)."""
+    empty: dict[str, Any] = {
+        "days": days,
+        "date_from": None,
+        "date_to": None,
+        "available": False,
+        "content_page_id": content_page_id,
+        "totals": {
+            "visits": 0,
+            "unique_visitors": 0,
+            "visits_today": 0,
+            "unique_today": 0,
+            "avg_views_per_visitor": 0,
+            "share_link_views": 0,
+            "slug_path_views": 0,
+        },
+        "series": [],
+        "top_referrers": [],
+        "devices": [],
+        "paths": [],
+        "recent": [],
+        "engagement": {
+            "returning_visitors": 0,
+            "new_visitors": 0,
+            "returning_rate": 0,
+        },
+        "hourly": [],
+    }
+    db = get_db()
+    if db is None:
+        return empty
+
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    def _parse_day(value: str | None, end: bool = False) -> datetime | None:
+        if not value:
+            return None
+        try:
+            d = datetime.strptime(value.strip()[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            return d + timedelta(days=1) if end else d
+        except ValueError:
+            return None
+
+    start = _parse_day(date_from)
+    end = _parse_day(date_to, end=True)
+    if start is None and end is None:
+        start = now - timedelta(days=max(1, days))
+        end = now + timedelta(seconds=1)
+        span_days = max(1, days)
+    else:
+        if start is None:
+            start = (end or now) - timedelta(days=max(1, days))
+        if end is None:
+            end = now + timedelta(seconds=1)
+        span_days = max(1, (end - start).days)
+
+    path_ors: list[dict[str, Any]] = [{"content_page_id": str(content_page_id)}]
+    if slug:
+        slug_path = _normalize_path(f"/blog/{slug}")
+        path_ors.append({"path": slug_path})
+        path_ors.append({"path": slug_path + "/"})
+    if share_code:
+        code = str(share_code).strip()
+        if code:
+            path_ors.append({"path": _normalize_path(f"/b/{code}")})
+            path_ors.append({"share_code": code})
+
+    match: dict[str, Any] = {
+        "ts": {"$gte": start, "$lt": end},
+        "device": {"$ne": "bot"},
+        "$or": path_ors,
+    }
+    coll = db.page_views
+
+    visits = coll.count_documents(match)
+
+    def _unique(extra: dict | None = None) -> int:
+        q = dict(match)
+        if extra:
+            q = {**q, **extra}
+        rows = list(
+            coll.aggregate(
+                [
+                    {"$match": q},
+                    {
+                        "$group": {
+                            "_id": {
+                                "$ifNull": [
+                                    "$session_id",
+                                    {"$ifNull": ["$user_id", "anon"]},
+                                ]
+                            }
+                        }
+                    },
+                    {"$count": "n"},
+                ]
+            )
+        )
+        return int(rows[0]["n"]) if rows else 0
+
+    unique_visitors = _unique()
+    today_q = {"ts": {"$gte": max(today_start, start), "$lt": end}}
+    unique_today = _unique(today_q)
+    visits_today = coll.count_documents({**match, **today_q})
+
+    base_window: dict[str, Any] = {
+        "ts": {"$gte": start, "$lt": end},
+        "device": {"$ne": "bot"},
+    }
+    share_link_views = 0
+    slug_path_views = 0
+    if share_code:
+        code = str(share_code).strip()
+        share_link_views = coll.count_documents(
+            {**base_window, "path": _normalize_path(f"/b/{code}")}
+        )
+    if slug:
+        slug_path = _normalize_path(f"/blog/{slug}")
+        slug_path_views = coll.count_documents(
+            {**base_window, "path": {"$in": [slug_path, slug_path + "/"]}}
+        )
+
+    session_counts = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {
+                    "$group": {
+                        "_id": {
+                            "$ifNull": [
+                                "$session_id",
+                                {"$ifNull": ["$user_id", "anon"]},
+                            ]
+                        },
+                        "n": {"$sum": 1},
+                    }
+                },
+            ]
+        )
+    )
+    returning = sum(1 for s in session_counts if (s.get("n") or 0) > 1)
+    new_visitors = sum(1 for s in session_counts if (s.get("n") or 0) == 1)
+    returning_rate = round((returning / unique_visitors) * 100, 1) if unique_visitors else 0
+    avg_views = round(visits / unique_visitors, 2) if unique_visitors else 0
+
+    series_raw = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {
+                    "$group": {
+                        "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$ts"}},
+                        "visits": {"$sum": 1},
+                        "sessions": {"$addToSet": {"$ifNull": ["$session_id", "$user_id"]}},
+                    }
+                },
+                {"$sort": {"_id": 1}},
+            ]
+        )
+    )
+    series_map = {
+        row["_id"]: {
+            "date": row["_id"],
+            "visits": row["visits"],
+            "unique_visitors": len([s for s in (row.get("sessions") or []) if s]),
+        }
+        for row in series_raw
+    }
+    series = []
+    cursor_day = start.date()
+    end_day = (end - timedelta(seconds=1)).date()
+    while cursor_day <= end_day:
+        key = cursor_day.strftime("%Y-%m-%d")
+        series.append(series_map.get(key, {"date": key, "visits": 0, "unique_visitors": 0}))
+        cursor_day += timedelta(days=1)
+
+    # Hour-of-day distribution (UTC) for this post
+    hourly_raw = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {"$group": {"_id": {"$hour": "$ts"}, "views": {"$sum": 1}}},
+                {"$sort": {"_id": 1}},
+            ]
+        )
+    )
+    hourly_map = {int(r["_id"]): int(r["views"]) for r in hourly_raw}
+    hourly = [{"hour": h, "views": hourly_map.get(h, 0)} for h in range(24)]
+
+    top_referrers = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {"$group": {"_id": {"$ifNull": ["$referrer_host", "direct"]}, "views": {"$sum": 1}}},
+                {"$sort": {"views": -1}},
+                {"$limit": 12},
+            ]
+        )
+    )
+    devices = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {"$group": {"_id": {"$ifNull": ["$device", "unknown"]}, "views": {"$sum": 1}}},
+                {"$sort": {"views": -1}},
+            ]
+        )
+    )
+    paths = list(
+        coll.aggregate(
+            [
+                {"$match": match},
+                {
+                    "$group": {
+                        "_id": {"$ifNull": ["$path", "/"]},
+                        "views": {"$sum": 1},
+                        "title": {"$last": "$title"},
+                    }
+                },
+                {"$sort": {"views": -1}},
+                {"$limit": 8},
+            ]
+        )
+    )
+    recent = list(
+        coll.find(
+            match,
+            {
+                "_id": 0,
+                "path": 1,
+                "title": 1,
+                "referrer_host": 1,
+                "device": 1,
+                "session_id": 1,
+                "content_page_id": 1,
+                "share_code": 1,
+                "page_type": 1,
+                "screen": 1,
+                "language": 1,
+                "ts": 1,
+            },
+        )
+        .sort("ts", -1)
+        .limit(40)
+    )
+    for row in recent:
+        if isinstance(row.get("ts"), datetime):
+            row["ts"] = row["ts"].isoformat()
+
+    return {
+        "days": span_days,
+        "date_from": start.strftime("%Y-%m-%d"),
+        "date_to": (end - timedelta(seconds=1)).strftime("%Y-%m-%d"),
+        "available": True,
+        "content_page_id": str(content_page_id),
+        "totals": {
+            "visits": visits,
+            "unique_visitors": unique_visitors,
+            "visits_today": visits_today,
+            "unique_today": unique_today,
+            "avg_views_per_visitor": avg_views,
+            "share_link_views": share_link_views,
+            "slug_path_views": slug_path_views,
+        },
+        "series": series,
+        "top_referrers": [
+            {"host": r["_id"] or "direct", "views": r["views"]} for r in top_referrers
+        ],
+        "devices": [{"device": r["_id"] or "unknown", "views": r["views"]} for r in devices],
+        "paths": [
+            {"path": r["_id"], "views": r["views"], "title": r.get("title") or r["_id"]}
+            for r in paths
+        ],
+        "recent": recent,
+        "engagement": {
+            "returning_visitors": returning,
+            "new_visitors": new_visitors,
+            "returning_rate": returning_rate,
+        },
+        "hourly": hourly,
+    }
+
+
+def get_blog_read_counts(
+    pages: list[dict[str, Any]],
+) -> dict[str, int]:
+    """Lifetime read counts for blog posts.
+
+    ``pages`` items: ``{"id": str, "slug": str | None, "share_code": str | None}``.
+    Returns ``{content_page_id: views}``.
+    """
+    empty = {str(p.get("id")): 0 for p in pages if p.get("id")}
+    if not pages:
+        return {}
+    db = get_db()
+    if db is None:
+        return empty
+
+    id_list = [str(p["id"]) for p in pages if p.get("id")]
+    slug_paths: dict[str, str] = {}
+    code_paths: dict[str, str] = {}
+    for p in pages:
+        pid = str(p.get("id") or "")
+        if not pid:
+            continue
+        slug = (p.get("slug") or "").strip()
+        if slug and slug != "بلاگ":
+            slug_paths[_normalize_path(f"/blog/{slug}")] = pid
+        code = (p.get("share_code") or "").strip()
+        if code:
+            code_paths[_normalize_path(f"/b/{code}")] = pid
+            code_paths[code] = pid
+
+    path_values = list(slug_paths.keys()) + [p for p in code_paths if p.startswith("/")]
+    or_clauses: list[dict[str, Any]] = []
+    if id_list:
+        or_clauses.append({"content_page_id": {"$in": id_list}})
+    if path_values:
+        or_clauses.append({"path": {"$in": path_values}})
+    codes = [c for c in code_paths if not c.startswith("/")]
+    if codes:
+        or_clauses.append({"share_code": {"$in": codes}})
+    if not or_clauses:
+        return empty
+
+    match = {"device": {"$ne": "bot"}, "$or": or_clauses}
+    counts = {pid: 0 for pid in id_list}
+
+    for row in db.page_views.find(
+        match,
+        {"_id": 0, "content_page_id": 1, "path": 1, "share_code": 1},
+    ):
+        pid = None
+        cid = row.get("content_page_id")
+        if cid and str(cid) in counts:
+            pid = str(cid)
+        if not pid:
+            path = _normalize_path(row.get("path") or "")
+            pid = slug_paths.get(path) or code_paths.get(path)
+        if not pid:
+            sc = (row.get("share_code") or "").strip()
+            if sc:
+                pid = code_paths.get(sc)
+        if pid and pid in counts:
+            counts[pid] += 1
+
+    return counts
+
+
 def get_popular_products(days: int = 30, limit: int = 10) -> list[dict]:
     db = get_db()
     if db is None:

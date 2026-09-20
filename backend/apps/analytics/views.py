@@ -10,6 +10,7 @@ from apps.accounts.permissions import IsAdminRole
 from apps.store.models import Product
 
 from .services.mongodb import (
+    get_blog_post_traffic_summary,
     get_blog_traffic_summary,
     get_popular_products,
     get_price_history,
@@ -143,6 +144,54 @@ class AdminBlogTrafficView(APIView):
         date_to = (request.query_params.get("to") or request.query_params.get("date_to") or "").strip() or None
         summary = get_blog_traffic_summary(days, date_from=date_from, date_to=date_to)
         return Response(_enrich_blog_posts(summary))
+
+
+class AdminBlogPostTrafficView(APIView):
+    """Admin-only per-post blog analytics dashboard."""
+
+    permission_classes = [IsAdminRole]
+
+    def get(self, request, page_id):
+        from apps.store.models import ContentPage
+
+        try:
+            page = ContentPage.objects.get(id=page_id, page_type=ContentPage.PageType.BLOG)
+        except (ContentPage.DoesNotExist, ValueError):
+            return Response({"detail": "نوشته یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+
+        days = min(int(request.query_params.get("days", 14) or 14), 90)
+        date_from = (request.query_params.get("from") or request.query_params.get("date_from") or "").strip() or None
+        date_to = (request.query_params.get("to") or request.query_params.get("date_to") or "").strip() or None
+
+        summary = get_blog_post_traffic_summary(
+            content_page_id=str(page.id),
+            slug=page.slug,
+            share_code=page.share_code or None,
+            days=days,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        cover_url = None
+        if page.cover:
+            try:
+                cover_url = page.cover.url
+            except Exception:
+                cover_url = None
+
+        summary["post"] = {
+            "id": str(page.id),
+            "title": page.title,
+            "slug": page.slug,
+            "share_code": page.share_code or None,
+            "excerpt": page.excerpt or "",
+            "is_published": page.is_published,
+            "cover_url": cover_url,
+            "path": f"/blog/{page.slug}",
+            "share_path": f"/b/{page.share_code}" if page.share_code else None,
+            "updated_at": page.updated_at.isoformat() if page.updated_at else None,
+            "created_at": page.created_at.isoformat() if page.created_at else None,
+        }
+        return Response(summary)
 
 
 def _enrich_blog_posts(summary: dict) -> dict:

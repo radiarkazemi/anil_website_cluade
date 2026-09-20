@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { CopyShortLinkButton } from '../components/ShareBar';
+import { usePageSeo } from '../hooks/usePageSeo';
 import { useSiteSettings } from '../hooks/useOrdersEnabled';
 import { faDate, faNum, readingMinutes } from '../utils/format';
 import type { ContentPage } from '../types';
@@ -25,6 +25,8 @@ function PostCard({ post, featured = false }: { post: ContentPage; featured?: bo
           <time dateTime={post.created_at}>{faDate(post.created_at)}</time>
           <span aria-hidden>·</span>
           <span>{faNum(mins)} دقیقه مطالعه</span>
+          <span aria-hidden>·</span>
+          <span className="blog-reads-label">{faNum(post.reads || 0)} بازدید</span>
         </div>
         <Link to={`/blog/${post.slug}`} className="blog-post-title-link">
           <h2>{post.title}</h2>
@@ -63,9 +65,22 @@ export function Blog() {
     || site?.hero_image_url
     || FALLBACK_HERO;
 
-  useEffect(() => {
-    document.title = 'بلاگ | گالری آنیل';
-  }, []);
+  usePageSeo({
+    title: 'بلاگ | گالری طلا آنیل',
+    description:
+      intro?.excerpt
+      || 'نکات طلا، بازار، عیار و استایل — نوشته‌هایی برای خرید آگاهانه از گالری آنیل.',
+    canonicalPath: '/blog',
+    image: heroSrc,
+    type: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      name: 'بلاگ | گالری طلا آنیل',
+      url: 'https://goldanil.ir/blog',
+      inLanguage: 'fa-IR',
+    },
+  });
 
   return (
     <div className="blog-studio-page">

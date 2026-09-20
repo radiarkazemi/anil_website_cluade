@@ -193,32 +193,42 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
 class ContentPageSerializer(serializers.ModelSerializer):
     cover_url = serializers.SerializerMethodField()
+    reads = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentPage
         fields = [
             "id", "title", "slug", "share_code", "page_type", "excerpt", "body",
             "cover", "cover_url", "is_published", "show_in_nav", "order",
-            "created_at", "updated_at",
+            "created_at", "updated_at", "reads",
         ]
-        read_only_fields = ["id", "share_code", "created_at", "updated_at"]
+        read_only_fields = ["id", "share_code", "created_at", "updated_at", "reads"]
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
 
+    def get_reads(self, obj):
+        reads = self.context.get("blog_reads") or {}
+        return int(reads.get(str(obj.id), 0))
+
 
 class ContentPageListSerializer(serializers.ModelSerializer):
     cover_url = serializers.SerializerMethodField()
+    reads = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentPage
         fields = [
             "id", "title", "slug", "share_code", "page_type", "excerpt", "cover_url",
-            "show_in_nav", "order", "created_at",
+            "show_in_nav", "order", "created_at", "reads",
         ]
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
+
+    def get_reads(self, obj):
+        reads = self.context.get("blog_reads") or {}
+        return int(reads.get(str(obj.id), 0))
 
 
 class GoldPriceSerializer(serializers.ModelSerializer):

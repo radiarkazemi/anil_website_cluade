@@ -7,6 +7,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from apps.store import seo
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -49,6 +51,12 @@ def health(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("robots.txt", seo.robots_txt, name="robots-txt"),
+    path("sitemap.xml", seo.sitemap_xml, name="sitemap-xml"),
+    path("", seo.seo_home, name="seo-home"),
+    path("blog/", seo.seo_blog_list, name="seo-blog-list"),
+    path("blog/<path:slug>/", seo.seo_blog_detail, name="seo-blog-detail"),
+    path("b/<str:code>/", seo.seo_share_redirect, name="seo-share-redirect"),
     path("api/v1/health/", health, name="health"),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/", include("apps.store.urls")),

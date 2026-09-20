@@ -277,6 +277,66 @@ export const api = {
         to: params?.to || undefined,
       },
     }),
+  adminBlogPostTraffic: (
+    pageId: string,
+    params?: { days?: number; from?: string; to?: string },
+  ) =>
+    client.get<{
+      days: number;
+      date_from?: string;
+      date_to?: string;
+      available: boolean;
+      content_page_id: string;
+      post: {
+        id: string;
+        title: string;
+        slug: string;
+        share_code?: string | null;
+        excerpt?: string;
+        is_published: boolean;
+        cover_url?: string | null;
+        path: string;
+        share_path?: string | null;
+        updated_at?: string | null;
+        created_at?: string | null;
+      };
+      totals: {
+        visits: number;
+        unique_visitors: number;
+        visits_today: number;
+        unique_today: number;
+        avg_views_per_visitor: number;
+        share_link_views: number;
+        slug_path_views: number;
+      };
+      series: { date: string; visits: number; unique_visitors: number }[];
+      top_referrers: { host: string; views: number }[];
+      devices: { device: string; views: number }[];
+      paths: { path: string; views: number; title?: string }[];
+      recent: {
+        path?: string;
+        title?: string;
+        referrer_host?: string;
+        device?: string;
+        ts?: string;
+        content_page_id?: string;
+        share_code?: string;
+        screen?: string;
+        language?: string;
+      }[];
+      engagement: {
+        returning_visitors: number;
+        new_visitors: number;
+        returning_rate: number;
+      };
+      hourly: { hour: number; views: number }[];
+    }>(`/admin/traffic/blog/${pageId}/`, {
+      params: {
+        days: params?.days ?? 14,
+        from: params?.from || undefined,
+        to: params?.to || undefined,
+      },
+    }),
   adminTrafficExportUrl: (params?: {
     days?: number;
     from?: string;

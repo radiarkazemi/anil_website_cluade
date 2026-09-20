@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
@@ -8,11 +8,13 @@ import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
 import { useOrdersEnabled } from '../hooks/useOrdersEnabled';
+import { usePageSeo } from '../hooks/usePageSeo';
 import { calcPrice, faFeePct, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { pathname } = useLocation();
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const addToCart = useStore((s) => s.addToCart);
   const user = useStore((s) => s.user);
@@ -65,26 +67,48 @@ export function ProductDetail() {
   useEffect(() => {
     if (!product) return;
     const title = product.meta_title || `${product.name} | گالری طلا آنیل`;
-    const description = product.meta_description
-      || `${product.name}${product.category_name ? ` — ${product.category_name}` : ''} با قیمت لحظه‌ای طلا از گالری طلا آنیل.`;
+    // keywords kept for legacy
+    let el = document.querySelector('meta[name="keywords"]') as HTMLMetaElement | null;
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('name', 'keywords');
+      document.head.appendChild(el);
+    }
+    el.setAttribute(
+      'content',
+      [product.name, product.category_name, 'طلا', 'گالری طلا آنیل'].filter(Boolean).join('، '),
+    );
     document.title = title;
-
-    const ensureMeta = (name: string, content: string) => {
-      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute('name', name);
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
-    };
-    ensureMeta('description', description);
-    ensureMeta('keywords', [product.name, product.category_name, 'طلا', 'گالری طلا آنیل'].filter(Boolean).join('، '));
-
-    return () => {
-      document.title = 'گالری طلا آنیل | Anil Gold';
-    };
   }, [product]);
+
+  usePageSeo({
+    title: product?.meta_title || (product ? `${product.name} | گالری طلا آنیل` : 'محصول | گالری طلا آنیل'),
+    description:
+      product?.meta_description
+      || (product
+        ? `${product.name}${product.category_name ? ` — ${product.category_name}` : ''} با قیمت لحظه‌ای طلا از گالری طلا آنیل.`
+        : 'محصولات طلای گالری آنیل'),
+    canonicalPath: product ? `/products/${product.slug}` : pathname,
+    image: product?.images?.[0]?.image_url || undefined,
+    type: 'product',
+    jsonLd: product
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          description: product.meta_description || product.name,
+          image: product.images?.map((i) => i.image_url || i.image).filter(Boolean) || undefined,
+          sku: product.sku || undefined,
+          brand: { '@type': 'Brand', name: 'گالری طلا آنیل' },
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'IRR',
+            availability: 'https://schema.org/InStock',
+            url: `https://goldanil.ir/products/${product.slug}`,
+          },
+        }
+      : undefined,
+  });
 
   const images = useMemo(() => {
     const raw = product?.images?.length

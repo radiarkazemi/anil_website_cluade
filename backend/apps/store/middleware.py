@@ -4,6 +4,22 @@ from __future__ import annotations
 
 import uuid
 
+# SPA HTML pages (SEO shells) need scripts/styles/fonts/websocket.
+_SPA_CSP = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob: https:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' https: wss: ws:; "
+    "media-src 'self' blob:; "
+    "worker-src 'self' blob:; "
+    "frame-ancestors 'none'"
+)
+_API_CSP = "default-src 'none'; frame-ancestors 'none'"
+
 
 class SecurityHeadersMiddleware:
     """Harden responses even in DEBUG; stronger rules apply when not DEBUG."""
@@ -20,7 +36,12 @@ class SecurityHeadersMiddleware:
         response["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response["X-Frame-Options"] = response.get("X-Frame-Options", "DENY")
-        # Mild CSP for API JSON (browsers ignore for XHR mostly; helps HTML error pages)
         if "Content-Security-Policy" not in response:
-            response["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+            content_type = (response.get("Content-Type") or "").lower()
+            if "text/html" in content_type:
+                # Crawlable SPA shells must be allowed to load assets
+                response["Content-Security-Policy"] = _SPA_CSP
+            else:
+                # Mild CSP for API JSON (helps accidental HTML error pages)
+                response["Content-Security-Policy"] = _API_CSP
         return response

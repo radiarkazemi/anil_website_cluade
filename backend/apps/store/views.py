@@ -255,6 +255,24 @@ class ContentPageListView(generics.ListAPIView):
             qs = qs.filter(show_in_nav=True)
         return qs
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        qs = self.filter_queryset(self.get_queryset())
+        # Only attach read counts for blog payloads (list pages / related cards)
+        blogs = [p for p in qs if p.page_type == ContentPage.PageType.BLOG]
+        if blogs:
+            from apps.analytics.services.mongodb import get_blog_read_counts
+
+            ctx["blog_reads"] = get_blog_read_counts(
+                [
+                    {"id": str(p.id), "slug": p.slug, "share_code": p.share_code}
+                    for p in blogs
+                ]
+            )
+        else:
+            ctx["blog_reads"] = {}
+        return ctx
+
 
 class ContentPageDetailView(generics.RetrieveAPIView):
     authentication_classes = []
@@ -262,6 +280,24 @@ class ContentPageDetailView(generics.RetrieveAPIView):
     serializer_class = ContentPageSerializer
     lookup_field = "slug"
     queryset = ContentPage.objects.filter(is_published=True)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["blog_reads"] = getattr(self, "_blog_reads", {})
+        return ctx
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.page_type == ContentPage.PageType.BLOG:
+            from apps.analytics.services.mongodb import get_blog_read_counts
+
+            self._blog_reads = get_blog_read_counts(
+                [{"id": str(instance.id), "slug": instance.slug, "share_code": instance.share_code}]
+            )
+        else:
+            self._blog_reads = {}
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class ContentPageByShareCodeView(generics.RetrieveAPIView):
@@ -272,6 +308,24 @@ class ContentPageByShareCodeView(generics.RetrieveAPIView):
     serializer_class = ContentPageSerializer
     lookup_field = "share_code"
     queryset = ContentPage.objects.filter(is_published=True)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["blog_reads"] = getattr(self, "_blog_reads", {})
+        return ctx
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.page_type == ContentPage.PageType.BLOG:
+            from apps.analytics.services.mongodb import get_blog_read_counts
+
+            self._blog_reads = get_blog_read_counts(
+                [{"id": str(instance.id), "slug": instance.slug, "share_code": instance.share_code}]
+            )
+        else:
+            self._blog_reads = {}
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class ConsultantView(APIView):
