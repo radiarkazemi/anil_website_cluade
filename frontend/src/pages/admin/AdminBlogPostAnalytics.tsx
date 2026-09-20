@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { api } from '../../api/endpoints';
-import { getSessionTokens } from '../../store/useStore';
 import { faNum } from '../../utils/format';
 import { BarSeries, KpiCard, PageHeader, SparkArea } from './adminShared';
 
@@ -37,68 +36,119 @@ function faTime(iso?: string) {
   }
 }
 
-export function AdminBlogAnalytics() {
-  const [days, setDays] = useState(14);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [applied, setApplied] = useState({ days: 14, from: '', to: '' });
+function faHour(h: number) {
+  return `${faNum(h)}:۰۰`;
+}
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['admin-blog-traffic', applied],
+export function AdminBlogPostAnalytics() {
+  const { pageId = '' } = useParams<{ pageId: string }>();
+  const [searchParams] = useSearchParams();
+
+  const initialDays = Number(searchParams.get('days') || 14) || 14;
+  const initialFrom = searchParams.get('from') || '';
+  const initialTo = searchParams.get('to') || '';
+
+  const [days, setDays] = useState(initialDays);
+  const [dateFrom, setDateFrom] = useState(initialFrom);
+  const [dateTo, setDateTo] = useState(initialTo);
+  const [applied, setApplied] = useState({
+    days: initialDays,
+    from: initialFrom,
+    to: initialTo,
+  });
+
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
+    queryKey: ['admin-blog-post-traffic', pageId, applied],
     queryFn: () =>
       api
-        .adminBlogTraffic({
+        .adminBlogPostTraffic(pageId, {
           days: applied.days,
           from: applied.from || undefined,
           to: applied.to || undefined,
         })
         .then((r) => r.data),
+    enabled: Boolean(pageId),
     refetchInterval: 60_000,
   });
+
+  const backQuery = useMemo(() => {
+    const q = new URLSearchParams();
+    if (applied.from || applied.to) {
+      if (applied.from) q.set('from', applied.from);
+      if (applied.to) q.set('to', applied.to);
+    } else {
+      q.set('days', String(applied.days));
+    }
+    const s = q.toString();
+    return s ? `?${s}` : '';
+  }, [applied]);
 
   const applyFilters = () => {
     setApplied({ days, from: dateFrom, to: dateTo });
   };
 
-  const exportCsv = async () => {
-    const tokens = getSessionTokens('admin');
-    const path = api.adminTrafficExportUrl({
-      days: applied.days,
-      from: applied.from || undefined,
-      to: applied.to || undefined,
-      path: '/blog',
-    });
-    const res = await fetch(path, {
-      headers: tokens?.access ? { Authorization: `Bearer ${tokens.access}` } : {},
-    });
-    if (!res.ok) throw new Error('export failed');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'anil-blog-traffic.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const t = data?.totals;
   const eng = data?.engagement;
   const series = data?.series || [];
-  const topPosts = (data?.top_posts || []).filter((p) => !p.is_list);
-  const listRow = (data?.top_posts || []).find((p) => p.is_list);
+  const post = data?.post;
+  const hourly = data?.hourly || [];
+  const peakHour = hourly.reduce(
+    (best, row) => (row.views > (best?.views || 0) ? row : best),
+    null as { hour: number; views: number } | null,
+  );
 
   return (
     <div>
       <PageHeader
-        title="تحلیل بلاگ"
-        subtitle="بازدید نوشته‌ها، خواننده‌های یکتا، روند روزانه و منابع ورودی مجله آنیل"
+        title={post?.title || 'تحلیل نوشته'}
+        subtitle="بازدید، خواننده‌های یکتا، منابع ورودی و مسیرهای ورود این نوشته"
         actions={(
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/panel/pages" className="outline-btn">مدیریت نوشته‌ها</Link>
-            <Link to="/panel/analytics" className="outline-btn">ترافیک کل سایت</Link>
+            <Link to={`/panel/blog-analytics${backQuery}`} className="outline-btn">
+              ← بازگشت به تحلیل بلاگ
+            </Link>
+            {post?.slug && (
+              <Link to={`/blog/${post.slug}`} className="outline-btn" target="_blank" rel="noreferrer">
+                مشاهده در سایت
+              </Link>
+            )}
+            {post?.id && (
+              <Link to="/panel/pages" className="outline-btn">
+                مدیریت نوشته‌ها
+              </Link>
+            )}
           </div>
         )}
       />
+
+      {post && (
+        <section className="admin-card blog-post-analytics-hero" style={{ marginBottom: 18 }}>
+          <div className="blog-post-analytics-hero-inner">
+            {post.cover_url ? (
+              <img src={post.cover_url} alt="" className="blog-post-analytics-cover" />
+            ) : (
+              <span className="blog-post-analytics-cover empty" />
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="kpi-hint" style={{ marginBottom: 4 }}>
+                {post.is_published ? 'منتشر شده' : 'پیش‌نویس'}
+                {post.updated_at ? ` · به‌روزرسانی ${faTime(post.updated_at)}` : ''}
+              </div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 22 }}>{post.title}</h2>
+              {post.excerpt && <p className="kpi-hint" style={{ margin: '0 0 10px' }}>{post.excerpt}</p>}
+              <div className="blog-post-analytics-meta" style={{ direction: 'ltr', textAlign: 'right' }}>
+                <span>{post.path}</span>
+                {post.share_path && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>goldanil.ir{post.share_path}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="admin-card" style={{ marginBottom: 18 }}>
         <div className="admin-card-head" style={{ alignItems: 'center' }}>
@@ -131,9 +181,6 @@ export function AdminBlogAnalytics() {
             <button type="button" className="outline-btn" style={{ padding: '6px 12px', fontSize: 13 }} onClick={() => refetch()}>
               تازه‌سازی
             </button>
-            <button type="button" className="outline-btn" style={{ padding: '6px 12px', fontSize: 13 }} onClick={() => exportCsv().catch(() => {})}>
-              خروجی CSV
-            </button>
           </div>
         </div>
 
@@ -155,30 +202,31 @@ export function AdminBlogAnalytics() {
       </section>
 
       {isLoading && !data ? (
-        <div className="admin-loading">در حال آماده‌سازی آمار بلاگ…</div>
+        <div className="admin-loading">در حال آماده‌سازی آمار نوشته…</div>
+      ) : isError ? (
+        <div className="admin-card empty-cell">نوشته یافت نشد یا دسترسی ندارید.</div>
       ) : !data?.available ? (
         <div className="admin-card empty-cell">
-          سرویس آمار در دسترس نیست (MongoDB). پس از اتصال، بازدیدهای بلاگ اینجا نمایش داده می‌شود.
+          سرویس آمار در دسترس نیست (MongoDB). پس از اتصال، بازدید این نوشته اینجا نمایش داده می‌شود.
         </div>
       ) : (
         <>
           <div className="stat-grid analytics-kpi" style={{ marginBottom: 18 }}>
-            <KpiCard label="بازدید امروز" value={faNum(t?.visits_today || 0)} tone="gold" hint="نمایش صفحه بلاگ" />
+            <KpiCard label="بازدید امروز" value={faNum(t?.visits_today || 0)} tone="gold" />
             <KpiCard label="خواننده یکتا امروز" value={faNum(t?.unique_today || 0)} tone="up" />
-            <KpiCard label="بازدید بازه" value={faNum(t?.visits || 0)} hint="مجموع نمایش‌ها" />
+            <KpiCard label="بازدید بازه" value={faNum(t?.visits || 0)} hint="تمام مسیرهای این نوشته" />
             <KpiCard label="خواننده یکتا بازه" value={faNum(t?.unique_visitors || 0)} hint="بر اساس نشست" />
-            <KpiCard label="بازدید نوشته‌ها" value={faNum(t?.article_views || 0)} hint="بدون صفحه فهرست" />
-            <KpiCard label="بازدید فهرست بلاگ" value={faNum(t?.list_views || 0)} />
             <KpiCard
               label="میانگین بازدید / خواننده"
               value={faNum(t?.avg_views_per_visitor || 0)}
               hint={`${faNum(eng?.returning_rate || 0)}٪ بازگشتی`}
             />
+            <KpiCard label="لینک کوتاه /b/" value={faNum(t?.share_link_views || 0)} hint="ورود از اشتراک‌گذاری" />
+            <KpiCard label="مسیر /blog/…" value={faNum(t?.slug_path_views || 0)} hint="ورود از اسلاگ" />
             <KpiCard
-              label="نوشته‌های منتشر"
-              value={faNum(data.catalog?.published_posts || 0)}
-              hint={`${faNum(t?.posts_viewed || 0)} نوشته در بازه دیده شده`}
-              to="/panel/pages"
+              label="اوج ساعتی (UTC)"
+              value={peakHour && peakHour.views ? faHour(peakHour.hour) : '—'}
+              hint={peakHour && peakHour.views ? `${faNum(peakHour.views)} بازدید` : 'بدون داده'}
             />
           </div>
 
@@ -186,8 +234,8 @@ export function AdminBlogAnalytics() {
             <div className="admin-card">
               <div className="admin-card-head">
                 <div>
-                  <h3>روند بازدید بلاگ</h3>
-                  <p>نمایش روزانه صفحات مجله</p>
+                  <h3>روند بازدید</h3>
+                  <p>نمایش روزانه این نوشته</p>
                 </div>
                 <div className="chart-total">{faNum(series.reduce((a, b) => a + b.visits, 0))}</div>
               </div>
@@ -225,68 +273,17 @@ export function AdminBlogAnalytics() {
             <div className="admin-card">
               <div className="admin-card-head">
                 <div>
-                  <h3>پربازدیدترین نوشته‌ها</h3>
-                  <p>رتبه‌بندی بر اساس بازدید در بازه انتخاب‌شده</p>
+                  <h3>توزیع ساعتی</h3>
+                  <p>ساعت روز (UTC) — چه زمانی بیشتر خوانده می‌شود</p>
                 </div>
-                {listRow && (
-                  <div className="kpi-hint">فهرست /blog: {faNum(listRow.views)} بازدید</div>
-                )}
               </div>
-              <div className="top-products">
-                {topPosts.map((p, i) => {
-                  const detailTo = p.content_page_id
-                    ? `/panel/blog-analytics/${p.content_page_id}?days=${applied.days}${
-                        applied.from ? `&from=${applied.from}` : ''
-                      }${applied.to ? `&to=${applied.to}` : ''}`
-                    : null;
-                  const row = (
-                    <>
-                      <span className="rank">{faNum(i + 1)}</span>
-                      {p.cover_url ? (
-                        <img src={p.cover_url} alt="" className="blog-analytics-thumb" />
-                      ) : (
-                        <span className="blog-analytics-thumb empty" />
-                      )}
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div className="top-name">{p.title || p.path}</div>
-                        <div className="kpi-hint" style={{ direction: 'ltr', textAlign: 'right' }}>
-                          {p.share_code ? `goldanil.ir/b/${p.share_code}` : p.path}
-                          {' · '}
-                          {faNum(p.unique_visitors || 0)} خواننده یکتا
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'left' }}>
-                        <div className="money">{faNum(p.views)}</div>
-                        {detailTo ? (
-                          <span className="text-link" style={{ fontSize: 12 }}>جزئیات تحلیل</span>
-                        ) : p.slug ? (
-                          <Link to={`/blog/${p.slug}`} className="text-link" style={{ fontSize: 12 }} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                            مشاهده
-                          </Link>
-                        ) : null}
-                      </div>
-                    </>
-                  );
-                  return detailTo ? (
-                    <Link
-                      key={`${p.path}-${p.content_page_id || i}`}
-                      to={detailTo}
-                      className="top-product blog-analytics-post blog-analytics-post-link"
-                    >
-                      {row}
-                    </Link>
-                  ) : (
-                    <div key={`${p.path}-${p.content_page_id || i}`} className="top-product blog-analytics-post">
-                      {row}
-                    </div>
-                  );
-                })}
-                {!topPosts.length && (
-                  <div className="empty-cell">هنوز بازدیدی برای نوشته‌ها ثبت نشده — با انتشار و اشتراک لینک کوتاه پر می‌شود.</div>
-                )}
-              </div>
+              <BarSeries
+                items={hourly.map((h) => ({
+                  label: faNum(h.hour),
+                  value: h.views,
+                }))}
+              />
             </div>
-
             <div className="admin-card">
               <div className="admin-card-head"><h3>منابع ورودی</h3></div>
               <div className="top-products" style={{ marginBottom: 18 }}>
@@ -311,11 +308,30 @@ export function AdminBlogAnalytics() {
             </div>
           </div>
 
+          <div className="admin-card" style={{ marginBottom: 18 }}>
+            <div className="admin-card-head">
+              <div>
+                <h3>مسیرهای ورود</h3>
+                <p>اسلاگ، لینک کوتاه و سایر مسیرهای ثبت‌شده برای این نوشته</p>
+              </div>
+            </div>
+            <div className="top-products">
+              {(data.paths || []).map((p, i) => (
+                <div key={`${p.path}-${i}`} className="top-product">
+                  <span className="rank">{faNum(i + 1)}</span>
+                  <div className="top-name" style={{ direction: 'ltr', textAlign: 'right' }}>{p.path}</div>
+                  <div className="money">{faNum(p.views)}</div>
+                </div>
+              ))}
+              {!(data.paths || []).length && <div className="empty-cell">مسیری ثبت نشده.</div>}
+            </div>
+          </div>
+
           <div className="admin-card">
             <div className="admin-card-head">
               <div>
-                <h3>بازدیدهای اخیر بلاگ</h3>
-                <p>۳۰ رویداد آخر — مسیر، دستگاه و منبع</p>
+                <h3>بازدیدهای اخیر</h3>
+                <p>۴۰ رویداد آخر این نوشته</p>
               </div>
             </div>
             <div className="admin-table-wrap">
@@ -323,7 +339,7 @@ export function AdminBlogAnalytics() {
                 <thead>
                   <tr>
                     <th>زمان</th>
-                    <th>نوشته / مسیر</th>
+                    <th>مسیر</th>
                     <th>منبع</th>
                     <th>دستگاه</th>
                   </tr>
@@ -333,19 +349,7 @@ export function AdminBlogAnalytics() {
                     <tr key={`${r.ts}-${i}`}>
                       <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{faTime(r.ts)}</td>
                       <td>
-                        {r.content_page_id ? (
-                          <Link
-                            to={`/panel/blog-analytics/${r.content_page_id}?days=${applied.days}${
-                              applied.from ? `&from=${applied.from}` : ''
-                            }${applied.to ? `&to=${applied.to}` : ''}`}
-                            className="text-link"
-                          >
-                            <strong>{r.title || r.path || '—'}</strong>
-                          </Link>
-                        ) : (
-                          <strong>{r.title || r.path || '—'}</strong>
-                        )}
-                        <div className="kpi-hint" style={{ direction: 'ltr', textAlign: 'right' }}>{r.path}</div>
+                        <div className="kpi-hint" style={{ direction: 'ltr', textAlign: 'right' }}>{r.path || '—'}</div>
                       </td>
                       <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12 }}>
                         {r.referrer_host === 'direct' || !r.referrer_host ? 'مستقیم' : r.referrer_host}
@@ -355,7 +359,7 @@ export function AdminBlogAnalytics() {
                   ))}
                   {!(data.recent || []).length && (
                     <tr>
-                      <td colSpan={4} className="empty-cell">رویدادی نیست.</td>
+                      <td colSpan={4} className="empty-cell">رویدادی برای این نوشته نیست.</td>
                     </tr>
                   )}
                 </tbody>
