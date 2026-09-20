@@ -358,16 +358,26 @@ def get_blog_traffic_summary(
         )
     )
 
-    # Merge /blog list into one bucket; keep article paths
+    # Merge /blog list into one bucket; collapse same article by slug path / content id
     merged: dict[str, dict[str, Any]] = {}
     for row in top_raw:
         path = (row["_id"].get("path") or "/blog").rstrip("/") or "/blog"
         cid = row["_id"].get("content_page_id")
-        key = f"id:{cid}" if cid else f"path:{path}"
-        if path in ("/blog",):
-            key = "path:/blog"
-        bucket = merged.get(key)
         sessions = [s for s in (row.get("sessions") or []) if s]
+
+        if path in ("/blog",) or path.endswith("/blog"):
+            key = "path:/blog"
+            path = "/blog"
+        elif cid:
+            key = f"id:{cid}"
+        elif path.startswith("/blog/"):
+            key = f"path:{path}"
+        elif path.startswith("/b/"):
+            key = f"code:{path[3:]}"
+        else:
+            key = f"path:{path}"
+
+        bucket = merged.get(key)
         if not bucket:
             merged[key] = {
                 "path": path,
@@ -380,12 +390,28 @@ def get_blog_traffic_summary(
         else:
             bucket["views"] += row["views"]
             bucket["unique_visitors"].update(sessions)
+            if cid and not bucket.get("content_page_id"):
+                bucket["content_page_id"] = cid
             if row.get("title"):
                 bucket["title"] = row["title"]
             if row.get("share_code"):
                 bucket["share_code"] = row["share_code"]
 
-    top_posts = sorted(merged.values(), key=lambda x: x["views"], reverse=True)[:15]
+    # Second pass: merge code:/b/x with id: or path:/blog/slug after we can't resolve yet
+    # (enrichment will fix titles; for now merge identical paths)
+    by_path: dict[str, dict[str, Any]] = {}
+    for bucket in merged.values():
+        pth = bucket["path"]
+        if pth in by_path and pth != "/blog":
+            existing = by_path[pth]
+            existing["views"] += bucket["views"]
+            existing["unique_visitors"].update(bucket["unique_visitors"])
+            if bucket.get("content_page_id") and not existing.get("content_page_id"):
+                existing["content_page_id"] = bucket["content_page_id"]
+        else:
+            by_path[pth if pth == "/blog" else f"{pth}|{bucket.get('content_page_id') or bucket.get('share_code') or ''}"] = bucket
+
+    top_posts = sorted(by_path.values(), key=lambda x: x["views"], reverse=True)[:15]
     for p in top_posts:
         p["unique_visitors"] = len(p["unique_visitors"])
 

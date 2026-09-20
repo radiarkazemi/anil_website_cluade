@@ -209,9 +209,25 @@ def _enrich_blog_posts(summary: dict) -> dict:
         return row
 
     summary["top_posts"] = [_resolve(dict(p)) for p in posts]
-    # Drop pure list row from "top posts" ranking display optional — keep but flag
+    # Collapse rows that resolve to the same ContentPage / path after enrichment
+    collapsed: dict[str, dict] = {}
     for p in summary["top_posts"]:
-        p["is_list"] = (p.get("path") or "") in ("/blog", "/blog/")
+        key = (
+            f"id:{p['content_page_id']}"
+            if p.get("content_page_id")
+            else f"path:{(p.get('path') or '').rstrip('/') or '/blog'}"
+        )
+        if key in collapsed:
+            collapsed[key]["views"] = int(collapsed[key].get("views") or 0) + int(p.get("views") or 0)
+            collapsed[key]["unique_visitors"] = max(
+                int(collapsed[key].get("unique_visitors") or 0),
+                int(p.get("unique_visitors") or 0),
+            )
+        else:
+            collapsed[key] = p
+    summary["top_posts"] = sorted(collapsed.values(), key=lambda x: int(x.get("views") or 0), reverse=True)
+    for p in summary["top_posts"]:
+        p["is_list"] = (p.get("path") or "") in ("/blog", "/blog/") or (p.get("slug") == "بلاگ")
     summary["recent"] = [_resolve(dict(r)) for r in recent]
 
     # Catalog snapshot: published blog posts count for context
