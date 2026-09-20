@@ -90,7 +90,16 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if value is None:
             return None
         value = str(value).strip()
-        return value or None
+        if not value:
+            return None
+        qs = Product.objects.filter(sku=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "این کد کالا (SKU) قبلاً برای محصول دیگری ثبت شده. خالی بگذارید یا کد یکتا وارد کنید."
+            )
+        return value
 
     def validate_fee_ratio(self, value):
         """Accept ratio (0.095), percent (9.5), or shop shorthand 0.9.5 → 9.5%."""
@@ -111,6 +120,24 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
         if "weight_g" in attrs and attrs["weight_g"] in ("", None):
             attrs["weight_g"] = None
         return attrs
+
+
+def _integrity_field_errors(exc: IntegrityError) -> dict:
+    """Map Postgres unique violations to field errors (sku vs slug)."""
+    raw = " ".join(str(a) for a in exc.args).lower()
+    if "store_product_sku_key" in raw or "(sku)" in raw:
+        return {
+            "sku": [
+                "این کد کالا (SKU) قبلاً استفاده شده. فیلد SKU را خالی کنید یا مقدار یکتا بگذارید."
+            ]
+        }
+    if "store_product_slug_key" in raw or "(slug)" in raw:
+        return {
+            "slug": [
+                "این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."
+            ]
+        }
+    return {"detail": "رکورد تکراری است. SKU یا نامک را بررسی کنید."}
 
 class AdminUserManageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -309,20 +336,14 @@ class AdminProductViewSet(viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError as exc:
             logger.warning("admin product create integrity: %s", exc)
-            return Response(
-                {"slug": ["این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
         try:
             return super().update(request, *args, **kwargs)
         except IntegrityError as exc:
             logger.warning("admin product update integrity: %s", exc)
-            return Response(
-                {"slug": ["این نامک (slug) قبلاً استفاده شده. نام محصول را کمی تغییر دهید."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(_integrity_field_errors(exc), status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminCategoryViewSet(viewsets.ModelViewSet):

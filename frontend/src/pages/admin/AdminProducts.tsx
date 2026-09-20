@@ -76,7 +76,7 @@ const empty = {
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'نام محصول',
-  slug: 'اسلاگ',
+  slug: 'نامک / اسلاگ',
   category: 'دسته‌بندی',
   weight_g: 'وزن',
   karat: 'عیار',
@@ -263,7 +263,9 @@ export function AdminProducts() {
             await api.adminUploadImage(product.id, pendingFiles[i], makePrimary);
           }
         } catch (uploadErr: any) {
-          const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status);
+          const msg = formatApiError(uploadErr?.response?.data, uploadErr?.response?.status, {
+            isImageUpload: true,
+          });
           throw Object.assign(new Error(msg), {
             response: uploadErr?.response,
             isImageUpload: true,
@@ -281,7 +283,9 @@ export function AdminProducts() {
       qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
     },
     onError: (e: any) => {
-      const msg = formatApiError(e?.response?.data, e?.response?.status);
+      const msg = formatApiError(e?.response?.data, e?.response?.status, {
+        isImageUpload: !!e?.isImageUpload,
+      });
       const prefix = e?.isImageUpload || e?.productSaved ? 'محصول ذخیره شد؛ خطا در آپلود تصویر: ' : '';
       const full = `${prefix}${msg}`;
       setFormError(full);
