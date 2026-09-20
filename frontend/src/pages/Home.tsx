@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 're
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { IconBuyback, IconConsult, IconInsuredShip, IconShieldCheck } from '../components/icons';
+import { usePageSeo } from '../hooks/usePageSeo';
 import { useStore } from '../store/useStore';
 import { faNum, faPrice } from '../utils/format';
 import type { HeroAlbumSlide, MarketRow, SiteSettings } from '../types';
@@ -341,6 +342,25 @@ export function Home() {
   const products = productsData ?? [];
   const featured = products.slice(0, 8);
   const gp = goldPrice?.price_18k_per_gram ?? 0;
+
+  usePageSeo({
+    title: `${site?.brand_name || 'گالری طلا آنیل'} | Anil Gold`,
+    description:
+      site?.hero_subtitle
+      || site?.footer_tagline
+      || 'گالری طلا آنیل — زیورآلات طلا با قیمت‌گذاری لحظه‌ای بر اساس طلای ۱۸ عیار.',
+    canonicalPath: '/',
+    image: site?.hero_image_url || site?.hero_album?.find((s) => s.is_active)?.image_url,
+    type: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'JewelryStore',
+      name: site?.brand_name || 'گالری طلا آنیل',
+      url: 'https://goldanil.ir',
+      image: site?.hero_image_url || undefined,
+      inLanguage: 'fa-IR',
+    },
+  });
 
   const order = site?.section_order?.length
     ? site.section_order
