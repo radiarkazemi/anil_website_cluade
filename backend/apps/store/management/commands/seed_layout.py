@@ -158,7 +158,17 @@ class Command(BaseCommand):
         site.hero_badge = "گالری طلا آنیل"
         site.hero_title = "طلا،\nآن‌گونه که باید بدرخشد"
         site.hero_mode = "image"
-        site.section_order = ["hero", "rates", "categories", "featured", "trust"]
+        site.section_order = [
+            "hero",
+            "rates",
+            "featured",
+            "categories",
+            "collection",
+            "calculator",
+            "trust",
+            "editorial",
+            "contact",
+        ]
         if hero_src.exists() and not site.hero_image:
             with hero_src.open("rb") as fh:
                 site.hero_image.save("hero-ring.png", File(fh), save=False)
