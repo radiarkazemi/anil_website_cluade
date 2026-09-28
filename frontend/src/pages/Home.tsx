@@ -194,15 +194,8 @@ function useHeroSlides(site?: SiteSettings): { src: string; alt: string; caption
         caption: s.caption || '',
       }));
     }
-    const legacy = site?.hero_image_url;
-    if (legacy) {
-      return [{ id: 'site', src: legacy, alt: 'گالری طلا آنیل', caption: '' }];
-    }
-    // Prefer existing brand photo; campaign art is fallback only
-    return [
-      { id: 'brand', src: DEFAULT_HERO, alt: 'گالری طلا آنیل', caption: '' },
-      { id: 'campaign', src: CAMPAIGN_HERO, alt: 'آثار گالری آنیل', caption: '' },
-    ];
+    const legacy = site?.hero_image_url || DEFAULT_HERO;
+    return [{ id: 'default', src: legacy, alt: 'گالری طلا آنیل', caption: '' }];
   }, [site?.hero_album, site?.hero_image_url]);
 }
 
