@@ -804,7 +804,7 @@ function HomeGoldCalculator() {
   );
 }
 
-function WhyAnil({ heading }: { heading?: string }) {
+function WhyAnil({ heading: _heading }: { heading?: string }) {
   // Exact handoff-03 benefit cards (RTL DOM order = visual right → left).
   const items = [
     {
