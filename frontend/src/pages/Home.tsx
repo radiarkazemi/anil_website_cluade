@@ -756,45 +756,43 @@ function HomeGoldCalculator() {
       {/* RTL DOM order = visual right→left: weight | karat | result */}
       <div className="home-calc-grid">
         <label className="home-calc-card" htmlFor={weightId}>
-          <span className="home-calc-label">وزن (گرم)</span>
-          <span className="home-calc-field">
-            <input
-              id={weightId}
-              inputMode="decimal"
-              className="home-calc-input"
-              value={weightRaw}
-              onChange={(e) => setWeightRaw(e.target.value)}
-              aria-describedby="home-calc-hint"
-            />
+          <span className="home-calc-card-top">
+            <span className="home-calc-label">وزن (گرم)</span>
             <span className="home-calc-ico" aria-hidden><IconScale /></span>
           </span>
+          <input
+            id={weightId}
+            inputMode="decimal"
+            className="home-calc-input"
+            value={weightRaw}
+            onChange={(e) => setWeightRaw(e.target.value)}
+            aria-describedby="home-calc-hint"
+          />
         </label>
         <label className="home-calc-card" htmlFor={karatId}>
-          <span className="home-calc-label">عیار طلا</span>
-          <span className="home-calc-field">
-            <select
-              id={karatId}
-              className="home-calc-input"
-              value={karat}
-              onChange={(e) => setKarat(e.target.value as '18' | '24')}
-            >
-              <option value="18">۱۸ عیار</option>
-              <option value="24">۲۴ عیار</option>
-            </select>
+          <span className="home-calc-card-top">
+            <span className="home-calc-label">عیار طلا</span>
             <span className="home-calc-ico" aria-hidden><IconLayers /></span>
           </span>
+          <select
+            id={karatId}
+            className="home-calc-input"
+            value={karat}
+            onChange={(e) => setKarat(e.target.value as '18' | '24')}
+          >
+            <option value="18">۱۸ عیار</option>
+            <option value="24">۲۴ عیار</option>
+          </select>
         </label>
         <div className="home-calc-card home-calc-result" aria-live="polite">
-          <span className="home-calc-label">قیمت تقریبی</span>
-          <div className="home-calc-result-row">
-            <div>
-              <div className="home-calc-value">
-                {rate > 0 && weight > 0 ? faPrice(estimate) : '—'}
-              </div>
-              <div className="home-calc-unit">تومان</div>
-            </div>
+          <span className="home-calc-card-top">
+            <span className="home-calc-label">قیمت تقریبی</span>
             <span className="home-calc-ico home-calc-ico-box" aria-hidden><IconCalc /></span>
+          </span>
+          <div className="home-calc-value">
+            {rate > 0 && weight > 0 ? faPrice(estimate) : '—'}
           </div>
+          <div className="home-calc-unit">تومان</div>
         </div>
       </div>
       <p id="home-calc-hint" className="sr-only">

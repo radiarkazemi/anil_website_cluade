@@ -6599,7 +6599,7 @@ body.nav-open { overflow: hidden; }
   text-align: center;
   margin-inline: auto;
   margin-bottom: 28px;
-  max-width: 46ch;
+  max-width: 56ch;
 }
 .handoff-03-head .section-title {
   color: var(--text);
@@ -6609,12 +6609,14 @@ body.nav-open { overflow: hidden; }
   font-size: clamp(24px, 2.8vw, 32px);
   font-weight: 800;
   margin: 0 0 12px;
+  white-space: nowrap;
 }
 .handoff-03-head .section-sub {
   margin: 0 auto;
   color: var(--text-muted);
   font-size: 14.5px;
   line-height: 1.9;
+  max-width: 42ch;
 }
 .handoff-03-calc .home-calc-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -6626,9 +6628,17 @@ body.nav-open { overflow: hidden; }
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
   background: color-mix(in srgb, var(--surface-2) 92%, #000);
-  padding: 22px 20px;
-  gap: 14px;
-  min-height: 118px;
+  padding: 20px 20px 18px;
+  gap: 10px;
+  min-height: 124px;
+  justify-content: flex-start;
+}
+.handoff-03-calc .home-calc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
 }
 .handoff-03-calc .home-calc-result {
   border-color: color-mix(in srgb, var(--gold) 72%, transparent);
@@ -6646,13 +6656,15 @@ body.nav-open { overflow: hidden; }
   font-size: 13.5px;
   font-weight: 600;
 }
-.handoff-03-calc .home-calc-field {
-  justify-content: space-between;
-}
 .handoff-03-calc .home-calc-input {
-  font-size: 24px;
+  width: 100%;
+  font-size: 26px;
   font-weight: 800;
   color: var(--text);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin-top: 2px;
 }
 .handoff-03-calc .home-calc-ico {
   color: var(--gold-light);
@@ -6662,30 +6674,31 @@ body.nav-open { overflow: hidden; }
   place-items: center;
   flex-shrink: 0;
 }
-.handoff-03-calc .home-calc-result-row {
-  align-items: center;
-}
 .handoff-03-calc .home-calc-value {
   color: var(--gold-light);
   font-size: clamp(24px, 3vw, 30px);
   font-weight: 800;
   letter-spacing: .01em;
+  margin-top: 2px;
 }
 .handoff-03-calc .home-calc-unit {
   color: rgba(245,237,226,.7);
   font-size: 13px;
-  margin-top: 2px;
+  margin-top: 0;
 }
 .handoff-03-calc .home-calc-ico-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
   display: inline-grid;
   place-items: center;
   color: var(--gold-light);
   background: color-mix(in srgb, var(--gold) 12%, transparent);
   box-shadow: none;
+}
+@media (max-width: 720px) {
+  .handoff-03-head .section-title { white-space: normal; }
 }
 
 .handoff-03-why-grid.trust-grid {
