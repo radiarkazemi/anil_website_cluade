@@ -133,18 +133,39 @@ function IconLayers({ size = 18 }: { size?: number }) {
 }
 
 function GoldBarsMark() {
+  const gid = useId().replace(/:/g, '');
+  const g = `gbar-${gid}`;
+  const s = `gbar-side-${gid}`;
+  const t = `gbar-top-${gid}`;
   return (
-    <svg className="rate-bars-ico" viewBox="0 0 64 48" aria-hidden>
+    <svg className="rate-bars-ico" viewBox="0 0 72 56" aria-hidden>
       <defs>
-        <linearGradient id="gbar" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#f3d27a" />
+        <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f6e2a8" />
           <stop offset="45%" stopColor="#d4a84b" />
           <stop offset="100%" stopColor="#8a6414" />
         </linearGradient>
+        <linearGradient id={s} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c9952e" />
+          <stop offset="100%" stopColor="#5c4010" />
+        </linearGradient>
+        <linearGradient id={t} x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="#e0b85a" />
+          <stop offset="100%" stopColor="#fff1c4" />
+        </linearGradient>
       </defs>
-      <rect x="6" y="28" width="22" height="12" rx="2" fill="url(#gbar)" />
-      <rect x="20" y="18" width="22" height="12" rx="2" fill="url(#gbar)" opacity=".95" />
-      <rect x="34" y="8" width="22" height="12" rx="2" fill="url(#gbar)" />
+      {/* back / top bar */}
+      <path d="M22 10h28l8 6H30l-8-6Z" fill={`url(#${t})`} />
+      <path d="M22 10v8l8 6V16l-8-6Z" fill={`url(#${s})`} opacity=".9" />
+      <path d="M30 16h28v8H38l-8-8Z" fill={`url(#${g})`} />
+      {/* middle bar */}
+      <path d="M14 22h28l8 6H22l-8-6Z" fill={`url(#${t})`} />
+      <path d="M14 22v8l8 6V28l-8-6Z" fill={`url(#${s})`} opacity=".9" />
+      <path d="M22 28h28v8H30l-8-8Z" fill={`url(#${g})`} />
+      {/* front / bottom bar */}
+      <path d="M6 34h28l8 6H14l-8-6Z" fill={`url(#${t})`} />
+      <path d="M6 34v8l8 6V40l-8-6Z" fill={`url(#${s})`} opacity=".95" />
+      <path d="M14 40h28v8H22l-8-8Z" fill={`url(#${g})`} />
     </svg>
   );
 }
