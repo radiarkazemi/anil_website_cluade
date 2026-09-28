@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { THEME_META, useTheme } from '../store/themeStore';
 import { faNum, faPrice } from '../utils/format';
-import { IconGoldBox } from './icons';
+import { IconShoppingBag, IconUser } from './icons';
 import { SiteSearch } from './SiteSearch';
 import { ThemePicker } from './ThemePicker';
 import type { Category } from '../types';
@@ -101,29 +101,29 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [productsOpen]);
 
-  const brandName = site?.brand_name || 'Anil';
-  const brandTag = site?.brand_tagline || 'درخششی ابدی';
-  const cartLabel = site?.cart_label || 'گلد باکس';
+  const brandName = site?.brand_name || 'ANIL';
+  const brandTag = site?.brand_tagline || 'درخشش ابدی';
+  const cartLabel = site?.cart_label || 'سبد خرید';
   const logoSrc = site?.brand_logo_url || '/logo.png';
-  const rawBanner = (site?.top_banner || '').trim();
-  const banner =
-    rawBanner && !/بیمه|فاکتور رسمی|ارسال.*کشور|درب منزل/.test(rawBanner)
-      ? rawBanner
-      : rawBanner
-        ? 'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا · مشاوره حضوری در گالری آنیل، ابهر'
-        : '';
+  const isHome = location.pathname === '/';
   const closeMenu = () => setMenuOpen(false);
 
-  const secondaryNav = navPages.length > 0
-    ? navPages.map((p) => ({
+  const secondaryNav = [
+    { key: 'guide', to: '/p/راهنمای-خرید', label: 'راهنمای خرید' },
+    { key: 'blog', to: '/blog', label: 'بلاگ' },
+    { key: 'about', to: '/p/درباره-ما', label: 'درباره ما' },
+    { key: 'contact', to: '/#contact', label: 'تماس با ما' },
+    ...navPages
+      .filter((p) => !['بلاگ', 'راهنمای-خرید', 'درباره-ما', 'تماس-با-ما'].includes(p.slug))
+      .map((p) => ({
         key: p.id,
         to: pageHref(p),
         label: pageLabel(p),
-      }))
-    : [
-        { key: 'guide', to: '/p/راهنمای-خرید', label: 'راهنمای خرید' },
-        { key: 'blog', to: '/blog', label: 'بلاگ' },
-      ];
+      })),
+  ];
+  // Prefer CMS nav labels when present, but keep handoff order/names for core items
+  const guideCms = navPages.find((p) => p.slug === 'راهنمای-خرید');
+  if (guideCms) secondaryNav[0] = { key: guideCms.id, to: pageHref(guideCms), label: 'راهنمای خرید' };
 
   const catList = (categories as Category[]).slice(0, 8);
 
@@ -171,14 +171,13 @@ export function Header() {
 
   return (
     <>
-      {banner && <div className="top-banner">{banner}</div>}
-      <header className="site-header">
+      <header className={`site-header header-handoff${isHome ? ' is-home' : ''}`}>
         <div className="header-atmosphere" aria-hidden />
         <div className="container header-shell">
           <div className="header-inner">
             <Link to="/" className="logo" onClick={closeMenu}>
               <span className="logo-frame">
-                <img className="logo-img" src={logoSrc} alt={brandName} />
+                <img className="logo-img" src={logoSrc} alt="" />
               </span>
               <span className="logo-text">
                 <span className="logo-name">{brandName}</span>
@@ -187,8 +186,6 @@ export function Header() {
             </Link>
 
             <nav className="main-nav desktop-nav" aria-label="منوی اصلی">
-              <NavLink to="/" end>خانه</NavLink>
-
               <div
                 className={`nav-item-dropdown${productsOpen ? ' is-open' : ''}`}
                 ref={productsRef}
@@ -219,47 +216,48 @@ export function Header() {
                 </div>
               </div>
 
-              <NavLink to="/atelier">آتلیه</NavLink>
-
-              {secondaryNav.map((item) => (
-                <NavLink key={item.key} to={item.to}>{item.label}</NavLink>
+              {secondaryNav.slice(0, 4).map((item) => (
+                item.to.startsWith('/#') ? (
+                  <a key={item.key} href={item.to}>{item.label}</a>
+                ) : (
+                  <NavLink key={item.key} to={item.to}>{item.label}</NavLink>
+                )
               ))}
             </nav>
 
             <div className="header-tools">
               <div className="header-search-inline">
-                <SiteSearch className="header-search compact" />
+                <SiteSearch
+                  className="header-search compact handoff-search"
+                  placeholder="جستجو در گالری طلا، دسته‌بندی‌ها و..."
+                />
               </div>
 
-              {gp > 0 && (
-                <div className="live-gold" title="نرخ طلای ۱۸ عیار">
-                  <span className="live-dot" />
-                  <span className="live-label">طلای ۱۸</span>
-                  <span className="live-price">{faPrice(gp)}</span>
-                </div>
-              )}
-
-              <ThemePicker />
+              <ThemePicker compact />
 
               {user ? (
-                <Link to="/account" className="text-btn header-account" onClick={closeMenu}>
-                  {user.full_name || 'حساب من'}
+                <Link to="/account" className="header-pill header-account" onClick={closeMenu}>
+                  <IconUser size={16} />
+                  <span>{user.full_name || 'حساب من'}</span>
                 </Link>
               ) : (
-                <Link to="/login" className="text-btn ghost-border header-account" onClick={closeMenu}>ورود</Link>
+                <Link to="/login" className="header-pill header-account" onClick={closeMenu}>
+                  <IconUser size={16} />
+                  <span>ورود</span>
+                </Link>
               )}
 
               <button
-                className="icon-btn cart-btn"
+                className="header-pill cart-btn"
                 onClick={() => { closeMenu(); openCart(); }}
                 type="button"
                 aria-label={cartLabel}
               >
                 <span className="cart-label-full">
-                  <IconGoldBox size={18} />
-                  {cartLabel}
+                  <IconShoppingBag size={16} />
+                  {cartLabel === 'گلد باکس' ? 'سبد خرید' : cartLabel}
                 </span>
-                <span className="cart-ico-mobile"><IconGoldBox size={22} /></span>
+                <span className="cart-ico-mobile"><IconShoppingBag size={20} /></span>
                 {cartCount > 0 && <span className="cart-badge">{faNum(cartCount)}</span>}
               </button>
 
@@ -279,7 +277,10 @@ export function Header() {
           </div>
 
           <div className="header-search-mobile-row">
-            <SiteSearch className="header-search compact" />
+            <SiteSearch
+              className="header-search compact handoff-search"
+              placeholder="جستجو در گالری طلا، دسته‌بندی‌ها و..."
+            />
           </div>
         </div>
 

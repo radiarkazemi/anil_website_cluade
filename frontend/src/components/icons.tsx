@@ -42,6 +42,58 @@ export function IconGoldBox({ size = 22, className }: IconProps) {
   );
 }
 
+export function IconShoppingBag({ size = 18, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M6.5 8.2h11l-.7 10.1c-.1 1-.9 1.7-1.9 1.7H9.1c-1 0-1.8-.7-1.9-1.7L6.5 8.2Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 8.2V6.8a3 3 0 0 1 6 0v1.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function IconUser({ size = 18, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="12" cy="8.2" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M5.5 18.8c1.4-2.6 3.7-3.9 6.5-3.9s5.1 1.3 6.5 3.9"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function IconSearch({ size = 18, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="11" cy="11" r="6.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m16.2 16.2 3.3 3.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconChart({ size = 18, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M4.5 18.5V5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4.5 18.5h15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 14.5v4M12 10.5v8M16 7.5v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconShieldCheck({ size = 18, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>

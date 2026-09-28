@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
-import { IconBuyback, IconConsult, IconShieldCheck } from '../components/icons';
+import { IconBuyback, IconChart, IconConsult, IconShieldCheck } from '../components/icons';
 import { useStore } from '../store/useStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import type { Category, HeroAlbumSlide, MarketRow, SiteSettings } from '../types';
@@ -102,16 +102,6 @@ function isStale(iso?: string | null, maxMs = 30 * 60 * 1000): boolean {
   return Date.now() - t > maxMs;
 }
 
-function IconChart({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4.5 18.5V5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M4.5 18.5h15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8 14.5v4M12 10.5v8M16 7.5v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function IconCalc({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -141,6 +131,23 @@ function IconLayers({ size = 18 }: { size?: number }) {
   );
 }
 
+function GoldBarsMark() {
+  return (
+    <svg className="rate-bars-ico" viewBox="0 0 64 48" aria-hidden>
+      <defs>
+        <linearGradient id="gbar" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f3d27a" />
+          <stop offset="45%" stopColor="#d4a84b" />
+          <stop offset="100%" stopColor="#8a6414" />
+        </linearGradient>
+      </defs>
+      <rect x="6" y="28" width="22" height="12" rx="2" fill="url(#gbar)" />
+      <rect x="20" y="18" width="22" height="12" rx="2" fill="url(#gbar)" opacity=".95" />
+      <rect x="34" y="8" width="22" height="12" rx="2" fill="url(#gbar)" />
+    </svg>
+  );
+}
+
 function RatesBoard({
   rows,
   updatedAt,
@@ -150,6 +157,7 @@ function RatesBoard({
 }) {
   const stale = isStale(updatedAt);
   const when = formatGoldTime(updatedAt);
+  // LTR strip in the mock: featured ۱۸ عیار first on the left
   const ordered = useMemo(() => {
     const g18 = rows.find((r) => r.key === 'g18');
     const rest = rows.filter((r) => r.key !== 'g18');
@@ -157,27 +165,27 @@ function RatesBoard({
   }, [rows]);
 
   return (
-    <section id="market" className="rates-board" aria-label="نرخ زنده بازار">
+    <section id="market" className="rates-board rates-handoff" aria-label="نرخ زنده بازار">
       <div className="container rates-board-inner">
+        <div className="rates-scroll" tabIndex={0} aria-label="کارت‌های نرخ طلا و سکه">
+          {ordered.map((r) => (
+            <div key={r.key} className={`rate-chip${r.key === 'g18' ? ' featured' : ''}`}>
+              {r.key === 'g18' ? <GoldBarsMark /> : null}
+              <div className="rate-chip-body">
+                <div className="rate-chip-label">{r.label}</div>
+                <div className="rate-chip-value">
+                  {r.dollar ? `$${faPrice(r.v)}` : faPrice(r.v)}
+                </div>
+                <div className="rate-chip-unit">{r.unit}</div>
+              </div>
+            </div>
+          ))}
+        </div>
         <div className="rates-board-status">
           <span className={`live-dot${stale ? ' is-stale' : ''}`} />
           {stale ? 'نرخ ممکن است به‌روز نباشد' : 'به‌روزرسانی زنده قیمت‌ها'}
           {when ? ` | آخرین به‌روزرسانی: ${when}` : ''}
         </div>
-        <div className="rates-scroll" tabIndex={0} aria-label="کارت‌های نرخ طلا و سکه">
-          {ordered.map((r) => (
-            <div key={r.key} className={`rate-chip${r.key === 'g18' ? ' featured' : ''}`}>
-              <div className="rate-chip-label">{r.label}</div>
-              <div className="rate-chip-value">
-                {r.dollar ? `$${faPrice(r.v)}` : faPrice(r.v)}
-              </div>
-              <div className="rate-chip-unit">{r.unit}</div>
-            </div>
-          ))}
-        </div>
-        <p className="rates-note rates-note-below">
-          قیمت محصولات گالری بر اساس طلای ۱۸ عیار محاسبه می‌شود.
-        </p>
       </div>
     </section>
   );
@@ -233,7 +241,7 @@ function HeroAlbumPainting({
 
   return (
     <div
-      className="hero-painting"
+      className="hero-painting hero-painting-handoff"
       onMouseEnter={() => onPause(true)}
       onMouseLeave={() => onPause(false)}
     >
@@ -254,15 +262,13 @@ function HeroAlbumPainting({
             />
           ))}
           <div className="hero-album-sheen" aria-hidden />
+          <div className="hero-brand-plate" aria-hidden>
+            <span className="hero-brand-anil">ANIL</span>
+            <span className="hero-brand-sub">Gold Collection</span>
+          </div>
         </div>
         {multi && (
           <>
-            <div className="hero-album-plate" aria-live="polite">
-              <span className="hero-album-plate-label">آلبوم</span>
-              <span className="hero-album-plate-count">
-                {faNum(index + 1)} / {faNum(slides.length)}
-              </span>
-            </div>
             <div className="hero-album-dots" role="tablist" aria-label="اسلایدهای هیرو">
               {slides.map((s, i) => (
                 <button
@@ -379,7 +385,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   const badge = site?.hero_badge || 'گالری طلای آنیل';
 
   return (
-    <section className="home-hero-bleed home-hero-compact">
+    <section className="home-hero-bleed home-hero-handoff">
       <div
         className="m-hero"
         onTouchStart={() => setPaused(true)}
@@ -425,20 +431,12 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           </h1>
           <p className="hero-lead">{subtitle}</p>
           <div className="hero-actions">
-            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
+            <HeroCta to={primaryUrl} className="gold-btn hero-cta-primary">{primaryLabel}</HeroCta>
           </div>
         </div>
       </div>
 
       <div className="container home-hero d-hero">
-        <HeroVisual
-          site={site}
-          slides={slides}
-          index={index}
-          onSelect={setIndex}
-          paused={paused}
-          onPause={setPaused}
-        />
         <div className="hero-copy">
           <div className="hero-badge">{badge}</div>
           <h1 className="shimmer-text hero-h1 hero-reveal">
@@ -451,13 +449,24 @@ function HeroSection({ site }: { site?: SiteSettings }) {
           </h1>
           <p className="hero-lead">{subtitle}</p>
           <div className="hero-actions">
-            <HeroCta to={primaryUrl} className="gold-btn">{primaryLabel}</HeroCta>
+            <HeroCta to={primaryUrl} className="gold-btn hero-cta-primary">
+              {primaryLabel}
+              <span className="hero-cta-chev" aria-hidden>‹</span>
+            </HeroCta>
             <HeroCta to={secondaryUrl} className="outline-btn hero-cta-secondary">
               <span className="hero-cta-ico" aria-hidden><IconChart size={16} /></span>
               {secondaryLabel}
             </HeroCta>
           </div>
         </div>
+        <HeroVisual
+          site={site}
+          slides={slides}
+          index={index}
+          onSelect={setIndex}
+          paused={paused}
+          onPause={setPaused}
+        />
       </div>
     </section>
   );
@@ -723,7 +732,7 @@ function ContactBand({ site }: { site?: SiteSettings }) {
   const mapsQ = encodeURIComponent(address);
 
   return (
-    <section className="container section-pad home-contact" aria-labelledby="home-contact-title">
+    <section id="contact" className="container section-pad home-contact" aria-labelledby="home-contact-title">
       <div className="contact-band">
         <div
           className="contact-band-art"
