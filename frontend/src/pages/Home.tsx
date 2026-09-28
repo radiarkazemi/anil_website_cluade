@@ -19,6 +19,7 @@ import {
   IconShieldCheck,
   IconShoppingBag,
 } from '../components/icons';
+import { ContactBand, SiteFooter } from '../components/SiteChrome';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
@@ -37,8 +38,6 @@ const HANDOFF_HERO = '/home/hero-gloved-hand.webp';
 const HONEST_SUBTITLE =
   'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا — بازدید و مشاوره در گالری آنیل، ابهر.';
 
-const SAMPLE_PHONE_RE = /^(0?21[- ]?12345678|۰۲۱[- ]?۱۲۳۴۵۶۷۸)$/;
-const TEHRAN_SAMPLE_RE = /تهران|بازار بزرگ طلا/;
 const UNVERIFIED_CLAIM_RE = /بیمه|فاکتور رسمی|ارسال.*کشور|درب منزل|پرداخت امن|بازخرید تضمینی/;
 
 /** Concept art for category tiles when the category has no real photo. */
@@ -73,22 +72,6 @@ function honestSubtitle(raw?: string | null): string {
   const t = (raw || '').trim();
   if (!t || UNVERIFIED_CLAIM_RE.test(t)) return HONEST_SUBTITLE;
   return t;
-}
-
-function contactAddress(site?: SiteSettings): string {
-  const a = (site?.contact_address || '').trim();
-  if (!a || TEHRAN_SAMPLE_RE.test(a)) return 'ابهر، استان زنجان';
-  return a;
-}
-
-function contactPhone(site?: SiteSettings): string {
-  const p = (site?.contact_phone || '').trim();
-  if (!p || SAMPLE_PHONE_RE.test(p.replace(/\s/g, ''))) return '';
-  return p;
-}
-
-function contactEmail(site?: SiteSettings): string {
-  return (site?.contact_email || '').trim() || 'info@goldanil.ir';
 }
 
 function formatGoldTime(iso?: string | null): string {
@@ -857,61 +840,6 @@ function EditorialStrip() {
   );
 }
 
-function ContactBand({ site }: { site?: SiteSettings }) {
-  const address = contactAddress(site);
-  const phone = contactPhone(site);
-  const email = contactEmail(site);
-  // Placeholder map centered on Abhar — exact pin can be updated later.
-  const mapSrc =
-    'https://maps.google.com/maps?q=' +
-    encodeURIComponent('ابهر، استان زنجان') +
-    '&hl=fa&z=14&output=embed';
-
-  return (
-    <section id="contact" className="container home-contact handoff-04-contact" aria-labelledby="home-contact-title">
-      <div className="handoff-04-contact-grid">
-        <div className="handoff-04-map-wrap">
-          <iframe
-            className="handoff-04-map"
-            title="موقعیت گالری آنیل روی نقشه"
-            src={mapSrc}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
-        </div>
-        <div className="handoff-04-contact-copy">
-          <h2 id="home-contact-title">بازدید و تماس</h2>
-          <p className="handoff-04-contact-lead">گالری طلای آنیل — ابهر</p>
-          <ul className="handoff-04-contact-list">
-            <li>{address}</li>
-            {phone ? (
-              <li>
-                <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} dir="ltr">{phone}</a>
-              </li>
-            ) : null}
-            <li>
-              <a href={`mailto:${email}`} dir="ltr">{email}</a>
-            </li>
-          </ul>
-          <div className="handoff-04-contact-actions">
-            <a className="gold-btn" href={`mailto:${email}`}>ارسال ایمیل</a>
-            <a
-              className="outline-btn"
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              باز کردن در نقشه
-            </a>
-          </div>
-          <p className="handoff-04-contact-note">موقعیت دقیق فروشگاه به‌زودی روی نقشه به‌روزرسانی می‌شود.</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function Home() {
   const goldPrice = useStore((s) => s.goldPrice);
   const { data: site } = useQuery({
@@ -996,78 +924,13 @@ export function Home() {
         <WhyAnil key="trust" heading={site?.trust_heading} />
       ) : null,
     editorial: <EditorialStrip key="editorial" />,
-    contact: <ContactBand key="contact" site={site} />,
+    contact: <ContactBand key="contact" site={site} title="بازدید و تماس" />,
   };
-
-  const address = contactAddress(site);
-  const phone = contactPhone(site);
-  const email = contactEmail(site);
 
   return (
     <div className="home">
       {order.map((key) => sections[key]).filter(Boolean)}
-
-      <footer className="site-footer">
-        <div className="container footer-inner">
-          <div className="footer-top">
-            <div className="footer-brand-row">
-              <img className="logo-img footer-logo" src={site?.brand_logo_url || '/logo.png'} alt="" />
-              <div>
-                <div className="footer-brand">{site?.brand_name || 'Anil'}</div>
-                <div className="logo-sub">{site?.brand_tagline || 'درخششی ابدی'}</div>
-              </div>
-            </div>
-            <p className="footer-tag">
-              {site?.footer_tagline && !UNVERIFIED_CLAIM_RE.test(site.footer_tagline)
-                ? site.footer_tagline
-                : 'زیورآلات اصیل با قیمت شفاف و لحظه‌ای — گالری آنیل، ابهر.'}
-            </p>
-            <Link to="/products" className="footer-shop-btn">مشاهده محصولات</Link>
-          </div>
-
-          <div className="footer-links">
-            <div className="footer-col">
-              <h3>دسته‌بندی‌ها</h3>
-              <ul>
-                {categories.slice(0, 5).map((c) => (
-                  <li key={c.id}>
-                    <Link to={`/products?category=${encodeURIComponent(c.slug)}`}>{c.name}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h3>خدمات</h3>
-              <ul>
-                <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
-                <li><Link to="/blog">بلاگ</Link></li>
-                <li><Link to="/products">محصولات</Link></li>
-                <li><Link to="/atelier">برآورد بودجه</Link></li>
-                <li><Link to="/account">حساب کاربری</Link></li>
-              </ul>
-            </div>
-            <div className="footer-col footer-contact">
-              <h3>تماس</h3>
-              <ul>
-                <li>{address}</li>
-                {phone ? (
-                  <li>
-                    <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} dir="ltr">{phone}</a>
-                  </li>
-                ) : null}
-                <li>
-                  <a href={`mailto:${email}`} dir="ltr">{email}</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="footer-copy footer-copy-row">
-            <span>© گالری طلا آنیل ۱۴۰۵</span>
-            <span>قیمت لحظه‌ای · مشاوره حضوری</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter site={site} categories={categories} />
     </div>
   );
 }
