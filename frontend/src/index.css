@@ -6521,8 +6521,9 @@ body.nav-open { overflow: hidden; }
 .handoff-03-banner .collection-banner-copy {
   direction: rtl;
   width: min(100%, 460px);
-  margin: 0;
-  margin-inline: 0 auto; /* physical left */
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: auto !important; /* physical LEFT — jewelry stays on the right */
   padding: 36px 32px;
   gap: 12px;
   background: linear-gradient(
