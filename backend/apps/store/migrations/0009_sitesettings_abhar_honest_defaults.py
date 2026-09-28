@@ -1,3 +1,9 @@
+"""Honest Abhar contact defaults + homepage section order.
+
+On production (which already had store.0013), the equivalent change was
+applied as store.0014_sitesettings_abhar_honest_defaults.
+"""
+
 from django.db import migrations, models
 
 
@@ -37,9 +43,10 @@ def forwards(apps, schema_editor):
             obj.top_banner = NEW_BANNER
             changed.append("top_banner")
         order = list(obj.section_order or [])
-        if not order or order == ["hero", "rates", "categories", "featured", "trust"]:
+        if not order or order == ["hero", "rates", "categories", "featured", "trust"] or order != NEW_ORDER:
             obj.section_order = NEW_ORDER
-            changed.append("section_order")
+            if "section_order" not in changed:
+                changed.append("section_order")
         if changed:
             obj.save(update_fields=changed)
 
