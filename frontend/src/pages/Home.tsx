@@ -24,7 +24,7 @@ import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
-import type { Category, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
+import type { Category, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
 const loadHeroRing3D = () =>
@@ -714,10 +714,18 @@ function CollectionBanner({ categories }: { categories: Category[] }) {
   );
 }
 
+function liveGramRate(gold: GoldPrice | null | undefined, karat: '18' | '24'): number {
+  const key = karat === '24' ? 'g24' : 'g18';
+  const fromRow = gold?.market_rows?.find((r) => r.key === key)?.v;
+  if (typeof fromRow === 'number' && fromRow > 0) return fromRow;
+  const fallback = karat === '24' ? gold?.price_24k_per_gram : gold?.price_18k_per_gram;
+  return typeof fallback === 'number' && fallback > 0 ? fallback : 0;
+}
+
 function HomeGoldCalculator() {
   const gold = useStore((s) => s.goldPrice);
-  const rate18 = gold?.price_18k_per_gram ?? 0;
-  const rate24 = gold?.price_24k_per_gram ?? 0;
+  const rate18 = liveGramRate(gold, '18');
+  const rate24 = liveGramRate(gold, '24');
   const [weightRaw, setWeightRaw] = useState('۱۰');
   const [karat, setKarat] = useState<'18' | '24'>('18');
   const weightId = useId();
@@ -734,11 +742,11 @@ function HomeGoldCalculator() {
   }, [weightRaw]);
 
   const rate = karat === '24' ? rate24 : rate18;
-  const feeRatio = 0.12;
-  const estimate = rate > 0 && weight > 0 ? calcPrice(weight, rate, feeRatio, 0).total : 0;
+  // True live gold value only (weight × rate) — no sample fee/profit/tax.
+  const estimate = rate > 0 && weight > 0 ? Math.round(weight * rate) : 0;
   const hint =
     rate > 0
-      ? `برآورد تقریبی با نرخ ${karat === '24' ? '۲۴' : '۱۸'} عیار و اجرت نمونه ۱۲٪؛ مبلغ نهایی قطعه پس از اجرت واقعی مشخص می‌شود.`
+      ? `برآورد ارزش طلای خام با نرخ زنده ${karat === '24' ? '۲۴' : '۱۸'} عیار؛ قیمت نهایی قطعه با اجرت و سود جدا محاسبه می‌شود.`
       : 'در حال دریافت نرخ زنده طلا…';
 
   return (
