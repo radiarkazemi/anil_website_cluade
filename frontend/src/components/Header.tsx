@@ -105,7 +105,13 @@ export function Header() {
   const brandTag = site?.brand_tagline || 'درخششی ابدی';
   const cartLabel = site?.cart_label || 'گلد باکس';
   const logoSrc = site?.brand_logo_url || '/logo.png';
-  const banner = site?.top_banner;
+  const rawBanner = (site?.top_banner || '').trim();
+  const banner =
+    rawBanner && !/بیمه|فاکتور رسمی|ارسال.*کشور|درب منزل/.test(rawBanner)
+      ? rawBanner
+      : rawBanner
+        ? 'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا · مشاوره حضوری در گالری آنیل، ابهر'
+        : '';
   const closeMenu = () => setMenuOpen(false);
 
   const secondaryNav = navPages.length > 0
