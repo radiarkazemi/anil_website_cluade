@@ -22,7 +22,8 @@ const loadHeroRing3D = () =>
   import('../components/HeroRing3D').then((m) => ({ default: m.HeroRing3D }));
 const HeroRing3D = lazy(loadHeroRing3D);
 
-const DEFAULT_HERO = '/hero/anil-gallery.jpg';
+/** Handoff section-01 campaign artwork — used for the homepage hero painting. */
+const HANDOFF_HERO = '/home/hero-gloved-hand.webp';
 
 const HONEST_SUBTITLE =
   'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا — بازدید و مشاوره در گالری آنیل، ابهر.';
@@ -148,6 +149,12 @@ function GoldBarsMark() {
   );
 }
 
+function rateUnit(r: MarketRow): string {
+  if (r.dollar) return 'دلار';
+  if (r.key === 'g18' || r.key === 'g24') return 'تومان / هر گرم';
+  return 'تومان';
+}
+
 function RatesBoard({
   rows,
   updatedAt,
@@ -176,7 +183,7 @@ function RatesBoard({
                 <div className="rate-chip-value">
                   {r.dollar ? `$${faPrice(r.v)}` : faPrice(r.v)}
                 </div>
-                <div className="rate-chip-unit">{r.unit}</div>
+                <div className="rate-chip-unit">{rateUnit(r)}</div>
               </div>
             </div>
           ))}
@@ -193,18 +200,25 @@ function RatesBoard({
 
 function useHeroSlides(site?: SiteSettings): { src: string; alt: string; caption: string; id: string }[] {
   return useMemo(() => {
+    // Section 01 handoff: campaign artwork is the visual source of truth.
+    // Keep CMS album available as secondary slides only when it differs.
+    const handoff = {
+      id: 'handoff-hero',
+      src: HANDOFF_HERO,
+      alt: 'گالری طلای آنیل',
+      caption: '',
+    };
     const album = (site?.hero_album || []).filter((s) => s.is_active !== false && s.image_url);
-    if (album.length) {
-      return album.map((s: HeroAlbumSlide) => ({
+    const extras = album
+      .map((s: HeroAlbumSlide) => ({
         id: String(s.id),
         src: s.image_url!,
-        alt: s.alt_text || 'گالری طلا آنیل',
+        alt: s.alt_text || 'گالری طلای آنیل',
         caption: s.caption || '',
-      }));
-    }
-    const legacy = site?.hero_image_url || DEFAULT_HERO;
-    return [{ id: 'default', src: legacy, alt: 'گالری طلا آنیل', caption: '' }];
-  }, [site?.hero_album, site?.hero_image_url]);
+      }))
+      .filter((s) => !s.src.includes('hero-gloved-hand') && !s.src.includes('anil-gallery'));
+    return extras.length ? [handoff, ...extras] : [handoff];
+  }, [site?.hero_album]);
 }
 
 function useAlbumIndex(count: number, pause: boolean) {
@@ -262,10 +276,7 @@ function HeroAlbumPainting({
             />
           ))}
           <div className="hero-album-sheen" aria-hidden />
-          <div className="hero-brand-plate" aria-hidden>
-            <span className="hero-brand-anil">ANIL</span>
-            <span className="hero-brand-sub">Gold Collection</span>
-          </div>
+          {/* Campaign handoff art already includes ANIL / Gold Collection typography */}
         </div>
         {multi && (
           <>
@@ -382,7 +393,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   const primaryUrl = site?.hero_cta_primary_url || '/products';
   const secondaryLabel = site?.hero_cta_secondary || 'قیمت لحظه‌ای طلا';
   const secondaryUrl = site?.hero_cta_secondary_url || '#market';
-  const badge = site?.hero_badge || 'گالری طلای آنیل';
+  const badge = (site?.hero_badge || 'گالری طلای آنیل').replace(/^گالری طلا آنیل$/, 'گالری طلای آنیل');
 
   return (
     <section className="home-hero-bleed home-hero-handoff">

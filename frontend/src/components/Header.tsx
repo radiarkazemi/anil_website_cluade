@@ -176,7 +176,7 @@ export function Header() {
         <div className="container header-shell">
           <div className="header-inner">
             <Link to="/" className="logo" onClick={closeMenu}>
-              <span className="logo-frame">
+              <span className="logo-frame logo-frame-mark">
                 <img className="logo-img" src={logoSrc} alt="" />
               </span>
               <span className="logo-text">
@@ -184,6 +184,7 @@ export function Header() {
                 <span className="logo-sub">{brandTag}</span>
               </span>
             </Link>
+            <span className="header-vsep header-vsep-logo" aria-hidden />
 
             <nav className="main-nav desktop-nav" aria-label="منوی اصلی">
               <div
@@ -233,6 +234,7 @@ export function Header() {
                 />
               </div>
 
+              <span className="header-vsep" aria-hidden />
               <ThemePicker compact />
 
               {user ? (
@@ -254,8 +256,13 @@ export function Header() {
                 aria-label={cartLabel}
               >
                 <span className="cart-label-full">
-                  <IconShoppingBag size={16} />
-                  {cartLabel === 'گلد باکس' ? 'سبد خرید' : cartLabel}
+                  <span className="cart-ico-square" aria-hidden>
+                    <IconShoppingBag size={15} />
+                    {cartCount > 0 ? <em>{faNum(cartCount)}</em> : null}
+                  </span>
+                  <span className="cart-label-text">
+                    {cartLabel === 'گلد باکس' ? 'سبد خرید' : cartLabel}
+                  </span>
                 </span>
                 <span className="cart-ico-mobile"><IconShoppingBag size={20} /></span>
                 {cartCount > 0 && <span className="cart-badge">{faNum(cartCount)}</span>}
