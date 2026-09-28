@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { api } from '../api/endpoints';
 import { SecondaryPageChrome } from '../components/SiteChrome';
 import type { ContentPage } from '../types';
+import { mediaUrl } from '../utils/mediaUrl';
 
 /** Soft topic from title keywords — not fabricated CMS categories. */
 function blogTopic(title: string): string | null {
