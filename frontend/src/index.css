@@ -5839,7 +5839,8 @@ body.nav-open { overflow: hidden; }
   justify-self: stretch;
   width: 100%;
   min-width: 0;
-  align-items: flex-start; /* pin painting to visual left in RTL */
+  /* In RTL, flex-end pins the painting to the visual left edge. */
+  align-items: flex-end;
 }
 .home-hero-handoff .hero-copy { order: unset; min-width: 0; }
 .home-hero-handoff .hero-badge {
@@ -5855,8 +5856,8 @@ body.nav-open { overflow: hidden; }
   width: fit-content;
 }
 .home-hero-handoff .hero-h1 {
-  font-size: clamp(36px, 4.8vw, 56px);
-  margin-bottom: 16px;
+  font-size: clamp(34px, 4.4vw, 52px);
+  margin-bottom: 14px;
   line-height: 1.22;
   background: linear-gradient(115deg, #f6e2a8, #e0b85a 35%, #fff1c4 55%, #c9952e 78%, #f0d78a);
   background-size: 180% auto;
@@ -5905,7 +5906,7 @@ body.nav-open { overflow: hidden; }
 }
 .home-hero-handoff .hero-cta-ico { display: inline-flex; color: #e8c976; }
 .home-hero-handoff .hero-painting {
-  width: min(100%, 480px);
+  width: min(100%, 420px);
   max-width: 100%;
   margin: 0;
 }
