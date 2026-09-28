@@ -23,7 +23,6 @@ const loadHeroRing3D = () =>
 const HeroRing3D = lazy(loadHeroRing3D);
 
 const DEFAULT_HERO = '/hero/anil-gallery.jpg';
-const CAMPAIGN_HERO = '/home/hero-gloved-hand.webp';
 
 const HONEST_SUBTITLE =
   'قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا — بازدید و مشاوره در گالری آنیل، ابهر.';
