@@ -762,7 +762,7 @@ function ContactBand({ site }: { site?: SiteSettings }) {
             >
               مسیر روی نقشه
             </a>
-            <Link to="/p/تماس-با-ما" className="gold-btn">صفحه تماس</Link>
+            <a className="gold-btn" href={`mailto:${email}`}>ارسال ایمیل</a>
           </div>
           <p className="contact-band-note">تصویر پس‌زمینه صرفاً تزئینی است و نمای فروشگاه نیست.</p>
         </div>

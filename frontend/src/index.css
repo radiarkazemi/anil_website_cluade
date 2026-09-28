@@ -5413,9 +5413,14 @@ body.nav-open { overflow: hidden; }
 .collection-banner-copy,
 .editorial-copy {
   width: min(100%, 420px);
-  margin-inline-start: auto;
+  margin-inline-end: auto; /* visual left in RTL: text over dark side, jewelry to the right */
   padding: 28px 24px;
-  background: linear-gradient(90deg, rgba(10,8,6,.92), rgba(10,8,6,.55) 70%, transparent);
+  background: linear-gradient(
+    to left,
+    rgba(10,8,6,.92),
+    rgba(10,8,6,.55) 70%,
+    transparent
+  );
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -5438,7 +5443,12 @@ body.nav-open { overflow: hidden; }
 .collection-cta { align-self: flex-start; margin-top: 6px; }
 [data-theme='light'] .collection-banner-copy,
 [data-theme='light'] .editorial-copy {
-  background: linear-gradient(90deg, rgba(247,242,233,.94), rgba(247,242,233,.7) 70%, transparent);
+  background: linear-gradient(
+    to left,
+    rgba(247,242,233,.94),
+    rgba(247,242,233,.7) 70%,
+    transparent
+  );
 }
 [data-theme='light'] .collection-banner-copy p,
 [data-theme='light'] .editorial-copy p { color: #5c4b34; }
