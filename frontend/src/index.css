@@ -7305,7 +7305,7 @@ body.nav-open { overflow: hidden; }
   z-index: 1;
   padding-block: 36px 40px;
   max-width: 640px;
-  margin-inline: auto 0;
+  margin-inline: 0 auto; /* RTL start = right */
 }
 .handoff-blog-hero-title {
   margin: 0 0 8px;
@@ -7338,7 +7338,7 @@ body.nav-open { overflow: hidden; }
 }
 .handoff-blog-card {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: 1fr 1.05fr; /* RTL: body (start/right), cover (end/left) */
   gap: 0;
   border-radius: 18px;
   overflow: hidden;
@@ -7347,7 +7347,7 @@ body.nav-open { overflow: hidden; }
   min-height: 100%;
 }
 .handoff-blog-card.is-featured {
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1fr 1.2fr;
   min-height: 280px;
 }
 .handoff-blog-cover {
@@ -7468,6 +7468,8 @@ body.nav-open { overflow: hidden; }
 .handoff-blog-grid .handoff-blog-card {
   grid-template-columns: 1fr;
 }
+.handoff-blog-grid .handoff-blog-body { order: 1; }
+.handoff-blog-grid .handoff-blog-cover { order: 0; }
 .handoff-blog-grid .handoff-blog-cover {
   aspect-ratio: 16 / 10;
   min-height: 0;
@@ -7476,6 +7478,11 @@ body.nav-open { overflow: hidden; }
 .handoff-blog-grid .handoff-blog-excerpt { -webkit-line-clamp: 3; min-height: 4.8em; }
 
 /* —— Product detail —— */
+.handoff-pd .pd-grid {
+  /* Match handoff: gallery physical left, info physical right */
+  direction: ltr;
+}
+.handoff-pd .pd-grid > * { direction: rtl; }
 .handoff-pd .pd-breadcrumb { color: var(--gold-deep); }
 .handoff-pd .pd-breadcrumb a { color: inherit; }
 .handoff-pd .pd-breadcrumb a:hover { color: var(--gold-light); }

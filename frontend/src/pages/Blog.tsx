@@ -19,16 +19,6 @@ function BlogCard({ post, featured = false }: { post: ContentPage; featured?: bo
 
   return (
     <article className={`handoff-blog-card${featured ? ' is-featured' : ''}`}>
-      <Link to={to} className="handoff-blog-cover" tabIndex={-1} aria-hidden>
-        {post.cover_url ? (
-          <img src={post.cover_url} alt="" loading={featured ? 'eager' : 'lazy'} decoding="async" />
-        ) : (
-          <div className="handoff-blog-cover-fallback" aria-hidden>
-            <span className="handoff-blog-cover-brand">ANIL</span>
-            <span className="handoff-blog-cover-title">{post.title}</span>
-          </div>
-        )}
-      </Link>
       <div className="handoff-blog-body">
         {topic ? <span className="handoff-blog-topic">{topic}</span> : null}
         <h2 className="handoff-blog-title">
@@ -40,6 +30,16 @@ function BlogCard({ post, featured = false }: { post: ContentPage; featured?: bo
           مطالعه مقاله
         </Link>
       </div>
+      <Link to={to} className="handoff-blog-cover" tabIndex={-1} aria-hidden>
+        {post.cover_url ? (
+          <img src={post.cover_url} alt="" loading={featured ? 'eager' : 'lazy'} decoding="async" />
+        ) : (
+          <div className="handoff-blog-cover-fallback" aria-hidden>
+            <span className="handoff-blog-cover-brand">ANIL</span>
+            <span className="handoff-blog-cover-title">{post.title}</span>
+          </div>
+        )}
+      </Link>
     </article>
   );
 }
