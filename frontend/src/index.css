@@ -6111,3 +6111,293 @@ body.nav-open { overflow: hidden; }
     flex: 1 1 100%;
   }
 }
+
+/* ===== Handoff 02 — featured products + categories ===== */
+.handoff-02-featured,
+.handoff-02-categories {
+  padding-block: 36px 28px;
+}
+.handoff-02-head {
+  align-items: flex-end;
+  margin-bottom: 22px;
+  gap: 16px;
+}
+.handoff-02-head-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.handoff-02-featured .section-title,
+.handoff-02-categories .section-title {
+  font-size: clamp(22px, 2.4vw, 28px);
+  margin: 0;
+}
+.handoff-02-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 9px 18px;
+  border: 1px solid var(--border-gold);
+  color: var(--gold-light);
+  background: transparent;
+  font-weight: 600;
+}
+.handoff-02-all:hover,
+.handoff-02-all:focus-visible {
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  outline: none;
+}
+.handoff-02-featured .rail-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-color: var(--border-gold);
+  color: var(--gold-light);
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+/* Five-up product grid on desktop — no forced scroller */
+.handoff-02-rail.product-rail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  overflow: visible;
+  scroll-snap-type: none;
+  padding-bottom: 0;
+}
+.handoff-02-rail .product-rail-item {
+  flex: none;
+  min-width: 0;
+}
+
+.fh-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--border-gold);
+  background: var(--surface-2);
+  overflow: hidden;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+}
+.fh-card:hover {
+  border-color: color-mix(in srgb, var(--gold) 65%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--bg) 45%, transparent);
+}
+.fh-card-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--surface);
+  overflow: hidden;
+}
+.fh-card-img-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fh-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .35s ease;
+}
+.fh-card:hover .fh-card-media img { transform: scale(1.03); }
+.fh-card-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 12px;
+  text-align: center;
+}
+.fh-card-fav {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 10px; /* visual left in RTL — matches handoff */
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background .2s, color .2s, border-color .2s;
+}
+.fh-card-fav:hover,
+.fh-card-fav:focus-visible {
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+  outline: none;
+}
+.fh-card-fav.is-on {
+  color: #e0655f;
+  border-color: color-mix(in srgb, #e0655f 55%, transparent);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.fh-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 14px 14px;
+  flex: 1;
+}
+.fh-card-name {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14.5px;
+  text-decoration: none;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fh-card-name:hover { color: var(--gold-light); }
+.fh-card-meta {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.fh-card-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: .01em;
+  margin-top: 2px;
+}
+.fh-card-unit {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.fh-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+.fh-card-view {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--gold-grad);
+  color: #1a1208;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  border: 0;
+  transition: filter .2s, transform .2s;
+}
+.fh-card-view:hover,
+.fh-card-view:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+.fh-card-cart {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border-gold);
+  background: var(--surface);
+  color: var(--gold-light);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.fh-card-cart:hover:not(:disabled),
+.fh-card-cart:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 65%, transparent);
+  outline: none;
+}
+.fh-card-cart:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Categories — five image tiles */
+.handoff-02-cats.cat-rail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  overflow: visible;
+  scroll-snap-type: none;
+  padding-bottom: 0;
+}
+.handoff-02-cat.cat-tile {
+  flex: none;
+  border-radius: 18px;
+  border: 1px solid var(--border-gold);
+  background: var(--surface);
+}
+.handoff-02-cat .cat-tile-media {
+  aspect-ratio: 1 / 1.05;
+}
+.handoff-02-cat .cat-tile-veil {
+  height: 62%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 35%, transparent) 40%,
+    color-mix(in srgb, var(--bg) 92%, transparent) 100%
+  );
+}
+.handoff-02-cat .cat-tile-copy {
+  padding: 18px 16px;
+}
+.handoff-02-cat .cat-tile-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,.45);
+  margin-bottom: 6px;
+}
+[data-theme='light'] .handoff-02-cat .cat-tile-title {
+  color: #fff;
+}
+.handoff-02-cat .cat-tile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .handoff-02-rail.product-rail,
+  .handoff-02-cats.cat-rail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+  .handoff-02-rail .product-rail-item {
+    flex: 0 0 min(220px, 46vw);
+  }
+  .handoff-02-cat.cat-tile {
+    flex: 0 0 min(200px, 44vw);
+  }
+}
+@media (max-width: 720px) {
+  .handoff-02-head-main { gap: 10px; }
+  .handoff-02-featured .rail-nav { display: none; }
+  .handoff-02-rail .product-rail-item { flex-basis: min(210px, 72vw); }
+  .handoff-02-cat.cat-tile { flex-basis: min(180px, 58vw); }
+}

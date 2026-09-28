@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   lazy,
   Suspense,
@@ -11,11 +11,13 @@ import {
   type ReactNode,
 } from 'react';
 import { api } from '../api/endpoints';
-import { ProductCard } from '../components/ProductCard';
-import { IconBuyback, IconChart, IconConsult, IconShieldCheck } from '../components/icons';
+import { IconBuyback, IconChart, IconConsult, IconHeart, IconShieldCheck, IconShoppingBag } from '../components/icons';
 import { useStore } from '../store/useStore';
+import { useToast } from '../store/toastStore';
+import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
-import type { Category, HeroAlbumSlide, MarketRow, SiteSettings } from '../types';
+import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
+import type { Category, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
 const loadHeroRing3D = () =>
@@ -504,25 +506,112 @@ function HeroSection({ site }: { site?: SiteSettings }) {
   );
 }
 
-function FeaturedRail({ products }: { products: import('../types').Product[] }) {
+function FeaturedHandoffCard({ product }: { product: Product }) {
+  const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
+  const addToCart = useStore((s) => s.addToCart);
+  const user = useStore((s) => s.user);
+  const tokens = useStore((s) => s.tokens);
+  const openCart = useUI((s) => s.openCart);
+  const toast = useToast((s) => s.show);
+  const nav = useNavigate();
+  const [loved, setLoved] = useState(false);
+
+  const hasWeight =
+    product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
+  const w = hasWeight ? Number(product.weight_g) : 0;
+  const fee = Number(product.fee_ratio);
+  const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
+  const karat = product.karat || 18;
+
+  const tryAdd = () => {
+    if (!hasWeight) {
+      toast('وزن این قطعه هنوز تأیید نشده؛ از مشاور هوشمند کمک بگیرید یا با گالری تماس بگیرید.');
+      return;
+    }
+    if (!tokens || !user) {
+      toast('برای افزودن به سبد ابتدا وارد شوید یا ثبت‌نام کنید.');
+      nav('/register');
+      return;
+    }
+    if (!isProfileReady(user)) {
+      toast(profileGapMessage(user));
+      nav(profileCompletePath());
+      return;
+    }
+    addToCart(product.id);
+    toast(`«${product.name}» به سبد افزوده شد`);
+    openCart();
+  };
+
+  return (
+    <article className="fh-card">
+      <div className="fh-card-media">
+        <Link to={`/products/${product.slug}`} className="fh-card-img-link" tabIndex={-1}>
+          {product.primary_image ? (
+            <img
+              src={product.primary_image}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              width={480}
+              height={480}
+            />
+          ) : (
+            <span className="fh-card-fallback">{product.placeholder_label || product.category_name}</span>
+          )}
+        </Link>
+        <button
+          type="button"
+          className={`fh-card-fav${loved ? ' is-on' : ''}`}
+          aria-label={loved ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
+          aria-pressed={loved}
+          onClick={() => setLoved((v) => !v)}
+        >
+          <IconHeart size={16} filled={loved} />
+        </button>
+      </div>
+      <div className="fh-card-body">
+        <Link to={`/products/${product.slug}`} className="fh-card-name">{product.name}</Link>
+        <div className="fh-card-meta">طلای {faNum(karat)} عیار</div>
+        <div className="fh-card-price">{total != null ? faPrice(total) : '—'}</div>
+        <div className="fh-card-unit">{total != null ? 'تومان' : 'قیمت پس از تأیید وزن'}</div>
+        <div className="fh-card-actions">
+          <button
+            type="button"
+            className="fh-card-cart"
+            aria-label="افزودن به سبد"
+            onClick={tryAdd}
+            disabled={!hasWeight}
+          >
+            <IconShoppingBag size={16} />
+          </button>
+          <Link to={`/products/${product.slug}`} className="fh-card-view">مشاهده محصول</Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function FeaturedRail({ products }: { products: Product[] }) {
   const scroller = useRef<HTMLDivElement>(null);
   const scrollBy = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
-    const step = Math.min(320, el.clientWidth * 0.7);
+    const step = Math.min(280, el.clientWidth * 0.85);
     el.scrollBy({ left: dir * -step, behavior: 'smooth' });
   };
 
   if (!products.length) return null;
+  const row = products.slice(0, 5);
 
   return (
-    <section className="container section-pad home-featured">
-      <div className="section-row">
-        <div>
-          <h2 className="section-title tight">محصولات منتخب</h2>
-          <p className="section-sub">جدیدترین و محبوب‌ترین زیورآلات آنیل</p>
-        </div>
-        <div className="section-row-actions">
+    <section className="container section-pad home-featured handoff-02-featured">
+      <div className="section-row handoff-02-head">
+        <div className="handoff-02-head-main">
+          <div>
+            <h2 className="section-title tight">محصولات منتخب</h2>
+            <p className="section-sub">جدیدترین و محبوب‌ترین زیورآلات آنیل</p>
+          </div>
           <div className="rail-nav" role="group" aria-label="جابه‌جایی محصولات">
             <button type="button" className="rail-nav-btn" aria-label="قبلی" onClick={() => scrollBy(-1)}>
               ‹
@@ -531,13 +620,16 @@ function FeaturedRail({ products }: { products: import('../types').Product[] }) 
               ›
             </button>
           </div>
-          <Link to="/products" className="outline-btn section-all-btn">مشاهده همه</Link>
         </div>
+        <Link to="/products" className="outline-btn section-all-btn handoff-02-all">
+          مشاهده همه
+          <span aria-hidden>‹</span>
+        </Link>
       </div>
-      <div className="product-rail" ref={scroller}>
-        {products.map((p) => (
+      <div className="product-rail handoff-02-rail" ref={scroller}>
+        {row.map((p) => (
           <div key={p.id} className="product-rail-item">
-            <ProductCard product={p} />
+            <FeaturedHandoffCard product={p} />
           </div>
         ))}
       </div>
@@ -545,22 +637,32 @@ function FeaturedRail({ products }: { products: import('../types').Product[] }) 
   );
 }
 
+const CATEGORY_ORDER = [/انگشتر|سولیتر/, /گردن|زنجیر/, /دستبند|النگو/, /گوشواره/, /سکه|شمش/, /نیم.?ست|نیمست/];
+
 function CategoriesSection({ categories }: { categories: Category[] }) {
   if (!categories.length) return null;
+  const ordered = [...categories].sort((a, b) => {
+    const ai = CATEGORY_ORDER.findIndex((re) => re.test(`${a.name} ${a.slug}`));
+    const bi = CATEGORY_ORDER.findIndex((re) => re.test(`${b.name} ${b.slug}`));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  }).slice(0, 5);
+
   return (
-    <section className="container section-pad home-categories">
-      <div className="section-row">
+    <section className="container section-pad home-categories handoff-02-categories">
+      <div className="section-row handoff-02-head">
         <div>
           <h2 className="section-title tight">دسته‌بندی محصولات</h2>
           <p className="section-sub">دسته‌بندی مورد علاقه خود را انتخاب کنید</p>
         </div>
-        <Link to="/products" className="outline-btn section-all-btn">مشاهده همه دسته‌ها</Link>
+        <Link to="/products" className="outline-btn section-all-btn handoff-02-all">
+          مشاهده همه دسته‌ها
+        </Link>
       </div>
-      <div className="cat-rail" tabIndex={0} aria-label="دسته‌بندی‌ها">
-        {categories.map((c) => {
+      <div className="cat-rail handoff-02-cats" aria-label="دسته‌بندی‌ها">
+        {ordered.map((c) => {
           const art = categoryArt(c);
           return (
-            <Link key={c.id} to={`/products?category=${encodeURIComponent(c.slug)}`} className="cat-tile">
+            <Link key={c.id} to={`/products?category=${encodeURIComponent(c.slug)}`} className="cat-tile handoff-02-cat">
               <div className="cat-tile-media">
                 {art ? (
                   <img src={art} alt="" loading="lazy" decoding="async" width={420} height={420} />
@@ -571,7 +673,7 @@ function CategoriesSection({ categories }: { categories: Category[] }) {
               </div>
               <div className="cat-tile-copy">
                 <div className="cat-tile-title">{c.name}</div>
-                <span className="cat-tile-link">مشاهده محصولات</span>
+                <span className="cat-tile-link">مشاهده محصولات <span aria-hidden>‹</span></span>
               </div>
             </Link>
           );
@@ -822,7 +924,11 @@ export function Home() {
 
   const categories = categoriesData ?? [];
   const products = productsData ?? [];
-  const featured = products.slice(0, 8);
+  const featured = useMemo(() => {
+    const flagged = products.filter((p) => p.is_featured && p.primary_image);
+    const rest = products.filter((p) => !flagged.some((f) => f.id === p.id) && p.primary_image);
+    return [...flagged, ...rest].slice(0, 5);
+  }, [products]);
 
   const order = useMemo(() => {
     const raw = site?.section_order?.length ? [...site.section_order] : [...DEFAULT_SECTION_ORDER];

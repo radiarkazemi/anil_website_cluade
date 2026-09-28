@@ -42,6 +42,20 @@ export function IconGoldBox({ size = 22, className }: IconProps) {
   );
 }
 
+export function IconHeart({ size = 18, className, filled = false }: IconProps & { filled?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 20.2s-6.8-4.2-8.6-8.1C2 9.2 3.1 6.4 6 5.7c1.7-.4 3.4.3 4.4 1.6 1-1.3 2.7-2 4.4-1.6 2.9.7 4 3.5 2.6 6.4-1.8 3.9-8.4 8.1-8.4 8.1Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+    </svg>
+  );
+}
+
 export function IconShoppingBag({ size = 18, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
