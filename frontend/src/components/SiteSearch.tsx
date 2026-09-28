@@ -4,16 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { faPrice } from '../utils/format';
 import { useStore } from '../store/useStore';
+import { IconSearch } from './icons';
 
 type Props = {
   className?: string;
   /** Close mobile menu after submit */
   onSubmitExtra?: () => void;
   autoFocus?: boolean;
+  placeholder?: string;
 };
 
 /** Global product search — live suggestions while typing. */
-export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) {
+export function SiteSearch({
+  className = '',
+  onSubmitExtra,
+  autoFocus,
+  placeholder = 'جستجو در گالری…',
+}: Props) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const urlQ = params.get('search') || '';
@@ -81,7 +88,7 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
           type="text"
           name="anil-product-search"
           enterKeyHint="search"
-          placeholder="جستجو در گالری…"
+          placeholder={placeholder}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -97,7 +104,8 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
           aria-expanded={showPanel}
         />
         <button type="submit" className="site-search-btn" aria-label="جستجو">
-          جستجو
+          <IconSearch size={16} />
+          <span className="site-search-btn-text">جستجو</span>
         </button>
       </form>
 

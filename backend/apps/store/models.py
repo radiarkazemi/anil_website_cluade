@@ -214,13 +214,13 @@ class SiteSettings(models.Model):
         default="زیورآلات اصیل با قیمت شفاف و لحظه‌ای.",
         blank=True,
     )
-    contact_phone = models.CharField(max_length=40, default="021-12345678", blank=True)
+    contact_phone = models.CharField(max_length=40, default="", blank=True)
     contact_email = models.CharField(max_length=120, default="info@goldanil.ir", blank=True)
-    contact_address = models.CharField(max_length=300, default="تهران، بازار بزرگ طلا", blank=True)
+    contact_address = models.CharField(max_length=300, default="ابهر، استان زنجان", blank=True)
 
     top_banner = models.CharField(
         max_length=300,
-        default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
+        default="قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا · مشاوره حضوری در گالری آنیل، ابهر",
     )
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -235,7 +235,17 @@ class SiteSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         if not obj.section_order:
-            obj.section_order = ["hero", "rates", "categories", "featured", "trust"]
+            obj.section_order = [
+                "hero",
+                "rates",
+                "featured",
+                "categories",
+                "collection",
+                "calculator",
+                "trust",
+                "editorial",
+                "contact",
+            ]
             obj.save(update_fields=["section_order"])
         return obj
 
