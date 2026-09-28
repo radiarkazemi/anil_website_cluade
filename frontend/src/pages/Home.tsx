@@ -689,15 +689,18 @@ function CollectionBanner({ categories }: { categories: Category[] }) {
   const to = target ? `/products?category=${encodeURIComponent(target.slug)}` : '/products';
 
   return (
-    <section className="container section-pad home-collection">
+    <section className="container section-pad home-collection handoff-03-collection">
       <div
-        className="collection-banner"
+        className="collection-banner handoff-03-banner"
         style={{ backgroundImage: "url('/home/collection-banner.webp')" }}
       >
         <div className="collection-banner-copy">
           <h2>مجموعه‌ای از زیبایی ماندگار</h2>
           <p>طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما</p>
-          <Link to={to} className="outline-btn collection-cta">مشاهده کلکسیون</Link>
+          <Link to={to} className="outline-btn collection-cta handoff-03-cta">
+            مشاهده کلکسیون
+            <span className="handoff-03-cta-chev" aria-hidden>‹</span>
+          </Link>
         </div>
       </div>
     </section>
@@ -729,11 +732,14 @@ function HomeGoldCalculator() {
   const estimate = rate > 0 && weight > 0 ? calcPrice(weight, rate, feeRatio, 0).total : 0;
 
   return (
-    <section className="container section-pad home-calculator" aria-labelledby="home-calc-title">
-      <div className="home-calc-head">
+    <section
+      className="container section-pad home-calculator handoff-03-calc"
+      aria-labelledby="home-calc-title"
+    >
+      <div className="home-calc-head handoff-03-head">
         <h2 id="home-calc-title" className="section-title tight">محاسبه قیمت آنلاین طلا</h2>
         <p className="section-sub">
-          وزن و عیار را وارد کنید تا برآورد تقریبی قیمت را ببینید. مبلغ نهایی قطعه پس از اجرت واقعی مشخص می‌شود.
+          به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.
         </p>
       </div>
       <div className="home-calc-grid">
@@ -775,13 +781,13 @@ function HomeGoldCalculator() {
               </div>
               <div className="home-calc-unit">تومان</div>
             </div>
-            <span className="home-calc-ico" aria-hidden><IconCalc /></span>
+            <span className="home-calc-ico home-calc-ico-box" aria-hidden><IconCalc /></span>
           </div>
         </div>
       </div>
       <p id="home-calc-hint" className="home-calc-hint">
         {rate > 0
-          ? `برآورد با نرخ ${karat === '24' ? '۲۴' : '۱۸'} عیار و اجرت نمونه ۱۲٪؛ برای قیمت قطعه واقعی به صفحه محصول مراجعه کنید.`
+          ? `برآورد تقریبی با نرخ ${karat === '24' ? '۲۴' : '۱۸'} عیار و اجرت نمونه ۱۲٪؛ مبلغ نهایی قطعه پس از اجرت واقعی مشخص می‌شود.`
           : 'در حال دریافت نرخ زنده طلا…'}
       </p>
     </section>
@@ -789,11 +795,12 @@ function HomeGoldCalculator() {
 }
 
 function WhyAnil({ heading }: { heading?: string }) {
+  // Honest operational benefits only — no fake invoice/shipping claims from the mock.
   const items = [
     {
       key: 'live',
       title: 'قیمت‌گذاری لحظه‌ای',
-      desc: 'بر پایه نرخ روز طلای گالری',
+      desc: 'بر پایه نرخ روز طلا',
       Icon: IconChart,
     },
     {
@@ -817,18 +824,18 @@ function WhyAnil({ heading }: { heading?: string }) {
   ];
 
   return (
-    <section className="container section-pad trust-grid-wrap home-why">
-      <div className="home-calc-head">
+    <section className="container section-pad trust-grid-wrap home-why handoff-03-why">
+      <div className="home-calc-head handoff-03-head">
         <h2 className="section-title tight">{heading || 'چرا از آنیل خرید کنیم؟'}</h2>
-        <p className="section-sub">تجربه‌ای شفاف از انتخاب طلا با قیمت لحظه‌ای</p>
+        <p className="section-sub">تجربه‌ای مطمئن، شفاف و لذت‌بخش از خرید طلا</p>
       </div>
-      <div className="trust-grid why-grid">
+      <div className="trust-grid why-grid handoff-03-why-grid">
         {items.map((t) => (
-          <div key={t.key} className="trust-item">
+          <div key={t.key} className="trust-item handoff-03-why-card">
             <div className="trust-ico" aria-hidden>
-              <t.Icon size={18} />
+              <t.Icon size={20} />
             </div>
-            <div>
+            <div className="handoff-03-why-copy">
               <div className="trust-title">{t.title}</div>
               <div className="trust-desc">{t.desc}</div>
             </div>
