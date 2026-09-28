@@ -157,6 +157,21 @@ export function IconInsuredShip({ size = 18, className }: IconProps) {
   );
 }
 
+/** Invoice / receipt — handoff section-03 benefit card */
+export function IconInvoice({ size = 18, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M7 3.8h10c.9 0 1.6.7 1.6 1.6v14.3l-2.2-1.4-2.2 1.4-2.2-1.4-2.2 1.4-2.2-1.4-2.2 1.4V5.4c0-.9.7-1.6 1.6-1.6Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M9 8.2h6M9 11.2h6M9 14.2h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconBuyback({ size = 18, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>

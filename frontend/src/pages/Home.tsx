@@ -11,7 +11,14 @@ import {
   type ReactNode,
 } from 'react';
 import { api } from '../api/endpoints';
-import { IconBuyback, IconChart, IconConsult, IconHeart, IconShieldCheck, IconShoppingBag } from '../components/icons';
+import {
+  IconChart,
+  IconHeart,
+  IconInsuredShip,
+  IconInvoice,
+  IconShieldCheck,
+  IconShoppingBag,
+} from '../components/icons';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
@@ -730,6 +737,10 @@ function HomeGoldCalculator() {
   // Estimate with a typical mid-range making fee; always labeled as approximate
   const feeRatio = 0.12;
   const estimate = rate > 0 && weight > 0 ? calcPrice(weight, rate, feeRatio, 0).total : 0;
+  const hint =
+    rate > 0
+      ? `برآورد تقریبی با نرخ ${karat === '24' ? '۲۴' : '۱۸'} عیار و اجرت نمونه ۱۲٪؛ مبلغ نهایی قطعه پس از اجرت واقعی مشخص می‌شود.`
+      : 'در حال دریافت نرخ زنده طلا…';
 
   return (
     <section
@@ -742,6 +753,7 @@ function HomeGoldCalculator() {
           به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.
         </p>
       </div>
+      {/* RTL DOM order = visual right→left: weight | karat | result */}
       <div className="home-calc-grid">
         <label className="home-calc-card" htmlFor={weightId}>
           <span className="home-calc-label">وزن (گرم)</span>
@@ -785,17 +797,15 @@ function HomeGoldCalculator() {
           </div>
         </div>
       </div>
-      <p id="home-calc-hint" className="home-calc-hint">
-        {rate > 0
-          ? `برآورد تقریبی با نرخ ${karat === '24' ? '۲۴' : '۱۸'} عیار و اجرت نمونه ۱۲٪؛ مبلغ نهایی قطعه پس از اجرت واقعی مشخص می‌شود.`
-          : 'در حال دریافت نرخ زنده طلا…'}
+      <p id="home-calc-hint" className="sr-only">
+        {hint}
       </p>
     </section>
   );
 }
 
 function WhyAnil({ heading }: { heading?: string }) {
-  // Honest operational benefits only — no fake invoice/shipping claims from the mock.
+  // Exact handoff-03 benefit cards (RTL DOM order = visual right → left).
   const items = [
     {
       key: 'live',
@@ -804,36 +814,36 @@ function WhyAnil({ heading }: { heading?: string }) {
       Icon: IconChart,
     },
     {
-      key: 'select',
-      title: 'انتخاب شفاف',
-      desc: 'وزن و مشخصات هر قطعه مشخص است',
+      key: 'invoice',
+      title: 'فاکتور رسمی',
+      desc: 'همراه با جزئیات خرید',
+      Icon: IconInvoice,
+    },
+    {
+      key: 'secure',
+      title: 'خرید امن و مطمئن',
+      desc: 'با بسته‌بندی استاندارد',
       Icon: IconShieldCheck,
     },
     {
-      key: 'consult',
-      title: 'مشاوره تخصصی',
-      desc: 'همراهی برای انتخاب درست',
-      Icon: IconConsult,
-    },
-    {
-      key: 'visit',
-      title: 'بازدید حضوری در ابهر',
-      desc: 'گالری آنیل، استان زنجان',
-      Icon: IconBuyback,
+      key: 'ship',
+      title: 'ارسال سریع و بیمه‌شده',
+      desc: 'به سراسر کشور',
+      Icon: IconInsuredShip,
     },
   ];
 
   return (
     <section className="container section-pad trust-grid-wrap home-why handoff-03-why">
       <div className="home-calc-head handoff-03-head">
-        <h2 className="section-title tight">{heading || 'چرا از آنیل خرید کنیم؟'}</h2>
+        <h2 className="section-title tight">چرا از آنیل خرید کنیم؟</h2>
         <p className="section-sub">تجربه‌ای مطمئن، شفاف و لذت‌بخش از خرید طلا</p>
       </div>
       <div className="trust-grid why-grid handoff-03-why-grid">
         {items.map((t) => (
           <div key={t.key} className="trust-item handoff-03-why-card">
             <div className="trust-ico" aria-hidden>
-              <t.Icon size={20} />
+              <t.Icon size={22} />
             </div>
             <div className="handoff-03-why-copy">
               <div className="trust-title">{t.title}</div>
@@ -841,9 +851,6 @@ function WhyAnil({ heading }: { heading?: string }) {
             </div>
           </div>
         ))}
-      </div>
-      <div className="trust-cta-row">
-        <Link to="/products" className="gold-btn trust-cta">مشاهده محصولات</Link>
       </div>
     </section>
   );
