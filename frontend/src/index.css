@@ -6710,6 +6710,6 @@ body.nav-open { overflow: hidden; }
   }
   .handoff-03-why-card.trust-item { padding: 20px 14px 18px; }
 }
-@media (max-width: 420px) {
+@media (max-width: 360px) {
   .handoff-03-why-grid.trust-grid { grid-template-columns: 1fr; }
 }
