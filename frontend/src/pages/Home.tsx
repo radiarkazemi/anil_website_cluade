@@ -696,17 +696,17 @@ function CollectionBanner({ categories }: { categories: Category[] }) {
   const to = target ? `/products?category=${encodeURIComponent(target.slug)}` : '/products';
 
   return (
-    <section className="container section-pad home-collection handoff-03-collection">
+    <section className="container home-collection handoff-03-collection">
       <div
-        className="collection-banner handoff-03-banner"
+        className="handoff-03-banner"
         style={{ backgroundImage: "url('/home/collection-banner.webp')" }}
       >
-        <div className="collection-banner-copy">
+        <div className="handoff-03-banner-copy">
           <h2>مجموعه‌ای از زیبایی ماندگار</h2>
           <p>طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما</p>
-          <Link to={to} className="outline-btn collection-cta handoff-03-cta">
-            مشاهده کلکسیون
+          <Link to={to} className="handoff-03-cta">
             <span className="handoff-03-cta-chev" aria-hidden>‹</span>
+            مشاهده کلکسیون
           </Link>
         </div>
       </div>
@@ -734,7 +734,6 @@ function HomeGoldCalculator() {
   }, [weightRaw]);
 
   const rate = karat === '24' ? rate24 : rate18;
-  // Estimate with a typical mid-range making fee; always labeled as approximate
   const feeRatio = 0.12;
   const estimate = rate > 0 && weight > 0 ? calcPrice(weight, rate, feeRatio, 0).total : 0;
   const hint =
@@ -744,109 +743,85 @@ function HomeGoldCalculator() {
 
   return (
     <section
-      className="container section-pad home-calculator handoff-03-calc"
+      className="container home-calculator handoff-03-calc"
       aria-labelledby="home-calc-title"
     >
-      <div className="home-calc-head handoff-03-head">
-        <h2 id="home-calc-title" className="section-title tight">محاسبه قیمت آنلاین طلا</h2>
-        <p className="section-sub">
-          به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.
-        </p>
+      <div className="handoff-03-head">
+        <h2 id="home-calc-title">محاسبه قیمت آنلاین طلا</h2>
+        <p>به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.</p>
       </div>
-      {/* RTL DOM order = visual right→left: weight | karat | result */}
-      <div className="home-calc-grid">
-        <label className="home-calc-card" htmlFor={weightId}>
-          <span className="home-calc-card-top">
-            <span className="home-calc-label">وزن (گرم)</span>
-            <span className="home-calc-ico" aria-hidden><IconScale /></span>
+      {/* RTL: weight (right) → karat → result (left) */}
+      <div className="handoff-03-calc-grid">
+        <label className="handoff-03-calc-card" htmlFor={weightId}>
+          <span className="handoff-03-calc-label">وزن (گرم)</span>
+          <span className="handoff-03-calc-row">
+            <span className="handoff-03-calc-ico" aria-hidden><IconScale size={20} /></span>
+            <input
+              id={weightId}
+              inputMode="decimal"
+              className="handoff-03-calc-control"
+              value={weightRaw}
+              onChange={(e) => setWeightRaw(e.target.value)}
+              aria-describedby="home-calc-hint"
+            />
           </span>
-          <input
-            id={weightId}
-            inputMode="decimal"
-            className="home-calc-input"
-            value={weightRaw}
-            onChange={(e) => setWeightRaw(e.target.value)}
-            aria-describedby="home-calc-hint"
-          />
         </label>
-        <label className="home-calc-card" htmlFor={karatId}>
-          <span className="home-calc-card-top">
-            <span className="home-calc-label">عیار طلا</span>
-            <span className="home-calc-ico" aria-hidden><IconLayers /></span>
+        <label className="handoff-03-calc-card" htmlFor={karatId}>
+          <span className="handoff-03-calc-label">عیار طلا</span>
+          <span className="handoff-03-calc-row">
+            <span className="handoff-03-calc-ico" aria-hidden><IconLayers size={20} /></span>
+            <select
+              id={karatId}
+              className="handoff-03-calc-control"
+              value={karat}
+              onChange={(e) => setKarat(e.target.value as '18' | '24')}
+            >
+              <option value="18">۱۸ عیار</option>
+              <option value="24">۲۴ عیار</option>
+            </select>
           </span>
-          <select
-            id={karatId}
-            className="home-calc-input"
-            value={karat}
-            onChange={(e) => setKarat(e.target.value as '18' | '24')}
-          >
-            <option value="18">۱۸ عیار</option>
-            <option value="24">۲۴ عیار</option>
-          </select>
         </label>
-        <div className="home-calc-card home-calc-result" aria-live="polite">
-          <span className="home-calc-card-top">
-            <span className="home-calc-label">قیمت تقریبی</span>
-            <span className="home-calc-ico home-calc-ico-box" aria-hidden><IconCalc /></span>
+        <div className="handoff-03-calc-card handoff-03-calc-result" aria-live="polite">
+          <span className="handoff-03-calc-label">قیمت تقریبی</span>
+          <span className="handoff-03-calc-row">
+            <span className="handoff-03-calc-ico" aria-hidden><IconCalc size={20} /></span>
+            <span className="handoff-03-calc-result-body">
+              <span className="handoff-03-calc-value">
+                {rate > 0 && weight > 0 ? faPrice(estimate) : '—'}
+              </span>
+              <span className="handoff-03-calc-unit">تومان</span>
+            </span>
           </span>
-          <div className="home-calc-value">
-            {rate > 0 && weight > 0 ? faPrice(estimate) : '—'}
-          </div>
-          <div className="home-calc-unit">تومان</div>
         </div>
       </div>
-      <p id="home-calc-hint" className="sr-only">
-        {hint}
-      </p>
+      <p id="home-calc-hint" className="sr-only">{hint}</p>
     </section>
   );
 }
 
 function WhyAnil({ heading: _heading }: { heading?: string }) {
-  // Exact handoff-03 benefit cards (RTL DOM order = visual right → left).
   const items = [
-    {
-      key: 'live',
-      title: 'قیمت‌گذاری لحظه‌ای',
-      desc: 'بر پایه نرخ روز طلا',
-      Icon: IconChart,
-    },
-    {
-      key: 'invoice',
-      title: 'فاکتور رسمی',
-      desc: 'همراه با جزئیات خرید',
-      Icon: IconInvoice,
-    },
-    {
-      key: 'secure',
-      title: 'خرید امن و مطمئن',
-      desc: 'با بسته‌بندی استاندارد',
-      Icon: IconShieldCheck,
-    },
-    {
-      key: 'ship',
-      title: 'ارسال سریع و بیمه‌شده',
-      desc: 'به سراسر کشور',
-      Icon: IconInsuredShip,
-    },
+    { key: 'live', title: 'قیمت‌گذاری لحظه‌ای', desc: 'بر پایه نرخ روز طلا', Icon: IconChart },
+    { key: 'invoice', title: 'فاکتور رسمی', desc: 'همراه با جزئیات خرید', Icon: IconInvoice },
+    { key: 'secure', title: 'خرید امن و مطمئن', desc: 'با بسته‌بندی استاندارد', Icon: IconShieldCheck },
+    { key: 'ship', title: 'ارسال سریع و بیمه‌شده', desc: 'به سراسر کشور', Icon: IconInsuredShip },
   ];
 
   return (
-    <section className="container section-pad trust-grid-wrap home-why handoff-03-why">
-      <div className="home-calc-head handoff-03-head">
-        <h2 className="section-title tight">چرا از آنیل خرید کنیم؟</h2>
-        <p className="section-sub">تجربه‌ای مطمئن، شفاف و لذت‌بخش از خرید طلا</p>
+    <section className="container home-why handoff-03-why">
+      <div className="handoff-03-why-glow" aria-hidden />
+      <div className="handoff-03-head">
+        <h2>چرا از آنیل خرید کنیم؟</h2>
+        <p>تجربه‌ای مطمئن، شفاف و لذت‌بخش از خرید طلا</p>
       </div>
-      <div className="trust-grid why-grid handoff-03-why-grid">
+      <div className="handoff-03-why-grid">
         {items.map((t) => (
-          <div key={t.key} className="trust-item handoff-03-why-card">
-            <div className="trust-ico" aria-hidden>
-              <t.Icon size={22} />
+          <div key={t.key} className="handoff-03-why-card">
+            <div className="handoff-03-why-ico" aria-hidden>
+              <t.Icon size={20} />
             </div>
-            <div className="handoff-03-why-copy">
-              <div className="trust-title">{t.title}</div>
-              <div className="trust-desc">{t.desc}</div>
-            </div>
+            <div className="handoff-03-why-title">{t.title}</div>
+            <div className="handoff-03-why-desc">{t.desc}</div>
           </div>
         ))}
       </div>
@@ -856,15 +831,18 @@ function WhyAnil({ heading: _heading }: { heading?: string }) {
 
 function EditorialStrip() {
   return (
-    <section className="container section-pad home-editorial">
+    <section className="container home-editorial handoff-04-editorial">
       <div
-        className="editorial-strip"
+        className="handoff-04-editorial-banner"
         style={{ backgroundImage: "url('/home/editorial-triptych.webp')" }}
       >
-        <div className="editorial-copy">
+        <div className="handoff-04-editorial-copy">
           <h2>نگاهی نزدیک‌تر به جزئیات</h2>
           <p>قطعات منتخب گالری را در کاتالوگ ببینید</p>
-          <Link to="/products" className="outline-btn">ورود به گالری</Link>
+          <Link to="/products" className="handoff-03-cta">
+            <span className="handoff-03-cta-chev" aria-hidden>‹</span>
+            ورود به گالری
+          </Link>
         </div>
       </div>
     </section>
@@ -875,21 +853,29 @@ function ContactBand({ site }: { site?: SiteSettings }) {
   const address = contactAddress(site);
   const phone = contactPhone(site);
   const email = contactEmail(site);
-  const mapsQ = encodeURIComponent(address);
+  // Placeholder map centered on Abhar — exact pin can be updated later.
+  const mapSrc =
+    'https://maps.google.com/maps?q=' +
+    encodeURIComponent('ابهر، استان زنجان') +
+    '&hl=fa&z=14&output=embed';
 
   return (
-    <section id="contact" className="container section-pad home-contact" aria-labelledby="home-contact-title">
-      <div className="contact-band">
-        <div
-          className="contact-band-art"
-          style={{ backgroundImage: "url('/home/contact-atmosphere.webp')" }}
-          role="img"
-          aria-label="تصویر تزئینی فضای شهری — تصویر واقعی گالری نیست"
-        />
-        <div className="contact-band-copy">
+    <section id="contact" className="container home-contact handoff-04-contact" aria-labelledby="home-contact-title">
+      <div className="handoff-04-contact-grid">
+        <div className="handoff-04-map-wrap">
+          <iframe
+            className="handoff-04-map"
+            title="موقعیت گالری آنیل روی نقشه"
+            src={mapSrc}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
+        </div>
+        <div className="handoff-04-contact-copy">
           <h2 id="home-contact-title">بازدید و تماس</h2>
-          <p className="contact-band-lead">گالری طلای آنیل — ابهر</p>
-          <ul className="contact-band-list">
+          <p className="handoff-04-contact-lead">گالری طلای آنیل — ابهر</p>
+          <ul className="handoff-04-contact-list">
             <li>{address}</li>
             {phone ? (
               <li>
@@ -900,18 +886,18 @@ function ContactBand({ site }: { site?: SiteSettings }) {
               <a href={`mailto:${email}`} dir="ltr">{email}</a>
             </li>
           </ul>
-          <div className="contact-band-actions">
+          <div className="handoff-04-contact-actions">
+            <a className="gold-btn" href={`mailto:${email}`}>ارسال ایمیل</a>
             <a
               className="outline-btn"
-              href={`https://www.google.com/maps/search/?api=1&query=${mapsQ}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              مسیر روی نقشه
+              باز کردن در نقشه
             </a>
-            <a className="gold-btn" href={`mailto:${email}`}>ارسال ایمیل</a>
           </div>
-          <p className="contact-band-note">تصویر پس‌زمینه صرفاً تزئینی است و نمای فروشگاه نیست.</p>
+          <p className="handoff-04-contact-note">موقعیت دقیق فروشگاه به‌زودی روی نقشه به‌روزرسانی می‌شود.</p>
         </div>
       </div>
     </section>
