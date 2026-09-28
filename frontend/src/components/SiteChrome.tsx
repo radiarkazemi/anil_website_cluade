@@ -75,8 +75,10 @@ export function ContactBand({
           <div className="handoff-04-contact-actions">
             {primaryTo ? (
               <Link className="gold-btn" to={primaryTo}>{primaryLabel}</Link>
+            ) : phone ? (
+              <a className="gold-btn" href={`tel:${phone.replace(/[^\d+]/g, '')}`}>{primaryLabel}</a>
             ) : (
-              <a className="gold-btn" href={`mailto:${email}`}>ارسال ایمیل</a>
+              <a className="gold-btn" href={`mailto:${email}`}>{primaryLabel}</a>
             )}
             <a
               className="outline-btn"
