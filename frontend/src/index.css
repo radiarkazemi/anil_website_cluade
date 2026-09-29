@@ -8208,6 +8208,29 @@ body.nav-open { overflow: hidden; }
 
 /* ===== Secondary pages RESPONSIVE FIX (desktop + mobile) ===== */
 
+/* Server SEO crawl block must never expand document width (RTL mobile). */
+#anil-seo-content[data-seo] {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 /* Neutralize legacy .footer-inner 4-col grid trapping handoff footer.
    Do NOT re-add max-width/padding — .container already owns those. */
 .handoff-footer .footer-inner,
@@ -8430,11 +8453,26 @@ body.nav-open { overflow: hidden; }
     width: 100%;
   }
   .handoff-products-row1 .filter-chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    width: 100%;
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    align-items: center !important;
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
+  }
+  .handoff-products .filter-chip,
+  .handoff-products-row1 .filter-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: auto !important;
+    min-height: 40px !important;
+    max-height: 44px !important;
+    flex: 0 0 auto !important;
   }
   .handoff-products-mobile-actions {
     display: grid;

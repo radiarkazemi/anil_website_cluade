@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { api } from '../api/endpoints';
 import { SecondaryPageChrome } from '../components/SiteChrome';
+import { usePageSeo } from '../hooks/usePageSeo';
 import type { ContentPage } from '../types';
 import { mediaUrl } from '../utils/mediaUrl';
 
@@ -48,6 +49,12 @@ export function Blog() {
   const { data = [], isLoading } = useQuery({
     queryKey: ['blog-pages'],
     queryFn: () => api.pages({ type: 'blog' }).then((r) => r.data),
+  });
+
+  usePageSeo({
+    title: 'بلاگ | گالری طلا آنیل',
+    description: 'نکات طلا، بازار، عیار و استایل — نوشته‌های مجله گالری آنیل برای خرید آگاهانه.',
+    canonicalPath: '/blog',
   });
 
   const { featured, rest, intro, spotlight } = useMemo(() => {
