@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
@@ -17,6 +17,7 @@ export function Products() {
   const weightMax = params.get('weight_max') || '';
   const feeMax = params.get('fee_max') || '';
   const search = params.get('search') || '';
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const listParams = useMemo(() => {
     const p: Record<string, string> = { page_size: PAGE_SIZE };
@@ -163,7 +164,33 @@ export function Products() {
             </div>
           </div>
 
-          <div className="handoff-products-row2">
+          <div className="handoff-products-mobile-actions">
+            <button
+              type="button"
+              className={`handoff-products-filter-btn${filtersOpen ? ' is-open' : ''}`}
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              فیلترها
+              {activeFilterCount ? (
+                <span className="handoff-products-filter-badge">{faNum(activeFilterCount)}</span>
+              ) : null}
+            </button>
+            <label className="handoff-products-dd handoff-products-sort-mobile">
+              <select
+                aria-label="مرتب‌سازی"
+                value={sort}
+                onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
+              >
+                <option value="">جدیدترین</option>
+                <option value="price">ارزان‌ترین</option>
+                <option value="-price">گران‌ترین</option>
+                <option value="-weight_g">سنگین‌ترین</option>
+              </select>
+            </label>
+          </div>
+
+          <div className={`handoff-products-row2${filtersOpen ? ' is-open' : ''}`}>
             <label className="handoff-products-dd">
               <span>عیار</span>
               <select aria-label="عیار" defaultValue="" title="فعلاً همه محصولات ۱۸ عیار هستند">
@@ -202,7 +229,7 @@ export function Products() {
                 <option value="25">تا ۲۵٪</option>
               </select>
             </label>
-            <label className="handoff-products-dd">
+            <label className="handoff-products-dd handoff-products-sort-desktop">
               <span>مرتب‌سازی</span>
               <select
                 aria-label="مرتب‌سازی"
@@ -252,7 +279,7 @@ export function Products() {
                   disabled={isFetchingNextPage}
                   onClick={() => fetchNextPage()}
                 >
-                  {isFetchingNextPage ? '…' : 'صفحه بعد ›'}
+                  {isFetchingNextPage ? 'در حال بارگذاری…' : 'نمایش محصولات بیشتر'}
                 </button>
               ) : null}
             </div>

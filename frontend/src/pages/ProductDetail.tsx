@@ -126,9 +126,11 @@ export function ProductDetail() {
 
   if (isLoading || !product) {
     return (
-      <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>
-        در حال بارگذاری…
-      </div>
+      <SecondaryPageChrome>
+        <div className="container" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-dim)' }}>
+          در حال بارگذاری…
+        </div>
+      </SecondaryPageChrome>
     );
   }
 

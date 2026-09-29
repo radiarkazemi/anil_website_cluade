@@ -6073,10 +6073,30 @@ body.nav-open { overflow: hidden; }
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 22%, transparent), 0 0 10px color-mix(in srgb, var(--up) 45%, transparent);
 }
 
+.header-search-toggle { display: none; }
+
 @media (max-width: 1180px) {
   .header-handoff .main-nav { display: none; }
   .header-handoff .header-vsep-logo { display: none; }
   .header-handoff .header-search-inline { max-width: none; }
+  /* When desktop nav collapses, expose hamburger immediately */
+  .header-handoff .nav-toggle {
+    display: inline-flex;
+    order: -1;
+  }
+  .header-handoff .mobile-drawer,
+  .mobile-drawer {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .mobile-drawer.is-open {
+    pointer-events: auto;
+    visibility: visible;
+  }
   .rates-handoff .rates-scroll {
     flex-wrap: wrap;
     overflow: visible;
@@ -6409,15 +6429,31 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 900px) {
   .header-handoff .header-inner {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
+    direction: ltr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "toggle logo tools";
     flex-wrap: unset;
     gap: 10px;
     align-items: center;
+    min-height: 56px;
+  }
+  .header-handoff .nav-toggle {
+    grid-area: toggle;
+    display: inline-flex !important;
+    order: 0;
+  }
+  .header-handoff .logo {
+    grid-area: logo;
+    justify-self: center;
+    direction: rtl;
   }
   .header-handoff .header-tools {
+    grid-area: tools;
     justify-self: end;
     gap: 8px;
     flex-wrap: nowrap;
+    flex: unset;
+    margin: 0;
   }
   .header-handoff .header-search-inline { display: none !important; }
   .header-handoff .main-nav { display: none !important; }
@@ -6427,6 +6463,17 @@ body.nav-open { overflow: hidden; }
   .header-handoff .theme-swatches { display: none !important; }
   .header-handoff .cart-label-full { display: none !important; }
   .header-handoff .cart-ico-mobile { display: inline-flex !important; }
+  .header-handoff .header-search-toggle {
+    display: inline-flex !important;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 12px;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold-light);
+  }
   .header-handoff .cart-btn {
     width: 42px;
     min-width: 42px;
@@ -6435,7 +6482,8 @@ body.nav-open { overflow: hidden; }
     border-radius: 12px;
   }
   .header-handoff .cart-ico-square { display: none; }
-  .header-handoff .header-search-mobile-row { display: block; }
+  .header-handoff .header-search-mobile-row { display: none; }
+  .header-handoff .header-search-mobile-row.is-open { display: block; }
   .header-handoff .mobile-ticker { display: block; }
 
   /* Force stacked mobile hero — never keep the desktop split */
@@ -7635,14 +7683,22 @@ body.nav-open { overflow: hidden; }
   .handoff-blog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
+  /* Mobile handoff: keep blog cards horizontal (body | cover) */
   .handoff-blog-card,
-  .handoff-blog-card.is-featured {
-    grid-template-columns: 1fr;
+  .handoff-blog-card.is-featured,
+  .handoff-blog-grid .handoff-blog-card {
+    grid-template-columns: 1.15fr 0.95fr;
   }
   .handoff-blog-cover,
-  .handoff-blog-card.is-featured .handoff-blog-cover {
-    aspect-ratio: 16 / 10;
+  .handoff-blog-card.is-featured .handoff-blog-cover,
+  .handoff-blog-grid .handoff-blog-cover {
+    aspect-ratio: 1 / 1;
     min-height: 0;
+    order: 1;
+  }
+  .handoff-blog-body,
+  .handoff-blog-grid .handoff-blog-body {
+    order: 0;
   }
   .handoff-blog-grid { grid-template-columns: 1fr; }
   .handoff-products-smart { grid-template-columns: 1fr; }
@@ -8140,7 +8196,6 @@ body.nav-open { overflow: hidden; }
   .handoff-abhar-grid { grid-template-columns: 1fr; }
   .handoff-products-row1 { flex-wrap: wrap; }
   .handoff-products-search { flex: 1 1 100%; }
-  .handoff-products-row2 { grid-template-columns: 1fr 1fr; }
   .handoff-products-promo { grid-template-columns: 1fr; }
   .handoff-moments-grid { grid-template-columns: 1fr; }
   .handoff-pd-desc-row.has-features { grid-template-columns: 1fr; }
@@ -8150,3 +8205,470 @@ body.nav-open { overflow: hidden; }
 
 .handoff-pd .pd-gallery { max-width: 420px; }
 .handoff-pd .pd-thumb { width: 96px; aspect-ratio: 3 / 4; border-radius: 14px; }
+
+/* ===== Secondary pages RESPONSIVE FIX (desktop + mobile) ===== */
+
+/* Neutralize legacy .footer-inner 4-col grid trapping handoff footer.
+   Do NOT re-add max-width/padding — .container already owns those. */
+.handoff-footer .footer-inner,
+.handoff-footer-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
+  gap: 28px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.handoff-abhar-inner {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.handoff-abhar-grid {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-gold) 50%, transparent);
+}
+.handoff-abhar-grid > * { min-width: 0; }
+
+.handoff-products-mobile-actions { display: none; }
+
+.handoff-products-row1 {
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+.handoff-products-search {
+  flex: 1 1 200px;
+  max-width: 280px;
+  min-width: 160px;
+}
+.handoff-products-row1 .filter-chips {
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.product-card.handoff-pc {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 0;
+  grid-template: none;
+}
+
+.handoff-products-grid.product-grid {
+  --product-card-h: auto;
+}
+
+.handoff-pd .pd-gallery {
+  margin-inline: 0;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Laptop */
+@media (max-width: 1200px) {
+  .handoff-products-grid.product-grid.cols-4 {
+    --product-cols: 3;
+  }
+  .handoff-products-row2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .handoff-products-row2 .handoff-products-clear {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .handoff-pd .pd-specs,
+  .handoff-pd-specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .handoff-abhar-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .handoff-abhar-map {
+    grid-column: 1 / -1;
+    min-height: 200px;
+  }
+  .handoff-footer-cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .handoff-footer-brand {
+    grid-column: 1 / -1;
+  }
+  .handoff-blog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .handoff-moments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phone / tablet — match mobile handoff comps */
+@media (max-width: 900px) {
+  .secondary-page {
+    --px: 16px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .handoff-abhar-grid {
+    grid-template-columns: 1fr;
+  }
+  .handoff-abhar-photo { min-height: 160px; }
+  .handoff-abhar-copy { padding: 20px 18px; }
+  .handoff-abhar-map,
+  .handoff-abhar-map img { min-height: 180px; }
+
+  .handoff-footer-cols {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+  .handoff-footer-brand,
+  .handoff-footer-about {
+    grid-column: 1 / -1;
+  }
+  .handoff-footer-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .handoff-footer-legal {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Blog mobile — horizontal cards matching handoff */
+  .handoff-blog-hero {
+    min-height: 200px;
+  }
+  .handoff-blog-hero-inner {
+    padding-block: 28px 32px;
+    max-width: 100%;
+  }
+  .handoff-blog-hero-title {
+    font-size: clamp(30px, 9vw, 38px);
+  }
+  .handoff-blog-hero-lead {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .handoff-blog-main {
+    padding-block: 18px 12px;
+  }
+  .handoff-blog-feature,
+  .handoff-blog-spotlight {
+    margin: 0 0 12px;
+  }
+  .handoff-blog-latest-head {
+    display: none;
+  }
+  .handoff-blog-card,
+  .handoff-blog-card.is-featured,
+  .handoff-blog-grid .handoff-blog-card {
+    grid-template-columns: 1.2fr 1fr !important;
+    min-height: 0 !important;
+  }
+  .handoff-blog-card .handoff-blog-body,
+  .handoff-blog-grid .handoff-blog-body {
+    order: 0 !important;
+    padding: 12px 14px !important;
+    gap: 8px;
+  }
+  .handoff-blog-card .handoff-blog-cover,
+  .handoff-blog-grid .handoff-blog-cover {
+    order: 1 !important;
+    aspect-ratio: 1 / 1 !important;
+    min-height: 0 !important;
+  }
+  .handoff-blog-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .handoff-blog-title,
+  .handoff-blog-card.is-featured .handoff-blog-title,
+  .handoff-blog-grid .handoff-blog-title {
+    font-size: 14.5px !important;
+  }
+  .handoff-blog-excerpt,
+  .handoff-blog-grid .handoff-blog-excerpt {
+    -webkit-line-clamp: 2 !important;
+    font-size: 12px !important;
+    min-height: 0 !important;
+    line-height: 1.7 !important;
+  }
+  .handoff-blog-cta {
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Products mobile */
+  .handoff-products {
+    padding-block: 16px 36px;
+  }
+  .handoff-products .products-title {
+    font-size: clamp(26px, 7vw, 34px);
+  }
+  .handoff-products-toolbar {
+    padding: 12px;
+    gap: 10px;
+  }
+  .handoff-products-row1 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .handoff-products-search {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+  }
+  .handoff-products-row1 .filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .handoff-products-mobile-actions {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 8px;
+  }
+  .handoff-products-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    background: transparent;
+    color: var(--gold-light);
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .handoff-products-sort-mobile {
+    display: grid;
+  }
+  .handoff-products-sort-mobile select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    color: var(--text);
+    padding: 0 12px;
+  }
+  .handoff-products-row2 {
+    display: none;
+  }
+  .handoff-products-row2.is-open {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .handoff-products-sort-desktop { display: none; }
+
+  .handoff-products-grid.product-grid,
+  .handoff-products-grid.product-grid.cols-4,
+  .handoff-products-grid.product-grid.cols-3 {
+    --product-cols: 2;
+    gap: 10px;
+  }
+  .product-card.handoff-pc {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+  .handoff-pc-body { padding: 10px 10px 12px; }
+  .handoff-pc-name {
+    font-size: 12.5px;
+    min-height: 0;
+    -webkit-line-clamp: 2;
+  }
+  .handoff-pc-meta { font-size: 10.5px; }
+  .handoff-pc-amount { font-size: 13.5px; }
+  .handoff-pc-cta {
+    min-height: 36px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+  .handoff-products-pager {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .handoff-products-page-btn { width: 100%; }
+  .handoff-products-promo {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .handoff-products-promo-media { min-height: 160px; }
+  .handoff-products-promo-copy { padding: 18px; }
+
+  /* PDP mobile */
+  .handoff-pd .pd-grid {
+    direction: rtl;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .handoff-pd .pd-gallery {
+    max-width: min(420px, 100%);
+    margin-inline: auto;
+  }
+  .handoff-pd .pd-info h1 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+  .handoff-pd .pd-specs,
+  .handoff-pd-specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .handoff-pd-secondary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .handoff-pd-desc-row.has-features {
+    grid-template-columns: 1fr;
+  }
+  .handoff-pd-related-item {
+    flex: 0 0 min(220px, 72vw);
+  }
+  .handoff-pd-rail-nav { display: none; }
+  .handoff-pd-related-rail { padding-inline: 0; }
+  .handoff-moments-grid {
+    grid-template-columns: 1fr;
+  }
+  .handoff-moments-copy { padding: 20px; }
+}
+
+@media (max-width: 640px) {
+  .handoff-footer-wordmark {
+    font-size: 34px;
+  }
+  .handoff-blog-card,
+  .handoff-blog-card.is-featured,
+  .handoff-blog-grid .handoff-blog-card {
+    grid-template-columns: 1.15fr 0.95fr !important;
+  }
+  .handoff-pc-cat { font-size: 10px; }
+  .handoff-pd-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .handoff-products-grid.product-grid,
+  .handoff-products-grid.product-grid.cols-4 {
+    --product-cols: 2;
+    gap: 8px;
+  }
+  .handoff-pc-cta { font-size: 10.5px; padding-inline: 6px; }
+}
+
+/* ===== Header handoff MOBILE FIX (final override) ===== */
+@media (max-width: 900px) {
+  .header-handoff .header-inner {
+    display: grid !important;
+    direction: ltr !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    grid-template-areas: "toggle logo tools" !important;
+    flex-wrap: unset !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 56px !important;
+    width: 100% !important;
+  }
+  .header-handoff .nav-toggle {
+    grid-area: toggle !important;
+    display: inline-flex !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-gold) !important;
+    background: transparent !important;
+    color: var(--gold-light) !important;
+    align-items: center;
+    justify-content: center;
+    order: 0 !important;
+  }
+  .header-handoff .logo {
+    grid-area: logo !important;
+    justify-self: center !important;
+    direction: rtl !important;
+    min-width: 0 !important;
+  }
+  .header-handoff .desktop-nav,
+  .header-handoff .main-nav,
+  .header-handoff .header-search-inline,
+  .header-handoff .header-vsep-logo,
+  .header-handoff .header-vsep,
+  .header-handoff .live-gold,
+  .header-handoff .theme-swatches,
+  .header-handoff .theme-swatches-row,
+  .header-handoff .header-account,
+  .header-handoff .header-panel {
+    display: none !important;
+  }
+  .header-handoff .header-tools {
+    grid-area: tools !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    flex: unset !important;
+  }
+  .header-handoff .header-search-toggle {
+    display: inline-flex !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold-light);
+  }
+  .header-handoff .cart-btn {
+    display: inline-flex !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+  .header-handoff .cart-label-full { display: none !important; }
+  .header-handoff .cart-ico-mobile { display: inline-flex !important; }
+  .header-handoff .cart-ico-square { display: none !important; }
+  .header-handoff .logo-name {
+    font-size: 20px !important;
+    letter-spacing: .12em !important;
+  }
+  .header-handoff .logo-sub {
+    display: block !important;
+    font-size: 10.5px !important;
+  }
+  .header-handoff .logo-frame-mark,
+  .header-handoff .logo-img {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .header-handoff .header-shell {
+    padding-block: 8px 10px !important;
+  }
+  .header-handoff .header-search-mobile-row {
+    display: none;
+  }
+  .header-handoff .header-search-mobile-row.is-open {
+    display: block;
+  }
+  .header-handoff .mobile-drawer {
+    display: block !important;
+  }
+}

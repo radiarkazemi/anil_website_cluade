@@ -24,7 +24,7 @@ export function contactEmail(site?: SiteSettings | null): string {
   return (site?.contact_email || '').trim() || 'info@goldanil.ir';
 }
 
-/** Handoff 3-zone Abhar band: city photo | copy + CTA | stylized map pin */
+/** Handoff Abhar band: city photo | copy + CTA | stylized map pin */
 export function ContactBand({
   site,
   id = 'contact',
@@ -43,34 +43,36 @@ export function ContactBand({
 
   return (
     <section id={id} className="handoff-abhar" aria-labelledby={`${id}-title`}>
-      <div className="handoff-abhar-grid">
-        <div
-          className="handoff-abhar-photo"
-          style={{ backgroundImage: "url('/home/contact-atmosphere.webp')" }}
-          role="img"
-          aria-label="نمای شهر ابهر"
-        />
-        <div className="handoff-abhar-copy">
-          <div className="handoff-abhar-kicker">درخشش با ما</div>
-          <h2 id={`${id}-title`}>در شهر ابهر، در کنار شما</h2>
-          <p>
-            گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز،
-            و همراهی برای انتخاب درست.
-          </p>
-          <a className="handoff-abhar-cta" href={ctaHref}>
-            تماس با ما
-            <span aria-hidden>‹</span>
+      <div className="container handoff-abhar-inner">
+        <div className="handoff-abhar-grid">
+          <div
+            className="handoff-abhar-photo"
+            style={{ backgroundImage: "url('/home/contact-atmosphere.webp')" }}
+            role="img"
+            aria-label="نمای شهر ابهر"
+          />
+          <div className="handoff-abhar-copy">
+            <div className="handoff-abhar-kicker">درخشش با ما</div>
+            <h2 id={`${id}-title`}>در شهر ابهر، در کنار شما</h2>
+            <p>
+              گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز،
+              و همراهی برای انتخاب درست.
+            </p>
+            <a className="handoff-abhar-cta" href={ctaHref}>
+              تماس با ما
+              <span aria-hidden>‹</span>
+            </a>
+          </div>
+          <a
+            className="handoff-abhar-map"
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('ابهر، استان زنجان')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="موقعیت ابهر روی نقشه"
+          >
+            <img src="/home/abhar-map.svg" alt="" width={640} height={420} />
           </a>
         </div>
-        <a
-          className="handoff-abhar-map"
-          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('ابهر، استان زنجان')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="موقعیت ابهر روی نقشه"
-        >
-          <img src="/home/abhar-map.svg" alt="" width={640} height={420} />
-        </a>
       </div>
     </section>
   );
@@ -94,7 +96,7 @@ export function SiteFooter({
 
   return (
     <footer className="site-footer handoff-footer">
-      <div className="container footer-inner">
+      <div className="container handoff-footer-inner">
         <div className="handoff-footer-cols">
           <div className="handoff-footer-col">
             <h3>خدمات مشتریان</h3>
