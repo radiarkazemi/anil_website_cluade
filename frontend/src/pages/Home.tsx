@@ -26,7 +26,6 @@ import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { mediaUrl } from '../utils/mediaUrl';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
-import type { SiteSettings } from '../types';
 import type { Category, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
