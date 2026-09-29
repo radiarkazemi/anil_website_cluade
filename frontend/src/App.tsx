@@ -74,6 +74,13 @@ function AppInner() {
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 
+  // Server SEO shells inject #anil-seo-content; remove it after paint so
+  // off-screen absolute positioning cannot expand RTL mobile layout width.
+  useEffect(() => {
+    document.getElementById('anil-seo-content')?.remove();
+    window.scrollTo({ left: 0, top: window.scrollY });
+  }, [pathname]);
+
   return (
     <>
       {!isPanel && <Header />}

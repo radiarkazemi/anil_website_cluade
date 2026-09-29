@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { THEME_META, useTheme } from '../store/themeStore';
 import { faNum, faPrice } from '../utils/format';
-import { IconShoppingBag, IconUser } from './icons';
+import { IconSearch, IconShoppingBag, IconUser } from './icons';
 import { SiteSearch } from './SiteSearch';
 import { ThemePicker } from './ThemePicker';
 import type { Category } from '../types';
@@ -28,6 +28,7 @@ export function Header() {
   const openCart = useUI((s) => s.openCart);
   const theme = useTheme((s) => s.theme);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const productsRef = useRef<HTMLDivElement>(null);
@@ -78,6 +79,7 @@ export function Header() {
     setProductsOpen(false);
     setMobileProductsOpen(false);
     setMenuOpen(false);
+    setMobileSearchOpen(false);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -175,6 +177,19 @@ export function Header() {
         <div className="header-atmosphere" aria-hidden />
         <div className="container header-shell">
           <div className="header-inner">
+            <button
+              type="button"
+              className={`nav-toggle ${menuOpen ? 'open' : ''}`}
+              aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-nav-drawer"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
             <Link to="/" className="logo" onClick={closeMenu}>
               <span className="logo-frame logo-frame-mark">
                 <img className="logo-img" src={logoSrc} alt="" />
@@ -250,6 +265,16 @@ export function Header() {
               )}
 
               <button
+                type="button"
+                className={`header-pill header-search-toggle${mobileSearchOpen ? ' is-open' : ''}`}
+                aria-label={mobileSearchOpen ? 'بستن جستجو' : 'جستجو'}
+                aria-expanded={mobileSearchOpen}
+                onClick={() => setMobileSearchOpen((v) => !v)}
+              >
+                <IconSearch size={18} />
+              </button>
+
+              <button
                 className="header-pill cart-btn"
                 onClick={() => { closeMenu(); openCart(); }}
                 type="button"
@@ -267,23 +292,10 @@ export function Header() {
                 <span className="cart-ico-mobile"><IconShoppingBag size={20} /></span>
                 {cartCount > 0 && <span className="cart-badge">{faNum(cartCount)}</span>}
               </button>
-
-              <button
-                type="button"
-                className={`nav-toggle ${menuOpen ? 'open' : ''}`}
-                aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
-                aria-expanded={menuOpen}
-                aria-controls="mobile-nav-drawer"
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <span />
-                <span />
-                <span />
-              </button>
             </div>
           </div>
 
-          <div className="header-search-mobile-row">
+          <div className={`header-search-mobile-row${mobileSearchOpen ? ' is-open' : ''}`}>
             <SiteSearch
               className="header-search compact handoff-search"
               placeholder="جستجو در گالری طلا، دسته‌بندی‌ها و..."
