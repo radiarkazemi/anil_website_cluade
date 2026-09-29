@@ -176,7 +176,8 @@ export function Products() {
                 <span className="handoff-products-filter-badge">{faNum(activeFilterCount)}</span>
               ) : null}
             </button>
-            <label className="handoff-products-dd handoff-products-sort-mobile">
+            <label className="handoff-products-sort-mobile">
+              <span className="handoff-products-sort-ico" aria-hidden>⇅</span>
               <select
                 aria-label="مرتب‌سازی"
                 value={sort}
