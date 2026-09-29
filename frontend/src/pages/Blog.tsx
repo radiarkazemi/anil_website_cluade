@@ -6,7 +6,6 @@ import { SecondaryPageChrome } from '../components/SiteChrome';
 import type { ContentPage } from '../types';
 import { mediaUrl } from '../utils/mediaUrl';
 
-/** Soft topic from title keywords — not fabricated CMS categories. */
 function blogTopic(title: string): string | null {
   if (/تقلب|تشخیص|جعل/.test(title)) return 'آگاهی و تشخیص';
   if (/فرمول|قیمت|اجرت|سکه|شمش|ساخته/.test(title)) return 'بازار و قیمت طلا';
@@ -27,13 +26,13 @@ function BlogCard({ post, featured = false }: { post: ContentPage; featured?: bo
         </h2>
         {post.excerpt ? <p className="handoff-blog-excerpt">{post.excerpt}</p> : null}
         <Link to={to} className="handoff-blog-cta">
-          <span aria-hidden className="handoff-blog-cta-chev">‹</span>
           مطالعه مقاله
+          <span aria-hidden className="handoff-blog-cta-chev">‹</span>
         </Link>
       </div>
       <Link to={to} className="handoff-blog-cover" tabIndex={-1} aria-hidden>
         {post.cover_url ? (
-          <img src={post.cover_url} alt="" loading={featured ? 'eager' : 'lazy'} decoding="async" />
+          <img src={mediaUrl(post.cover_url)} alt="" loading={featured ? 'eager' : 'lazy'} decoding="async" />
         ) : (
           <div className="handoff-blog-cover-fallback" aria-hidden>
             <span className="handoff-blog-cover-brand">ANIL</span>
@@ -51,17 +50,24 @@ export function Blog() {
     queryFn: () => api.pages({ type: 'blog' }).then((r) => r.data),
   });
 
-  const { featured, rest, intro } = useMemo(() => {
+  const { featured, rest, intro, spotlight } = useMemo(() => {
     const introPage = data.find((p) => p.slug === 'بلاگ');
     const posts = data.filter((p) => p.slug !== 'بلاگ');
-    // Prefer a covered «عیار» article as the feature, else first with cover, else first post.
     const preferred =
       posts.find((p) => p.cover_url && /عیار/.test(p.title)) ||
       posts.find((p) => p.cover_url) ||
       posts[0] ||
       null;
     const remaining = preferred ? posts.filter((p) => p.id !== preferred.id) : posts;
-    return { featured: preferred, rest: remaining, intro: introPage };
+    // Mid-page wide feature (design) — exclude from grid to avoid duplication
+    const spot = remaining.find((p) => p.cover_url) || remaining[0] || null;
+    const grid = spot ? remaining.filter((p) => p.id !== spot.id) : remaining;
+    return {
+      featured: preferred,
+      rest: grid,
+      intro: introPage,
+      spotlight: spot,
+    };
   }, [data]);
 
   return (
@@ -96,7 +102,10 @@ export function Blog() {
 
               <section className="handoff-blog-latest" aria-labelledby="blog-latest-title">
                 <div className="handoff-blog-latest-head">
-                  <h2 id="blog-latest-title">آخرین مطالب مجله</h2>
+                  <div className="handoff-blog-latest-titles">
+                    <span className="handoff-blog-latest-kicker">همه مقالات</span>
+                    <h2 id="blog-latest-title">آخرین مطالب مجله</h2>
+                  </div>
                   <span className="handoff-blog-latest-line" aria-hidden />
                 </div>
                 {rest.length ? (
@@ -109,6 +118,12 @@ export function Blog() {
                   <p className="handoff-blog-status">به‌زودی نوشته‌های تازه منتشر می‌شود.</p>
                 ) : null}
               </section>
+
+              {spotlight ? (
+                <section className="handoff-blog-spotlight" aria-label="مقاله منتخب">
+                  <BlogCard post={spotlight} featured />
+                </section>
+              ) : null}
             </>
           )}
         </div>

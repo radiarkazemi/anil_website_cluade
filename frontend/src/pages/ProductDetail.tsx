@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/endpoints';
 import { ProductCard } from '../components/ProductCard';
 import { ProductImageGallery } from '../components/ProductImageGallery';
@@ -17,7 +17,7 @@ function formatGoldStamp(iso?: string | null): string {
   try {
     return new Date(iso).toLocaleString('fa-IR', {
       year: 'numeric',
-      month: 'short',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
@@ -26,6 +26,13 @@ function formatGoldStamp(iso?: string | null): string {
     return '';
   }
 }
+
+const FEATURE_ICONS = [
+  { key: 'set', label: 'ست هماهنگ', mark: '♡' },
+  { key: 'mini', label: 'سبک و مینیمال', mark: '✧' },
+  { key: 'daily', label: 'کاربری روزانه', mark: '◇' },
+  { key: 'fine', label: 'طراحی ظریف', mark: '❀' },
+];
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,10 +44,10 @@ export function ProductDetail() {
   const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
-  const [qty, setQty] = useState(1);
   const [loved, setLoved] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(true);
   const [tab, setTab] = useState<'desc' | 'specs'>('desc');
+  const relatedRail = useRef<HTMLDivElement>(null);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', slug],
@@ -49,10 +56,10 @@ export function ProductDetail() {
   });
 
   const { data: related } = useQuery({
-    queryKey: ['products', product?.category_slug, 'related'],
+    queryKey: ['products', product?.category_slug, 'related-rail'],
     queryFn: () =>
-      api.products({ category: product!.category_slug, page_size: '8' }).then((r) =>
-        r.data.results.filter((p) => p.slug !== slug).slice(0, 4),
+      api.products({ category: product!.category_slug, page_size: '12' }).then((r) =>
+        r.data.results.filter((p) => p.slug !== slug).slice(0, 8),
       ),
     enabled: !!product,
   });
@@ -78,7 +85,6 @@ export function ProductDetail() {
   }, [product?.id, product?.slug]);
 
   useEffect(() => {
-    setQty(1);
     setLoved(false);
     setTab('desc');
   }, [slug]);
@@ -89,7 +95,6 @@ export function ProductDetail() {
     const description = product.meta_description
       || `${product.name}${product.category_name ? ` — ${product.category_name}` : ''} با قیمت لحظه‌ای طلا از گالری طلا آنیل.`;
     document.title = title;
-
     const ensureMeta = (name: string, content: string) => {
       let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -100,8 +105,6 @@ export function ProductDetail() {
       el.setAttribute('content', content);
     };
     ensureMeta('description', description);
-    ensureMeta('keywords', [product.name, product.category_name, 'طلا', 'گالری طلا آنیل'].filter(Boolean).join('، '));
-
     return () => {
       document.title = 'گالری طلا آنیل | Anil Gold';
     };
@@ -134,17 +137,20 @@ export function ProductDetail() {
   const fee = Number(product.fee_ratio);
   const bd = hasWeight ? (product.breakdown || calcPrice(w, gp, fee, product.stone_value)) : null;
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
-  const maxQty = Math.max(1, product.stock ?? 99);
   const stamp = formatGoldStamp(gold?.created_at);
   const karat = product.karat || 18;
 
-  const addToBox = () => {
+  const primaryAction = () => {
     if (!hasWeight) {
-      toast('تا تأیید وزن، امکان افزودن به سبد نیست.');
+      toast('تا تأیید وزن، امکان ثبت سفارش نیست — با گالری یا مشاور هماهنگ کنید.');
+      return;
+    }
+    if (!inStock) {
+      toast('این قطعه فعلاً موجود نیست.');
       return;
     }
     if (!tokens || !user) {
-      toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
+      toast('برای ثبت سفارش ابتدا وارد شوید یا ثبت‌نام کنید.');
       nav('/register');
       return;
     }
@@ -153,8 +159,8 @@ export function ProductDetail() {
       nav(profileCompletePath());
       return;
     }
-    addToCart(product.id, qty);
-    toast(`«${product.name}» به گلد باکس افزوده شد`);
+    addToCart(product.id, 1);
+    toast(`«${product.name}» به سبد افزوده شد`);
     openCart();
   };
 
@@ -166,7 +172,6 @@ export function ProductDetail() {
         return;
       }
     } catch {
-      /* user cancelled */
       return;
     }
     try {
@@ -177,8 +182,17 @@ export function ProductDetail() {
     }
   };
 
+  const scrollRelated = (dir: 1 | -1) => {
+    const el = relatedRail.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * -280, behavior: 'smooth' });
+  };
+
+  // Feature icons only for half-set / set style pieces (design shows clover-set features)
+  const showFeatures = /نیم.?ست|ست|شبدر|ون.?کلیف/i.test(`${product.name} ${product.category_name}`);
+
   return (
-    <SecondaryPageChrome>
+    <SecondaryPageChrome showMoments>
       <section className="container product-detail-page handoff-pd">
         <nav className="pd-breadcrumb" aria-label="مسیر صفحه">
           <Link to="/">خانه</Link>
@@ -202,7 +216,6 @@ export function ProductDetail() {
             <div className="pd-tags">
               <span className="pd-cat">{product.category_name}</span>
               {product.tag && <span className="pd-tag">{product.tag}</span>}
-              {product.is_featured && <span className="pd-tag">ویژه</span>}
             </div>
             <h1>{product.name}</h1>
             {product.description && <p className="pd-desc">{product.description}</p>}
@@ -211,7 +224,7 @@ export function ProductDetail() {
               <div className="handoff-pd-live">
                 <span className={`live-dot${bd ? '' : ' is-stale'}`} />
                 <span>{bd ? 'قیمت به‌روز محصول' : 'در انتظار تأیید وزن'}</span>
-                {stamp ? <time dateTime={gold?.created_at}>{stamp}</time> : null}
+                {stamp ? <time dateTime={gold?.created_at}>آخرین بروزرسانی: {stamp}</time> : null}
               </div>
               <div className="pd-price-row">
                 <div className="pd-price">
@@ -233,7 +246,7 @@ export function ProductDetail() {
                     aria-expanded={breakdownOpen}
                     onClick={() => setBreakdownOpen((v) => !v)}
                   >
-                    تفکیک قیمت
+                    جزئیات قیمت
                     <span aria-hidden>{breakdownOpen ? '▴' : '▾'}</span>
                   </button>
                   {breakdownOpen ? (
@@ -267,8 +280,7 @@ export function ProductDetail() {
                 <div className="pd-breakdown is-open">
                   <div className="pd-breakdown-title static">وزن و قیمت</div>
                   <p className="pd-desc" style={{ margin: 0 }}>
-                    وزن این قطعه در حال بازبینی است. از «مشاور هوشمند» بخواهید مشابه آن را پیدا کند،
-                    یا برای اعلام وزن دقیق با گالری تماس بگیرید.
+                    وزن این قطعه در حال بازبینی است. برای اعلام وزن دقیق با گالری تماس بگیرید.
                   </p>
                 </div>
               )}
@@ -276,34 +288,28 @@ export function ProductDetail() {
 
             <div className="pd-specs handoff-pd-specs">
               {[
-                [hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید', 'وزن'],
-                [`${faNum(karat)} عیار`, 'عیار'],
-                [inStock ? 'موجود' : 'ناموجود', 'وضعیت'],
-                [faNum(product.stock ?? 0), 'موجودی'],
-              ].map(([v, l]) => (
-                <div key={l} className="pd-spec">
-                  <div className={`pd-spec-v${l === 'وضعیت' && inStock ? ' is-up' : ''}`}>{v}</div>
-                  <div className="pd-spec-l">{l}</div>
+                { v: 'ANIL', l: 'برند', ico: '🛡', up: false },
+                { v: inStock ? 'موجود' : 'ناموجود', l: 'موجودی', ico: '▣', up: inStock },
+                { v: `${faNum(karat)} عیار`, l: 'عیار', ico: '◈', up: false },
+                { v: hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید', l: 'وزن', ico: '⚖', up: false },
+              ].map((s) => (
+                <div key={s.l} className="pd-spec">
+                  <div className="pd-spec-ico" aria-hidden>{s.ico}</div>
+                  <div className={`pd-spec-v${s.up ? ' is-up' : ''}`}>{s.v}</div>
+                  <div className="pd-spec-l">{s.l}</div>
                 </div>
               ))}
             </div>
 
-            <div className="pd-actions handoff-pd-actions">
-              <div className="pd-qty">
-                <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="کاهش تعداد">−</button>
-                <div>{faNum(qty)}</div>
-                <button type="button" onClick={() => setQty(Math.min(maxQty, qty + 1))} aria-label="افزایش تعداد">+</button>
-              </div>
-              <button
-                type="button"
-                className="gold-btn handoff-pd-primary"
-                disabled={!inStock || !hasWeight}
-                onClick={addToBox}
-              >
-                <IconShoppingBag size={18} />
-                {!hasWeight ? 'منتظر تأیید وزن' : inStock ? 'افزودن به گلد باکس' : 'ناموجود'}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="gold-btn handoff-pd-primary"
+              disabled={!inStock || !hasWeight}
+              onClick={primaryAction}
+            >
+              <IconShoppingBag size={18} />
+              {!hasWeight ? 'استعلام وزن و قیمت' : inStock ? 'استعلام موجودی و ثبت سفارش' : 'ناموجود'}
+            </button>
 
             <div className="handoff-pd-secondary">
               <button
@@ -313,7 +319,7 @@ export function ProductDetail() {
                 onClick={() => setLoved((v) => !v)}
               >
                 <IconHeart size={16} filled={loved} />
-                علاقه‌مندی
+                افزودن به علاقه‌مندی‌ها
               </button>
               <button type="button" className="outline-btn" onClick={share}>
                 اشتراک‌گذاری
@@ -345,19 +351,29 @@ export function ProductDetail() {
           </div>
           <div className="handoff-pd-tabpanel" role="tabpanel">
             {tab === 'desc' ? (
-              <p>
-                {product.description?.trim() ||
-                  `${product.name} از دسته ${product.category_name} — با قیمت‌گذاری لحظه‌ای بر پایه نرخ روز طلا در گالری آنیل.`}
-              </p>
+              <div className={`handoff-pd-desc-row${showFeatures ? ' has-features' : ''}`}>
+                <p>
+                  {product.description?.trim() ||
+                    `${product.name} از دسته ${product.category_name} — با قیمت‌گذاری لحظه‌ای بر پایه نرخ روز طلا در گالری آنیل.`}
+                </p>
+                {showFeatures ? (
+                  <ul className="handoff-pd-features">
+                    {FEATURE_ICONS.map((f) => (
+                      <li key={f.key}>
+                        <span className="handoff-pd-feature-ico" aria-hidden>{f.mark}</span>
+                        <span>{f.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             ) : (
               <ul className="handoff-pd-spec-list">
                 <li><span>نام</span><b>{product.name}</b></li>
                 <li><span>دسته‌بندی</span><b>{product.category_name}</b></li>
                 <li><span>عیار</span><b>{faNum(karat)}</b></li>
                 <li><span>وزن</span><b>{hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید'}</b></li>
-                {hasWeight ? (
-                  <li><span>اجرت</span><b>٪{faFeePct(fee)}</b></li>
-                ) : null}
+                {hasWeight ? <li><span>اجرت</span><b>٪{faFeePct(fee)}</b></li> : null}
                 <li><span>وضعیت</span><b>{inStock ? 'موجود' : 'ناموجود'}</b></li>
               </ul>
             )}
@@ -365,15 +381,27 @@ export function ProductDetail() {
         </section>
 
         {related && related.length > 0 && (
-          <div className="pd-related">
+          <div className="pd-related handoff-pd-related">
             <div className="handoff-pd-related-head">
-              <h2>محصولات مشابه</h2>
-              <Link to={`/products?category=${product.category_slug}`} className="outline-btn">
+              <div>
+                <h2>محصولات مشابه</h2>
+                <p className="handoff-pd-related-sub">محصولات دیگر از همین دسته را مشاهده کنید</p>
+              </div>
+              <Link to={`/products?category=${product.category_slug}`} className="handoff-abhar-cta outline">
                 مشاهده همه
+                <span aria-hidden>‹</span>
               </Link>
             </div>
-            <div className="product-grid cols-4 handoff-products-grid">
-              {related.map((p) => <ProductCard key={p.id} product={p} />)}
+            <div className="handoff-pd-related-wrap">
+              <button type="button" className="handoff-pd-rail-nav prev" aria-label="قبلی" onClick={() => scrollRelated(-1)}>‹</button>
+              <div className="handoff-pd-related-rail" ref={relatedRail}>
+                {related.map((p) => (
+                  <div key={p.id} className="handoff-pd-related-item">
+                    <ProductCard product={p} variant="related" />
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="handoff-pd-rail-nav next" aria-label="بعدی" onClick={() => scrollRelated(1)}>›</button>
             </div>
           </div>
         )}

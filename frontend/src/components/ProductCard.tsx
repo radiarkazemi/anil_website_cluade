@@ -6,9 +6,17 @@ import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
-import { IconHeart, IconShoppingBag, IconConsult } from './icons';
+import { IconConsult, IconHeart, IconShoppingBag } from './icons';
 
-export function ProductCard({ product }: { product: Product }) {
+type Variant = 'catalog' | 'related';
+
+export function ProductCard({
+  product,
+  variant = 'catalog',
+}: {
+  product: Product;
+  variant?: Variant;
+}) {
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const addToCart = useStore((s) => s.addToCart);
   const user = useStore((s) => s.user);
@@ -25,14 +33,15 @@ export function ProductCard({ product }: { product: Product }) {
   const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
   const karat = product.karat || 18;
   const inStock = product.in_stock !== false && (product.stock ?? 1) > 0;
+  const canBuy = hasWeight && inStock;
 
   const tryAdd = () => {
-    if (!hasWeight) {
+    if (!canBuy) {
       nav(`/products/${product.slug}`);
       return;
     }
     if (!tokens || !user) {
-      toast('برای افزودن به گلد باکس ابتدا وارد شوید یا ثبت‌نام کنید.');
+      toast('برای افزودن به سبد ابتدا وارد شوید یا ثبت‌نام کنید.');
       nav('/register');
       return;
     }
@@ -42,12 +51,12 @@ export function ProductCard({ product }: { product: Product }) {
       return;
     }
     addToCart(product.id);
-    toast(`«${product.name}» به گلد باکس افزوده شد`);
+    toast(`«${product.name}» به سبد افزوده شد`);
     openCart();
   };
 
   return (
-    <article className="product-card handoff-pc">
+    <article className={`product-card handoff-pc${variant === 'related' ? ' is-related' : ''}`}>
       <div className="handoff-pc-media">
         <Link to={`/products/${product.slug}`} className="handoff-pc-img" tabIndex={-1}>
           {product.primary_image ? (
@@ -63,8 +72,8 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="handoff-pc-fallback">{product.placeholder_label || product.category_name}</span>
           )}
         </Link>
-        <span className={`handoff-pc-badge${hasWeight && inStock ? ' is-stock' : ' is-inquire'}`}>
-          {hasWeight && inStock ? 'موجود' : 'استعلام قیمت'}
+        <span className={`handoff-pc-badge${canBuy ? ' is-stock' : ' is-inquire'}`}>
+          {canBuy ? 'موجود' : 'استعلام قیمت'}
         </span>
         <button
           type="button"
@@ -84,11 +93,10 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="handoff-pc-meta">
           {hasWeight ? (
             <>
-              {product.placeholder_label?.includes('وزن حدودی') ? 'وزن تقریبی' : 'وزن'}{' '}
-              {faNum(w)} گرم · عیار {faNum(karat)}
+              وزن تقریبی: {faNum(w)} گرم <span aria-hidden>|</span> عیار {faNum(karat)}
             </>
           ) : (
-            <>وزن و قیمت پس از تأیید · عیار {faNum(karat)}</>
+            <>وزن و قیمت پس از تأیید <span aria-hidden>|</span> عیار {faNum(karat)}</>
           )}
         </div>
         <div className="handoff-pc-price">
@@ -101,15 +109,24 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="handoff-pc-pending">وزن و قیمت پس از تأیید</span>
           )}
         </div>
-        {hasWeight && inStock ? (
+        {variant === 'related' ? (
+          <div className="handoff-pc-related-actions">
+            <button type="button" className="handoff-pc-cart-sq" aria-label="افزودن به سبد" onClick={tryAdd} disabled={!canBuy}>
+              <IconShoppingBag size={15} />
+            </button>
+            <Link to={`/products/${product.slug}`} className="handoff-pc-cta">
+              مشاهده محصول
+            </Link>
+          </div>
+        ) : canBuy ? (
           <button type="button" className="handoff-pc-cta" onClick={tryAdd}>
             <IconShoppingBag size={16} />
-            افزودن به گلد باکس
+            افزودن به سبد خرید
           </button>
         ) : (
           <Link to={`/products/${product.slug}`} className="handoff-pc-cta is-inquire">
             <IconConsult size={16} />
-            {hasWeight ? 'مشاهده جزئیات' : 'استعلام قیمت'}
+            استعلام قیمت
           </Link>
         )}
       </div>
