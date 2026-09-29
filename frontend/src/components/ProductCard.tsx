@@ -7,6 +7,7 @@ import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import { IconConsult, IconHeart, IconShoppingBag } from './icons';
+import { mediaUrl } from '../utils/mediaUrl';
 
 type Variant = 'catalog' | 'related';
 
@@ -61,7 +62,7 @@ export function ProductCard({
         <Link to={`/products/${product.slug}`} className="handoff-pc-img" tabIndex={-1}>
           {product.primary_image ? (
             <img
-              src={product.primary_image}
+              src={mediaUrl(product.primary_image)}
               alt={product.name}
               loading="lazy"
               decoding="async"

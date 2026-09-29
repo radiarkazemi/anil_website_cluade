@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { faNum } from '../utils/format';
+import { mediaUrl } from '../utils/mediaUrl';
 
 type Props = {
   images: string[];
@@ -14,9 +15,10 @@ export function ProductImageGallery({ images, alt, placeholder, outOfStock }: Pr
   const [lightbox, setLightbox] = useState(false);
   const [fadeKey, setFadeKey] = useState(0);
 
-  const count = images.length;
+  const resolved = useMemo(() => images.map((src) => mediaUrl(src)), [images]);
+  const count = resolved.length;
   const safeIdx = count ? ((idx % count) + count) % count : 0;
-  const main = images[safeIdx] || '';
+  const main = resolved[safeIdx] || '';
 
   const go = useCallback(
     (next: number) => {
@@ -30,7 +32,7 @@ export function ProductImageGallery({ images, alt, placeholder, outOfStock }: Pr
   useEffect(() => {
     setIdx(0);
     setLightbox(false);
-  }, [images.join('|')]);
+  }, [resolved.join('|')]);
 
   useEffect(() => {
     if (!lightbox) return;
@@ -103,7 +105,7 @@ export function ProductImageGallery({ images, alt, placeholder, outOfStock }: Pr
 
       {count > 1 && (
         <div className="pd-thumbs" role="tablist" aria-label="گالری تصاویر">
-          {images.map((src, i) => (
+          {resolved.map((src, i) => (
             <button
               key={`${src}-${i}`}
               type="button"
