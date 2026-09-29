@@ -218,6 +218,43 @@ class SiteSettings(models.Model):
     contact_email = models.CharField(max_length=120, default="info@goldanil.ir", blank=True)
     contact_address = models.CharField(max_length=300, default="ابهر، استان زنجان", blank=True)
 
+    # Contact / Abhar band (storefront chrome)
+    contact_kicker = models.CharField(max_length=80, default="درخشش با ما", blank=True)
+    contact_title = models.CharField(max_length=160, default="در شهر ابهر، در کنار شما", blank=True)
+    contact_body = models.TextField(
+        default=(
+            "گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز، "
+            "و همراهی برای انتخاب درست."
+        ),
+        blank=True,
+    )
+    contact_cta_label = models.CharField(max_length=80, default="تماس با ما", blank=True)
+    contact_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    # Paste Google Maps embed URL (or leave blank to auto-build from map_query / address)
+    map_embed_url = models.TextField(blank=True, default="")
+    map_query = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="عبارت جستجوی نقشه؛ خالی = آدرس تماس",
+    )
+
+    footer_copyright = models.CharField(
+        max_length=200,
+        default="تمامی حقوق برای گالری طلای آنیل محفوظ است.",
+        blank=True,
+    )
+    footer_about_heading = models.CharField(max_length=80, default="گالری طلای آنیل", blank=True)
+
+    # Flexible CMS copy for blog/products/home/footer columns — see cms_defaults.default_cms()
+    cms = models.JSONField(default=dict, blank=True)
+
+    # Optional uploaded images for promo / moments (URL fallbacks live in cms.*.image_path)
+    products_promo_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    moments_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    collection_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    editorial_image = models.ImageField(upload_to="site/", blank=True, null=True)
+
     top_banner = models.CharField(
         max_length=300,
         default="قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا · مشاوره حضوری در گالری آنیل، ابهر",

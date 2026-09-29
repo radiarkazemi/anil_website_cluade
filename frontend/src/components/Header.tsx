@@ -245,7 +245,7 @@ export function Header() {
               <div className="header-search-inline">
                 <SiteSearch
                   className="header-search compact handoff-search"
-                  placeholder="جستجو در گالری طلا، دسته‌بندی‌ها و..."
+                  placeholder={site?.cms?.header?.search_placeholder || 'جستجو در گالری طلا، دسته‌بندی‌ها و...'}
                 />
               </div>
 
@@ -298,7 +298,7 @@ export function Header() {
           <div className={`header-search-mobile-row${mobileSearchOpen ? ' is-open' : ''}`}>
             <SiteSearch
               className="header-search compact handoff-search"
-              placeholder="جستجو در گالری طلا، دسته‌بندی‌ها و..."
+              placeholder={site?.cms?.header?.search_placeholder || 'جستجو در گالری طلا، دسته‌بندی‌ها و...'}
             />
           </div>
         </div>

@@ -501,22 +501,35 @@ class AdminSiteSettingsView(APIView):
 
         obj = SiteSettings.load()
         data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
-        # JSON field may arrive as string from multipart
-        if isinstance(data.get("section_order"), str):
-            import json
+        import json
 
-            try:
-                data["section_order"] = json.loads(data["section_order"])
-            except Exception:
-                pass
+        # JSON fields may arrive as string from multipart
+        for key in ("section_order", "cms"):
+            if isinstance(data.get(key), str):
+                try:
+                    data[key] = json.loads(data[key])
+                except Exception:
+                    pass
         for flag in ("show_rates", "show_categories", "show_featured", "show_trust"):
             if flag in data:
                 val = data.get(flag)
                 data[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        cms_payload = None
+        if hasattr(data, "pop"):
+            cms_payload = data.pop("cms", None)
+        elif isinstance(data, dict) and "cms" in data:
+            cms_payload = data.pop("cms")
         ser = SiteSettingsSerializer(obj, data=data, partial=True, context={"request": request})
         ser.is_valid(raise_exception=True)
         ser.save()
-        return Response(ser.data)
+        if isinstance(cms_payload, dict):
+            from apps.store.cms_defaults import deep_merge
+
+            obj.refresh_from_db()
+            obj.cms = deep_merge(obj.cms if isinstance(obj.cms, dict) else {}, cms_payload)
+            obj.save(update_fields=["cms", "updated_at"])
+        obj.refresh_from_db()
+        return Response(SiteSettingsSerializer(obj, context={"request": request}).data)
 
 
 class AdminHeroAlbumView(APIView):

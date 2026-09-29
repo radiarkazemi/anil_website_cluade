@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { api } from '../api/endpoints';
-import type { Category, SiteSettings } from '../types';
+import type { Category, CmsLink, SiteSettings } from '../types';
+import { mapsEmbedSrc, mapsExternalUrl } from '../utils/mapsEmbed';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const SAMPLE_PHONE_RE = /^(0?21[- ]?12345678|۰۲۱[- ]?۱۲۳۴۵۶۷۸)$/;
 const TEHRAN_SAMPLE_RE = /تهران|بازار بزرگ طلا/;
@@ -24,7 +26,18 @@ export function contactEmail(site?: SiteSettings | null): string {
   return (site?.contact_email || '').trim() || 'info@goldanil.ir';
 }
 
-/** Handoff Abhar band: city photo | copy + CTA | stylized map pin */
+function FooterLink({ item }: { item: CmsLink }) {
+  const href = item.href || '#';
+  if (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+    return <a href={href}>{item.label}</a>;
+  }
+  if (href.startsWith('#')) {
+    return <a href={href}>{item.label}</a>;
+  }
+  return <Link to={href}>{item.label}</Link>;
+}
+
+/** Contact band with real Google Map embed — all copy from SiteSettings. */
 export function ContactBand({
   site,
   id = 'contact',
@@ -40,6 +53,18 @@ export function ContactBand({
   const ctaHref = phone
     ? `tel:${phone.replace(/[^\d+]/g, '')}`
     : `mailto:${email}`;
+  const photo =
+    mediaUrl(site?.contact_image_url || '') || '/home/contact-atmosphere.webp';
+  const kicker = (site?.contact_kicker || '').trim() || 'درخشش با ما';
+  const heading = (site?.contact_title || '').trim() || 'در شهر ابهر، در کنار شما';
+  const body =
+    (site?.contact_body || '').trim() ||
+    'گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز، و همراهی برای انتخاب درست.';
+  const cta = (site?.contact_cta_label || '').trim() || 'تماس با ما';
+  const embed = mapsEmbedSrc(site);
+  const external = mapsExternalUrl(site);
+  const mapOpen = site?.cms?.map?.open_label || 'باز کردن در گوگل‌مپ';
+  const mapTitle = site?.cms?.map?.iframe_title || 'موقعیت گالری روی نقشه گوگل';
 
   return (
     <section id={id} className="handoff-abhar" aria-labelledby={`${id}-title`}>
@@ -47,31 +72,36 @@ export function ContactBand({
         <div className="handoff-abhar-grid">
           <div
             className="handoff-abhar-photo"
-            style={{ backgroundImage: "url('/home/contact-atmosphere.webp')" }}
+            style={{ backgroundImage: `url('${photo}')` }}
             role="img"
-            aria-label="نمای شهر ابهر"
+            aria-label={heading}
           />
           <div className="handoff-abhar-copy">
-            <div className="handoff-abhar-kicker">درخشش با ما</div>
-            <h2 id={`${id}-title`}>در شهر ابهر، در کنار شما</h2>
-            <p>
-              گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز،
-              و همراهی برای انتخاب درست.
-            </p>
+            <div className="handoff-abhar-kicker">{kicker}</div>
+            <h2 id={`${id}-title`}>{heading}</h2>
+            <p>{body}</p>
             <a className="handoff-abhar-cta" href={ctaHref}>
-              تماس با ما
+              {cta}
               <span aria-hidden>‹</span>
             </a>
           </div>
-          <a
-            className="handoff-abhar-map"
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('ابهر، استان زنجان')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="موقعیت ابهر روی نقشه"
-          >
-            <img src="/home/abhar-map.svg" alt="" width={640} height={420} />
-          </a>
+          <div className="handoff-abhar-map">
+            <iframe
+              title={mapTitle}
+              src={embed}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+            <a
+              className="handoff-abhar-map-open"
+              href={external}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {mapOpen}
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -94,21 +124,54 @@ export function SiteFooter({
       ? site.footer_tagline
       : 'زیورآلات اصیل با قیمت شفاف و لحظه‌ای — گالری آنیل، ابهر.';
 
+  const foot = site?.cms?.footer || {};
+  const customersTitle = foot.customers_title || 'خدمات مشتریان';
+  const categoriesTitle = foot.categories_title || 'دسته‌بندی‌ها';
+  const quickTitle = foot.quick_title || 'دسترسی سریع';
+  const aboutTitle = foot.about_title || site?.footer_about_heading || 'گالری طلای آنیل';
+  const customersLinks = foot.customers_links?.length
+    ? foot.customers_links
+    : [
+        { label: 'راهنمای خرید', href: '/p/راهنمای-خرید' },
+        { label: 'نحوه سفارش', href: '/p/راهنمای-خرید' },
+        { label: 'بلاگ و آموزش', href: '/blog' },
+        { label: 'پشتیبانی', href: `mailto:${contactEmail(site)}` },
+      ];
+  const quickLinks = foot.quick_links?.length
+    ? foot.quick_links
+    : [
+        { label: 'محصولات', href: '/products' },
+        { label: 'راهنمای خرید', href: '/p/راهنمای-خرید' },
+        { label: 'بلاگ', href: '/blog' },
+        { label: 'درباره ما', href: '/p/درباره-ما' },
+        { label: 'تماس با ما', href: '#contact' },
+      ];
+  const legalLinks = foot.legal_links?.length
+    ? foot.legal_links
+    : [
+        { label: 'حریم خصوصی', href: '/p/حریم-خصوصی' },
+        { label: 'شرایط استفاده', href: '/p/شرایط-استفاده' },
+        { label: 'نقشه سایت', href: '/' },
+      ];
+  const copyright =
+    (site?.footer_copyright || '').trim() || 'تمامی حقوق برای گالری طلای آنیل محفوظ است.';
+
   return (
     <footer className="site-footer handoff-footer">
       <div className="container handoff-footer-inner">
         <div className="handoff-footer-cols">
           <div className="handoff-footer-col">
-            <h3>خدمات مشتریان</h3>
+            <h3>{customersTitle}</h3>
             <ul>
-              <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
-              <li><Link to="/p/راهنمای-خرید">نحوه سفارش</Link></li>
-              <li><Link to="/blog">بلاگ و آموزش</Link></li>
-              <li><a href={`mailto:${contactEmail(site)}`}>پشتیبانی</a></li>
+              {customersLinks.map((item) => (
+                <li key={`${item.label}-${item.href}`}>
+                  <FooterLink item={item} />
+                </li>
+              ))}
             </ul>
           </div>
           <div className="handoff-footer-col">
-            <h3>دسته‌بندی‌ها</h3>
+            <h3>{categoriesTitle}</h3>
             <ul>
               {categories.slice(0, 5).map((c) => (
                 <li key={c.id}>
@@ -118,27 +181,27 @@ export function SiteFooter({
             </ul>
           </div>
           <div className="handoff-footer-col">
-            <h3>دسترسی سریع</h3>
+            <h3>{quickTitle}</h3>
             <ul>
-              <li><Link to="/products">محصولات</Link></li>
-              <li><Link to="/p/راهنمای-خرید">راهنمای خرید</Link></li>
-              <li><Link to="/blog">بلاگ</Link></li>
-              <li><Link to="/p/درباره-ما">درباره ما</Link></li>
-              <li><a href="#contact">تماس با ما</a></li>
+              {quickLinks.map((item) => (
+                <li key={`${item.label}-${item.href}`}>
+                  <FooterLink item={item} />
+                </li>
+              ))}
             </ul>
           </div>
           <div className="handoff-footer-col handoff-footer-about">
-            <h3>گالری طلای آنیل</h3>
+            <h3>{aboutTitle}</h3>
             <p>{tagline}</p>
             <div className="handoff-footer-social" aria-label="راه‌های ارتباط">
               <a href={`mailto:${contactEmail(site)}`} aria-label="ایمیل">✉</a>
-              <a href="https://goldanil.ir" aria-label="وب‌سایت">◎</a>
+              <a href={foot.website_url || 'https://goldanil.ir'} aria-label="وب‌سایت">◎</a>
               <a href="#contact" aria-label="تماس">☎</a>
               <Link to="/blog" aria-label="مجله">✎</Link>
             </div>
           </div>
           <div className="handoff-footer-col handoff-footer-brand">
-            <div className="handoff-footer-wordmark">ANIL</div>
+            <div className="handoff-footer-wordmark">{site?.brand_name || 'ANIL'}</div>
             <div className="handoff-footer-tagline">{site?.brand_tagline || 'درخشش ابدی'}</div>
           </div>
         </div>
@@ -147,13 +210,14 @@ export function SiteFooter({
           <button type="button" className="handoff-footer-top" onClick={scrollTop} aria-label="بازگشت به بالا">
             ↑
           </button>
-          <span className="handoff-footer-copy">تمامی حقوق برای گالری طلای آنیل محفوظ است.</span>
+          <span className="handoff-footer-copy">{copyright}</span>
           <div className="handoff-footer-legal">
-            <Link to="/p/حریم-خصوصی">حریم خصوصی</Link>
-            <span aria-hidden>|</span>
-            <Link to="/p/شرایط-استفاده">شرایط استفاده</Link>
-            <span aria-hidden>|</span>
-            <Link to="/">نقشه سایت</Link>
+            {legalLinks.map((item, i) => (
+              <span key={`${item.label}-${item.href}`} style={{ display: 'contents' }}>
+                {i > 0 ? <span aria-hidden>|</span> : null}
+                <FooterLink item={item} />
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -178,6 +242,12 @@ export function SecondaryPageChrome({
     staleTime: 120_000,
   });
 
+  const moments = site?.cms?.moments || {};
+  const momentsImg =
+    mediaUrl(site?.moments_image_url || '') ||
+    moments.image_path ||
+    '/home/editorial-triptych.webp';
+
   return (
     <div className="secondary-page">
       {children}
@@ -185,16 +255,16 @@ export function SecondaryPageChrome({
         <section className="container handoff-moments" aria-label="گالری لحظه‌ها">
           <div className="handoff-moments-grid">
             <div className="handoff-moments-copy">
-              <h2>طلا در لحظه‌های خاص زندگی شما</h2>
-              <p>قطعات منتخب گالری را برای مناسبت‌های مهم ببینید.</p>
-              <Link to="/products" className="handoff-abhar-cta">
-                مشاهده گالری
+              <h2>{moments.title || 'طلا در لحظه‌های خاص زندگی شما'}</h2>
+              <p>{moments.subtitle || 'قطعات منتخب گالری را برای مناسبت‌های مهم ببینید.'}</p>
+              <Link to={moments.cta_url || '/products'} className="handoff-abhar-cta">
+                {moments.cta_label || 'مشاهده گالری'}
                 <span aria-hidden>‹</span>
               </Link>
             </div>
             <div
               className="handoff-moments-art"
-              style={{ backgroundImage: "url('/home/editorial-triptych.webp')" }}
+              style={{ backgroundImage: `url('${momentsImg}')` }}
               aria-hidden
             />
           </div>

@@ -6,6 +6,7 @@ import { ProductCard } from '../components/ProductCard';
 import { SecondaryPageChrome } from '../components/SiteChrome';
 import { IconSearch } from '../components/icons';
 import { faNum } from '../utils/format';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const PAGE_SIZE = '24';
 
@@ -18,6 +19,18 @@ export function Products() {
   const feeMax = params.get('fee_max') || '';
   const search = params.get('search') || '';
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const { data: site } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: () => api.siteSettings().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const promo = site?.cms?.products_promo;
+  const pageCms = site?.cms?.products_page;
+  const promoImg =
+    mediaUrl(site?.products_promo_image_url || '') ||
+    promo?.image_path ||
+    '/home/collection-banner.webp';
 
   const listParams = useMemo(() => {
     const p: Record<string, string> = { page_size: PAGE_SIZE };
@@ -63,7 +76,7 @@ export function Products() {
   const title = search.trim()
     ? `نتایج «${search.trim()}»`
     : category === 'all'
-      ? 'همه محصولات'
+      ? (pageCms?.all_label || 'همه محصولات')
       : categories.find((c) => c.slug === category)?.name || category;
 
   const activeFilterCount = [
@@ -105,9 +118,9 @@ export function Products() {
     <SecondaryPageChrome>
       <section className="container products-page handoff-products">
         <nav className="products-crumb" aria-label="مسیر صفحه">
-          <Link to="/">خانه</Link>
+          <Link to="/">{pageCms?.crumb_home || 'خانه'}</Link>
           <span aria-hidden> › </span>
-          <span>محصولات</span>
+          <span>{pageCms?.all_label || 'محصولات'}</span>
         </nav>
 
         <div className="products-title-row">
@@ -171,7 +184,7 @@ export function Products() {
               aria-expanded={filtersOpen}
               onClick={() => setFiltersOpen((v) => !v)}
             >
-              فیلترها
+              {pageCms?.filter_label || 'فیلترها'}
               {activeFilterCount ? (
                 <span className="handoff-products-filter-badge">{faNum(activeFilterCount)}</span>
               ) : null}
@@ -179,7 +192,7 @@ export function Products() {
             <label className="handoff-products-sort-mobile">
               <span className="handoff-products-sort-ico" aria-hidden>⇅</span>
               <select
-                aria-label="مرتب‌سازی"
+                aria-label={pageCms?.sort_label || 'مرتب‌سازی'}
                 value={sort}
                 onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
               >
@@ -231,9 +244,9 @@ export function Products() {
               </select>
             </label>
             <label className="handoff-products-dd handoff-products-sort-desktop">
-              <span>مرتب‌سازی</span>
+              <span>{pageCms?.sort_label || 'مرتب‌سازی'}</span>
               <select
-                aria-label="مرتب‌سازی"
+                aria-label={pageCms?.sort_label || 'مرتب‌سازی'}
                 value={sort}
                 onChange={(e) => setParams((p) => { p.set('sort', e.target.value); return p; })}
               >
@@ -261,7 +274,9 @@ export function Products() {
           </div>
         ) : products.length === 0 ? (
           <div className="products-empty">
-            {search ? `نتیجه‌ای برای «${search}» پیدا نشد.` : 'محصولی در این فیلتر نیست.'}
+            {search
+              ? `نتیجه‌ای برای «${search}» پیدا نشد.`
+              : (pageCms?.empty || 'محصولی در این فیلتر نیست.')}
           </div>
         ) : (
           <>
@@ -280,7 +295,7 @@ export function Products() {
                   disabled={isFetchingNextPage}
                   onClick={() => fetchNextPage()}
                 >
-                  {isFetchingNextPage ? 'در حال بارگذاری…' : 'نمایش محصولات بیشتر'}
+                  {isFetchingNextPage ? 'در حال بارگذاری…' : (pageCms?.load_more || 'نمایش محصولات بیشتر')}
                 </button>
               ) : null}
             </div>
@@ -290,13 +305,13 @@ export function Products() {
         <aside className="handoff-products-promo" aria-label="کلکسیون">
           <div
             className="handoff-products-promo-media"
-            style={{ backgroundImage: "url('/home/collection-banner.webp')" }}
+            style={{ backgroundImage: `url('${promoImg}')` }}
           />
           <div className="handoff-products-promo-copy">
-            <h2>مجموعه‌ای از زیبایی ماندگار</h2>
-            <p>طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما</p>
-            <Link to="/products" className="handoff-abhar-cta outline">
-              مشاهده کلکسیون
+            <h2>{promo?.title || 'مجموعه‌ای از زیبایی ماندگار'}</h2>
+            <p>{promo?.subtitle || 'طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما'}</p>
+            <Link to={promo?.cta_url || '/products'} className="handoff-abhar-cta outline">
+              {promo?.cta_label || 'مشاهده کلکسیون'}
               <span aria-hidden>‹</span>
             </Link>
           </div>

@@ -14,7 +14,15 @@ function blogTopic(title: string): string | null {
   return null;
 }
 
-function BlogCard({ post, featured = false }: { post: ContentPage; featured?: boolean }) {
+function BlogCard({
+  post,
+  featured = false,
+  ctaLabel = 'مطالعه مقاله',
+}: {
+  post: ContentPage;
+  featured?: boolean;
+  ctaLabel?: string;
+}) {
   const topic = blogTopic(post.title);
   const to = `/blog/${post.slug}`;
 
@@ -27,7 +35,7 @@ function BlogCard({ post, featured = false }: { post: ContentPage; featured?: bo
         </h2>
         {post.excerpt ? <p className="handoff-blog-excerpt">{post.excerpt}</p> : null}
         <Link to={to} className="handoff-blog-cta">
-          مطالعه مقاله
+          {ctaLabel}
           <span aria-hidden className="handoff-blog-cta-chev">‹</span>
         </Link>
       </div>
@@ -51,9 +59,18 @@ export function Blog() {
     queryFn: () => api.pages({ type: 'blog' }).then((r) => r.data),
   });
 
+  const { data: site } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: () => api.siteSettings().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const blogCms = site?.cms?.blog;
+
   usePageSeo({
-    title: 'بلاگ | گالری طلا آنیل',
-    description: 'نکات طلا، بازار، عیار و استایل — نوشته‌های مجله گالری آنیل برای خرید آگاهانه.',
+    title: `${blogCms?.hero_title || 'بلاگ'} | گالری طلا آنیل`,
+    description:
+      blogCms?.hero_lead ||
+      'نکات طلا، بازار، عیار و استایل — نوشته‌های مجله گالری آنیل برای خرید آگاهانه.',
     canonicalPath: '/blog',
   });
 
@@ -87,10 +104,13 @@ export function Blog() {
             aria-hidden
           />
           <div className="container handoff-blog-hero-inner">
-            <h1 className="handoff-blog-hero-title">مجله آنیل</h1>
-            <p className="handoff-blog-hero-sub">همه‌چیز درباره طلا، سبک زندگی و بازار</p>
+            <h1 className="handoff-blog-hero-title">{blogCms?.hero_title || 'مجله آنیل'}</h1>
+            <p className="handoff-blog-hero-sub">
+              {blogCms?.hero_subtitle || 'همه‌چیز درباره طلا، سبک زندگی و بازار'}
+            </p>
             <p className="handoff-blog-hero-lead">
               {intro?.excerpt?.trim() ||
+                blogCms?.hero_lead ||
                 'راهنمای خرید، نگهداری، آموزش تخصصی و تحلیل بازار طلا — از گالری آنیل.'}
             </p>
           </div>
@@ -103,22 +123,24 @@ export function Blog() {
             <>
               {featured ? (
                 <section className="handoff-blog-feature" aria-label="مقاله ویژه">
-                  <BlogCard post={featured} featured />
+                  <BlogCard post={featured} featured ctaLabel={blogCms?.cta_label} />
                 </section>
               ) : null}
 
               <section className="handoff-blog-latest" aria-labelledby="blog-latest-title">
                 <div className="handoff-blog-latest-head">
                   <div className="handoff-blog-latest-titles">
-                    <span className="handoff-blog-latest-kicker">همه مقالات</span>
-                    <h2 id="blog-latest-title">آخرین مطالب مجله</h2>
+                    <span className="handoff-blog-latest-kicker">
+                      {blogCms?.latest_kicker || 'همه مقالات'}
+                    </span>
+                    <h2 id="blog-latest-title">{blogCms?.latest_title || 'آخرین مطالب مجله'}</h2>
                   </div>
                   <span className="handoff-blog-latest-line" aria-hidden />
                 </div>
                 {rest.length ? (
                   <div className="handoff-blog-grid">
                     {rest.map((p) => (
-                      <BlogCard key={p.id} post={p} />
+                      <BlogCard key={p.id} post={p} ctaLabel={blogCms?.cta_label} />
                     ))}
                   </div>
                 ) : !featured ? (
@@ -128,7 +150,7 @@ export function Blog() {
 
               {spotlight ? (
                 <section className="handoff-blog-spotlight" aria-label="مقاله منتخب">
-                  <BlogCard post={spotlight} featured />
+                  <BlogCard post={spotlight} featured ctaLabel={blogCms?.cta_label} />
                 </section>
               ) : null}
             </>

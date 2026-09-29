@@ -130,6 +130,12 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     brand_logo_url = serializers.SerializerMethodField()
     hero_image_url = serializers.SerializerMethodField()
     hero_album = serializers.SerializerMethodField()
+    contact_image_url = serializers.SerializerMethodField()
+    products_promo_image_url = serializers.SerializerMethodField()
+    moments_image_url = serializers.SerializerMethodField()
+    collection_image_url = serializers.SerializerMethodField()
+    editorial_image_url = serializers.SerializerMethodField()
+    cms = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -142,9 +148,47 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "trust_heading", "footer_tagline",
             "contact_phone", "contact_email", "contact_address",
+            "contact_kicker", "contact_title", "contact_body", "contact_cta_label",
+            "contact_image", "contact_image_url",
+            "map_embed_url", "map_query",
+            "footer_copyright", "footer_about_heading",
+            "cms",
+            "products_promo_image", "products_promo_image_url",
+            "moments_image", "moments_image_url",
+            "collection_image", "collection_image_url",
+            "editorial_image", "editorial_image_url",
             "top_banner", "updated_at",
         ]
         read_only_fields = ["updated_at"]
+        extra_kwargs = {
+            "contact_image": {"write_only": True, "required": False},
+            "products_promo_image": {"write_only": True, "required": False},
+            "moments_image": {"write_only": True, "required": False},
+            "collection_image": {"write_only": True, "required": False},
+            "editorial_image": {"write_only": True, "required": False},
+            "brand_logo": {"write_only": True, "required": False},
+            "hero_image": {"write_only": True, "required": False},
+        }
+
+    def get_cms(self, obj):
+        from apps.store.cms_defaults import merged_cms
+
+        return merged_cms(getattr(obj, "cms", None))
+
+    def get_contact_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.contact_image)
+
+    def get_products_promo_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.products_promo_image)
+
+    def get_moments_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.moments_image)
+
+    def get_collection_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.collection_image)
+
+    def get_editorial_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.editorial_image)
 
     def get_brand_logo_url(self, obj):
         return _abs_url(self.context.get("request"), obj.brand_logo)

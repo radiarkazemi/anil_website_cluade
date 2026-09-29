@@ -1,39 +1,79 @@
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { api } from '../../api/endpoints';
 import { useToast } from '../../store/toastStore';
 import { PageHeader } from './adminShared';
 
-const DEFAULTS = {
-  store_name: 'گالری طلا آنیل',
-  phone: '021-12345678',
-  email: 'info@anilgold.ir',
-  address: 'تهران، بازار بزرگ طلا',
-  shipping_note: 'ارسال بیمه‌شده به سراسر کشور ظرف ۲ تا ۴ روز کاری',
-  low_stock_threshold: 2,
-  tax_note: 'مالیات ۹٪ روی (اجرت + سود) اعمال می‌شود',
-};
-
 export function AdminSettings() {
   const toast = useToast((s) => s.show);
-  const [form, setForm] = useState(() => {
-    try {
-      const raw = localStorage.getItem('anil-admin-settings');
-      return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
-    } catch {
-      return DEFAULTS;
-    }
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-site-settings'],
+    queryFn: () => api.adminSiteSettings().then((r) => r.data),
   });
 
-  const save = () => {
-    localStorage.setItem('anil-admin-settings', JSON.stringify(form));
-    toast('تنظیمات پنل ذخیره شد');
-  };
+  const [storeName, setStoreName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [shippingNote, setShippingNote] = useState('');
+  const [taxNote, setTaxNote] = useState('');
+  const [lowStock, setLowStock] = useState(2);
+
+  useEffect(() => {
+    if (!data) return;
+    setStoreName(data.brand_name || '');
+    setPhone(data.contact_phone || '');
+    setEmail(data.contact_email || '');
+    setAddress(data.contact_address || '');
+    setShippingNote(data.cms?.ops?.shipping_note || '');
+    setTaxNote(data.cms?.ops?.tax_note || '');
+    setLowStock(Number(data.cms?.ops?.low_stock_threshold ?? 2));
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.adminUpdateSiteSettings({
+        brand_name: storeName,
+        contact_phone: phone,
+        contact_email: email,
+        contact_address: address,
+        cms: {
+          ops: {
+            shipping_note: shippingNote,
+            tax_note: taxNote,
+            low_stock_threshold: lowStock,
+          },
+        },
+      }),
+    onSuccess: () => {
+      toast('تنظیمات ذخیره شد');
+      qc.invalidateQueries({ queryKey: ['admin-site-settings'] });
+      qc.invalidateQueries({ queryKey: ['site-settings'] });
+    },
+    onError: () => toast('خطا در ذخیره تنظیمات'),
+  });
+
+  if (isLoading) {
+    return <div className="admin-card">در حال بارگذاری تنظیمات…</div>;
+  }
 
   return (
     <div>
       <PageHeader
         title="تنظیمات عملیات"
-        subtitle="پیکربندی نمایشی فروشگاه و آستانه‌های عملیاتی پنل"
-        actions={<button type="button" className="gold-btn" onClick={save}>ذخیره تنظیمات</button>}
+        subtitle="هویت فروشگاه و آستانه‌های عملیاتی — همه جزئیات ظاهری در چیدمان سایت"
+        actions={(
+          <button
+            type="button"
+            className="gold-btn"
+            disabled={save.isPending}
+            onClick={() => save.mutate()}
+          >
+            {save.isPending ? '…' : 'ذخیره تنظیمات'}
+          </button>
+        )}
       />
 
       <div className="admin-grid-2">
@@ -42,19 +82,19 @@ export function AdminSettings() {
           <div className="form-grid">
             <label>
               <span>نام فروشگاه</span>
-              <input className="input" value={form.store_name} onChange={(e) => setForm({ ...form, store_name: e.target.value })} />
+              <input className="input" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
             </label>
             <label>
               <span>تلفن</span>
-              <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input className="input" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </label>
             <label>
               <span>ایمیل</span>
-              <input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <input className="input" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
             <label className="full">
               <span>آدرس</span>
-              <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} />
             </label>
           </div>
         </div>
@@ -67,27 +107,27 @@ export function AdminSettings() {
               <input
                 className="input"
                 type="number"
-                value={form.low_stock_threshold}
-                onChange={(e) => setForm({ ...form, low_stock_threshold: Number(e.target.value) })}
+                value={lowStock}
+                onChange={(e) => setLowStock(Number(e.target.value))}
               />
             </label>
             <label className="full">
               <span>متن ارسال</span>
-              <textarea className="input" value={form.shipping_note} onChange={(e) => setForm({ ...form, shipping_note: e.target.value })} />
+              <textarea className="input" value={shippingNote} onChange={(e) => setShippingNote(e.target.value)} />
             </label>
             <label className="full">
               <span>یادداشت مالیات</span>
-              <textarea className="input" value={form.tax_note} onChange={(e) => setForm({ ...form, tax_note: e.target.value })} />
+              <textarea className="input" value={taxNote} onChange={(e) => setTaxNote(e.target.value)} />
             </label>
           </div>
         </div>
       </div>
 
       <div className="admin-card" style={{ marginTop: 18 }}>
-        <h3 style={{ marginBottom: 10 }}>چیدمان صفحه اصلی</h3>
+        <h3 style={{ marginBottom: 10 }}>ویرایش کامل ظاهر سایت</h3>
         <p style={{ fontSize: 13.5, color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: 12 }}>
-          متن هیرو، تصویر، دکمه‌ها، فوتر و ترتیب بخش‌ها را از صفحه{' '}
-          <a href="/panel/layout" style={{ color: 'var(--gold-light)', fontWeight: 700 }}>چیدمان سایت</a>
+          هیرو، نقشه واقعی گوگل، فوتر، بنرها، بلاگ، محصولات و هر متن/تصویر فروشگاه را از{' '}
+          <Link to="/panel/layout" style={{ color: 'var(--gold-light)', fontWeight: 700 }}>چیدمان سایت</Link>
           {' '}ویرایش کنید.
         </p>
         <ul className="settings-tips">

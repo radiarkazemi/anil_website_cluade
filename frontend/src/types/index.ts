@@ -46,6 +46,98 @@ export interface HeroAlbumSlide {
   created_at?: string | null;
 }
 
+export type CmsLink = { label: string; href: string };
+
+export type SiteCms = {
+  blog?: {
+    hero_title?: string;
+    hero_subtitle?: string;
+    hero_lead?: string;
+    latest_kicker?: string;
+    latest_title?: string;
+    cta_label?: string;
+  };
+  products_promo?: {
+    title?: string;
+    subtitle?: string;
+    cta_label?: string;
+    cta_url?: string;
+    image_path?: string;
+  };
+  products_page?: {
+    crumb_home?: string;
+    all_label?: string;
+    filter_label?: string;
+    sort_label?: string;
+    load_more?: string;
+    empty?: string;
+  };
+  moments?: {
+    title?: string;
+    subtitle?: string;
+    cta_label?: string;
+    cta_url?: string;
+    image_path?: string;
+  };
+  collection?: {
+    title?: string;
+    subtitle?: string;
+    cta_label?: string;
+    cta_url?: string;
+    image_path?: string;
+  };
+  editorial?: {
+    title?: string;
+    subtitle?: string;
+    cta_label?: string;
+    cta_url?: string;
+    image_path?: string;
+  };
+  why_anil?: {
+    subtitle?: string;
+    items?: { title: string; body: string }[];
+  };
+  footer?: {
+    customers_title?: string;
+    categories_title?: string;
+    quick_title?: string;
+    about_title?: string;
+    customers_links?: CmsLink[];
+    quick_links?: CmsLink[];
+    legal_links?: CmsLink[];
+    website_url?: string;
+  };
+  header?: {
+    search_placeholder?: string;
+  };
+  home?: {
+    featured_title?: string;
+    featured_subtitle?: string;
+    featured_all?: string;
+    categories_title?: string;
+    categories_subtitle?: string;
+    categories_all?: string;
+    category_cta?: string;
+    calculator_title?: string;
+    calculator_subtitle?: string;
+    calculator_weight_label?: string;
+    calculator_karat_label?: string;
+    calculator_result_label?: string;
+    rates_live?: string;
+    rates_stale?: string;
+    rates_empty?: string;
+  };
+  map?: {
+    open_label?: string;
+    iframe_title?: string;
+  };
+  ops?: {
+    shipping_note?: string;
+    tax_note?: string;
+    low_stock_threshold?: number;
+  };
+};
+
 export interface SiteSettings {
   brand_name: string;
   brand_tagline: string;
@@ -73,6 +165,20 @@ export interface SiteSettings {
   contact_phone: string;
   contact_email: string;
   contact_address: string;
+  contact_kicker?: string;
+  contact_title?: string;
+  contact_body?: string;
+  contact_cta_label?: string;
+  contact_image_url?: string | null;
+  map_embed_url?: string;
+  map_query?: string;
+  footer_copyright?: string;
+  footer_about_heading?: string;
+  cms?: SiteCms;
+  products_promo_image_url?: string | null;
+  moments_image_url?: string | null;
+  collection_image_url?: string | null;
+  editorial_image_url?: string | null;
   top_banner: string;
   /** When false, storefront checkout/order creation is blocked. */
   orders_enabled?: boolean;

@@ -24,7 +24,9 @@ import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
 import { calcPrice, faNum, faPrice } from '../utils/format';
+import { mediaUrl } from '../utils/mediaUrl';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
+import type { SiteSettings } from '../types';
 import type { Category, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
@@ -171,12 +173,15 @@ function rateUnit(r: MarketRow): string {
 function RatesBoard({
   rows,
   updatedAt,
+  site,
 }: {
   rows: MarketRow[];
   updatedAt?: string | null;
+  site?: SiteSettings | null;
 }) {
   const stale = isStale(updatedAt);
   const when = formatGoldTime(updatedAt);
+  const home = site?.cms?.home;
   // LTR strip in the mock: featured ۱۸ عیار first on the left
   const ordered = useMemo(() => {
     const g18 = rows.find((r) => r.key === 'g18');
@@ -203,7 +208,9 @@ function RatesBoard({
         </div>
         <div className="rates-board-status">
           <span className={`live-dot${stale ? ' is-stale' : ''}`} />
-          {stale ? 'نرخ ممکن است به‌روز نباشد' : 'به‌روزرسانی زنده قیمت‌ها'}
+          {stale
+            ? (home?.rates_stale || 'نرخ ممکن است به‌روز نباشد')
+            : (home?.rates_live || 'به‌روزرسانی زنده قیمت‌ها')}
           {when ? ` | آخرین به‌روزرسانی: ${when}` : ''}
         </div>
       </div>
@@ -582,8 +589,15 @@ function FeaturedHandoffCard({ product }: { product: Product }) {
   );
 }
 
-function FeaturedRail({ products }: { products: Product[] }) {
+function FeaturedRail({
+  products,
+  site,
+}: {
+  products: Product[];
+  site?: SiteSettings | null;
+}) {
   const scroller = useRef<HTMLDivElement>(null);
+  const home = site?.cms?.home;
   const scrollBy = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
@@ -599,8 +613,8 @@ function FeaturedRail({ products }: { products: Product[] }) {
       <div className="section-row handoff-02-head">
         <div className="handoff-02-head-main">
           <div>
-            <h2 className="section-title tight">محصولات منتخب</h2>
-            <p className="section-sub">جدیدترین و محبوب‌ترین زیورآلات آنیل</p>
+            <h2 className="section-title tight">{home?.featured_title || 'محصولات منتخب'}</h2>
+            <p className="section-sub">{home?.featured_subtitle || 'جدیدترین و محبوب‌ترین زیورآلات آنیل'}</p>
           </div>
           <div className="rail-nav" role="group" aria-label="جابه‌جایی محصولات">
             <button type="button" className="rail-nav-btn" aria-label="قبلی" onClick={() => scrollBy(-1)}>
@@ -612,7 +626,7 @@ function FeaturedRail({ products }: { products: Product[] }) {
           </div>
         </div>
         <Link to="/products" className="outline-btn section-all-btn handoff-02-all">
-          مشاهده همه
+          {home?.featured_all || 'مشاهده همه'}
           <span aria-hidden>‹</span>
         </Link>
       </div>
@@ -629,8 +643,15 @@ function FeaturedRail({ products }: { products: Product[] }) {
 
 const CATEGORY_ORDER = [/انگشتر|سولیتر/, /گردن|زنجیر/, /دستبند|النگو/, /گوشواره/, /سکه|شمش/, /نیم.?ست|نیمست/];
 
-function CategoriesSection({ categories }: { categories: Category[] }) {
+function CategoriesSection({
+  categories,
+  site,
+}: {
+  categories: Category[];
+  site?: SiteSettings | null;
+}) {
   if (!categories.length) return null;
+  const home = site?.cms?.home;
   const ordered = [...categories].sort((a, b) => {
     const ai = CATEGORY_ORDER.findIndex((re) => re.test(`${a.name} ${a.slug}`));
     const bi = CATEGORY_ORDER.findIndex((re) => re.test(`${b.name} ${b.slug}`));
@@ -641,11 +662,11 @@ function CategoriesSection({ categories }: { categories: Category[] }) {
     <section className="container section-pad home-categories handoff-02-categories">
       <div className="section-row handoff-02-head">
         <div>
-          <h2 className="section-title tight">دسته‌بندی محصولات</h2>
-          <p className="section-sub">دسته‌بندی مورد علاقه خود را انتخاب کنید</p>
+          <h2 className="section-title tight">{home?.categories_title || 'دسته‌بندی محصولات'}</h2>
+          <p className="section-sub">{home?.categories_subtitle || 'دسته‌بندی مورد علاقه خود را انتخاب کنید'}</p>
         </div>
         <Link to="/products" className="outline-btn section-all-btn handoff-02-all">
-          مشاهده همه دسته‌ها
+          {home?.categories_all || 'مشاهده همه دسته‌ها'}
         </Link>
       </div>
       <div className="cat-rail handoff-02-cats" aria-label="دسته‌بندی‌ها">
@@ -663,7 +684,7 @@ function CategoriesSection({ categories }: { categories: Category[] }) {
               </div>
               <div className="cat-tile-copy">
                 <div className="cat-tile-title">{c.name}</div>
-                <span className="cat-tile-link">مشاهده محصولات <span aria-hidden>‹</span></span>
+                <span className="cat-tile-link">{home?.category_cta || 'مشاهده محصولات'} <span aria-hidden>‹</span></span>
               </div>
             </Link>
           );
@@ -673,23 +694,36 @@ function CategoriesSection({ categories }: { categories: Category[] }) {
   );
 }
 
-function CollectionBanner({ categories }: { categories: Category[] }) {
+function CollectionBanner({
+  categories,
+  site,
+}: {
+  categories: Category[];
+  site?: SiteSettings | null;
+}) {
+  const cms = site?.cms?.collection;
   const target =
     categories.find((c) => /نیم.?ست|سرویس|گردن/.test(`${c.name}${c.slug}`)) || categories[0];
-  const to = target ? `/products?category=${encodeURIComponent(target.slug)}` : '/products';
+  const to =
+    cms?.cta_url ||
+    (target ? `/products?category=${encodeURIComponent(target.slug)}` : '/products');
+  const img =
+    mediaUrl(site?.collection_image_url || '') ||
+    cms?.image_path ||
+    '/home/collection-banner.webp';
 
   return (
     <section className="container home-collection handoff-03-collection">
       <div
         className="handoff-03-banner"
-        style={{ backgroundImage: "url('/home/collection-banner.webp')" }}
+        style={{ backgroundImage: `url('${img}')` }}
       >
         <div className="handoff-03-banner-copy">
-          <h2>مجموعه‌ای از زیبایی ماندگار</h2>
-          <p>طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما</p>
+          <h2>{cms?.title || 'مجموعه‌ای از زیبایی ماندگار'}</h2>
+          <p>{cms?.subtitle || 'طراحی‌های خاص، مناسب لحظه‌های مهم زندگی شما'}</p>
           <Link to={to} className="handoff-03-cta">
             <span className="handoff-03-cta-chev" aria-hidden>‹</span>
-            مشاهده کلکسیون
+            {cms?.cta_label || 'مشاهده کلکسیون'}
           </Link>
         </div>
       </div>
@@ -705,8 +739,9 @@ function liveGramRate(gold: GoldPrice | null | undefined, karat: '18' | '24'): n
   return typeof fallback === 'number' && fallback > 0 ? fallback : 0;
 }
 
-function HomeGoldCalculator() {
+function HomeGoldCalculator({ site }: { site?: SiteSettings | null }) {
   const gold = useStore((s) => s.goldPrice);
+  const home = site?.cms?.home;
   const rate18 = liveGramRate(gold, '18');
   const rate24 = liveGramRate(gold, '24');
   const [weightRaw, setWeightRaw] = useState('۱۰');
@@ -738,13 +773,13 @@ function HomeGoldCalculator() {
       aria-labelledby="home-calc-title"
     >
       <div className="handoff-03-head">
-        <h2 id="home-calc-title">محاسبه قیمت آنلاین طلا</h2>
-        <p>به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.</p>
+        <h2 id="home-calc-title">{home?.calculator_title || 'محاسبه قیمت آنلاین طلا'}</h2>
+        <p>{home?.calculator_subtitle || 'به‌سادگی وزن و عیار را وارد کنید تا قیمت تقریبی را مشاهده نمایید.'}</p>
       </div>
       {/* RTL: weight (right) → karat → result (left) */}
       <div className="handoff-03-calc-grid">
         <label className="handoff-03-calc-card" htmlFor={weightId}>
-          <span className="handoff-03-calc-label">وزن (گرم)</span>
+          <span className="handoff-03-calc-label">{home?.calculator_weight_label || 'وزن (گرم)'}</span>
           <span className="handoff-03-calc-row">
             <span className="handoff-03-calc-ico" aria-hidden><IconScale size={20} /></span>
             <input
@@ -758,7 +793,7 @@ function HomeGoldCalculator() {
           </span>
         </label>
         <label className="handoff-03-calc-card" htmlFor={karatId}>
-          <span className="handoff-03-calc-label">عیار طلا</span>
+          <span className="handoff-03-calc-label">{home?.calculator_karat_label || 'عیار طلا'}</span>
           <span className="handoff-03-calc-row">
             <span className="handoff-03-calc-ico" aria-hidden><IconLayers size={20} /></span>
             <select
@@ -773,7 +808,7 @@ function HomeGoldCalculator() {
           </span>
         </label>
         <div className="handoff-03-calc-card handoff-03-calc-result" aria-live="polite">
-          <span className="handoff-03-calc-label">قیمت تقریبی</span>
+          <span className="handoff-03-calc-label">{home?.calculator_result_label || 'قیمت تقریبی'}</span>
           <span className="handoff-03-calc-row">
             <span className="handoff-03-calc-ico" aria-hidden><IconCalc size={20} /></span>
             <span className="handoff-03-calc-result-body">
@@ -790,20 +825,36 @@ function HomeGoldCalculator() {
   );
 }
 
-function WhyAnil({ heading: _heading }: { heading?: string }) {
-  const items = [
-    { key: 'live', title: 'قیمت‌گذاری لحظه‌ای', desc: 'بر پایه نرخ روز طلا', Icon: IconChart },
-    { key: 'invoice', title: 'فاکتور رسمی', desc: 'همراه با جزئیات خرید', Icon: IconInvoice },
-    { key: 'secure', title: 'خرید امن و مطمئن', desc: 'با بسته‌بندی استاندارد', Icon: IconShieldCheck },
-    { key: 'ship', title: 'ارسال سریع و بیمه‌شده', desc: 'به سراسر کشور', Icon: IconInsuredShip },
-  ];
+const WHY_ICONS = [IconChart, IconInvoice, IconShieldCheck, IconInsuredShip] as const;
+
+function WhyAnil({
+  heading,
+  site,
+}: {
+  heading?: string;
+  site?: SiteSettings | null;
+}) {
+  const cms = site?.cms?.why_anil;
+  const items = (cms?.items?.length
+    ? cms.items
+    : [
+        { title: 'قیمت لحظه‌ای', body: 'نرخ روز طلا به‌صورت زنده روی سایت به‌روز می‌شود.' },
+        { title: 'عیار ۱۸', body: 'قطعات گالری بر پایه طلای ۱۸ عیار قیمت‌گذاری می‌شوند.' },
+        { title: 'مشاوره حضوری', body: 'در ابهر کنار شما هستیم تا انتخاب مطمئن داشته باشید.' },
+        { title: 'خرید شفاف', body: 'وزن، اجرت و جزئیات قیمت قبل از سفارش مشخص است.' },
+      ]
+  ).map((item, i) => ({
+    ...item,
+    Icon: WHY_ICONS[i % WHY_ICONS.length],
+    key: `why-${i}`,
+  }));
 
   return (
     <section className="container home-why handoff-03-why">
       <div className="handoff-03-why-glow" aria-hidden />
       <div className="handoff-03-head">
-        <h2>چرا از آنیل خرید کنیم؟</h2>
-        <p>تجربه‌ای مطمئن، شفاف و لذت‌بخش از خرید طلا</p>
+        <h2>{heading || site?.trust_heading || 'چرا آنیل؟'}</h2>
+        <p>{cms?.subtitle || 'شفافیت قیمت، کیفیت ساخت، و همراهی واقعی برای انتخاب درست.'}</p>
       </div>
       <div className="handoff-03-why-grid">
         {items.map((t) => (
@@ -812,7 +863,7 @@ function WhyAnil({ heading: _heading }: { heading?: string }) {
               <t.Icon size={20} />
             </div>
             <div className="handoff-03-why-title">{t.title}</div>
-            <div className="handoff-03-why-desc">{t.desc}</div>
+            <div className="handoff-03-why-desc">{t.body}</div>
           </div>
         ))}
       </div>
@@ -820,19 +871,25 @@ function WhyAnil({ heading: _heading }: { heading?: string }) {
   );
 }
 
-function EditorialStrip() {
+function EditorialStrip({ site }: { site?: SiteSettings | null }) {
+  const cms = site?.cms?.editorial;
+  const img =
+    mediaUrl(site?.editorial_image_url || '') ||
+    cms?.image_path ||
+    '/home/editorial-triptych.webp';
+
   return (
     <section className="container home-editorial handoff-04-editorial">
       <div
         className="handoff-04-editorial-banner"
-        style={{ backgroundImage: "url('/home/editorial-triptych.webp')" }}
+        style={{ backgroundImage: `url('${img}')` }}
       >
         <div className="handoff-04-editorial-copy">
-          <h2>نگاهی نزدیک‌تر به جزئیات</h2>
-          <p>قطعات منتخب گالری را در کاتالوگ ببینید</p>
-          <Link to="/products" className="handoff-03-cta">
+          <h2>{cms?.title || 'نگاهی نزدیک‌تر به جزئیات'}</h2>
+          <p>{cms?.subtitle || 'قطعات منتخب گالری را در کاتالوگ ببینید'}</p>
+          <Link to={cms?.cta_url || '/products'} className="handoff-03-cta">
             <span className="handoff-03-cta-chev" aria-hidden>‹</span>
-            ورود به گالری
+            {cms?.cta_label || 'ورود به گالری'}
           </Link>
         </div>
       </div>
@@ -898,32 +955,33 @@ export function Home() {
           key="rates"
           rows={goldPrice.market_rows}
           updatedAt={goldPrice.created_at}
+          site={site}
         />
       ) : site?.show_rates !== false ? (
         <section key="rates-empty" id="market" className="rates-board rates-board-empty">
           <div className="container">
             <div className="rates-board-status">
               <span className="live-dot is-stale" />
-              نرخ طلا در دسترس نیست — کمی بعد دوباره تلاش کنید
+              {site?.cms?.home?.rates_empty || 'نرخ طلا در دسترس نیست — کمی بعد دوباره تلاش کنید'}
             </div>
           </div>
         </section>
       ) : null,
     featured:
       site?.show_featured !== false ? (
-        <FeaturedRail key="featured" products={featured} />
+        <FeaturedRail key="featured" products={featured} site={site} />
       ) : null,
     categories:
       site?.show_categories !== false ? (
-        <CategoriesSection key="categories" categories={categories} />
+        <CategoriesSection key="categories" categories={categories} site={site} />
       ) : null,
-    collection: <CollectionBanner key="collection" categories={categories} />,
-    calculator: <HomeGoldCalculator key="calculator" />,
+    collection: <CollectionBanner key="collection" categories={categories} site={site} />,
+    calculator: <HomeGoldCalculator key="calculator" site={site} />,
     trust:
       site?.show_trust !== false ? (
-        <WhyAnil key="trust" heading={site?.trust_heading} />
+        <WhyAnil key="trust" heading={site?.trust_heading} site={site} />
       ) : null,
-    editorial: <EditorialStrip key="editorial" />,
+    editorial: <EditorialStrip key="editorial" site={site} />,
     contact: <ContactBand key="contact" site={site} title="بازدید و تماس" />,
   };
 
