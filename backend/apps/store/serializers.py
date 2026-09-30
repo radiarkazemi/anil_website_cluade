@@ -130,6 +130,12 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     brand_logo_url = serializers.SerializerMethodField()
     hero_image_url = serializers.SerializerMethodField()
     hero_album = serializers.SerializerMethodField()
+    contact_image_url = serializers.SerializerMethodField()
+    products_promo_image_url = serializers.SerializerMethodField()
+    moments_image_url = serializers.SerializerMethodField()
+    collection_image_url = serializers.SerializerMethodField()
+    editorial_image_url = serializers.SerializerMethodField()
+    cms = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -142,9 +148,47 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "show_rates", "show_categories", "show_featured", "show_trust",
             "section_order", "trust_heading", "footer_tagline",
             "contact_phone", "contact_email", "contact_address",
+            "contact_kicker", "contact_title", "contact_body", "contact_cta_label",
+            "contact_image", "contact_image_url",
+            "map_embed_url", "map_query",
+            "footer_copyright", "footer_about_heading",
+            "cms",
+            "products_promo_image", "products_promo_image_url",
+            "moments_image", "moments_image_url",
+            "collection_image", "collection_image_url",
+            "editorial_image", "editorial_image_url",
             "top_banner", "updated_at",
         ]
         read_only_fields = ["updated_at"]
+        extra_kwargs = {
+            "contact_image": {"write_only": True, "required": False},
+            "products_promo_image": {"write_only": True, "required": False},
+            "moments_image": {"write_only": True, "required": False},
+            "collection_image": {"write_only": True, "required": False},
+            "editorial_image": {"write_only": True, "required": False},
+            "brand_logo": {"write_only": True, "required": False},
+            "hero_image": {"write_only": True, "required": False},
+        }
+
+    def get_cms(self, obj):
+        from apps.store.cms_defaults import merged_cms
+
+        return merged_cms(getattr(obj, "cms", None))
+
+    def get_contact_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.contact_image)
+
+    def get_products_promo_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.products_promo_image)
+
+    def get_moments_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.moments_image)
+
+    def get_collection_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.collection_image)
+
+    def get_editorial_image_url(self, obj):
+        return _abs_url(self.context.get("request"), obj.editorial_image)
 
     def get_brand_logo_url(self, obj):
         return _abs_url(self.context.get("request"), obj.brand_logo)
@@ -191,32 +235,94 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
 class ContentPageSerializer(serializers.ModelSerializer):
     cover_url = serializers.SerializerMethodField()
+    reads = serializers.SerializerMethodField()
+    # Accept pasted titles with ؟/! then clean in validate — avoid hard SlugField reject
+    slug = serializers.CharField(required=False, allow_blank=True, max_length=200)
 
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "body",
-            "cover", "cover_url", "is_published", "show_in_nav", "order",
-            "created_at", "updated_at",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "body",
+            "cover", "cover_url", "is_published", "show_in_nav",
+            "is_featured", "tags", "order",
+            "created_at", "updated_at", "reads",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "share_code", "created_at", "updated_at", "reads"]
+        extra_kwargs = {
+            "cover": {"write_only": True, "required": False},
+        }
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
+
+    def get_reads(self, obj):
+        reads = self.context.get("blog_reads") or {}
+        return int(reads.get(str(obj.id), 0))
+
+    def validate_tags(self, value):
+        import json
+
+        if value in (None, ""):
+            return []
+        if isinstance(value, str):
+            text = value.strip()
+            try:
+                value = json.loads(text) if text else []
+            except Exception:
+                value = [p.strip() for p in text.replace("،", ",").split(",") if p.strip()]
+        # QueryDict can nest a single list: [["a", "b"]]
+        if isinstance(value, list) and len(value) == 1 and isinstance(value[0], list):
+            value = value[0]
+        if not isinstance(value, list):
+            raise serializers.ValidationError("برچسب‌ها باید لیست باشند.")
+        out = []
+        for item in value:
+            if isinstance(item, (list, dict)):
+                continue
+            s = str(item).strip().strip("[]\"'")
+            if s and s not in out and "JSON" not in s:
+                out.append(s[:60])
+        return out[:8]
+
+    def validate(self, attrs):
+        from django.utils.text import slugify
+
+        title = attrs.get("title") or getattr(self.instance, "title", "") or ""
+        raw = attrs.get("slug", None)
+        if raw is None and self.instance is not None:
+            raw = self.instance.slug
+        cleaned = slugify((raw or title or "").strip(), allow_unicode=True)
+        if not cleaned:
+            raise serializers.ValidationError(
+                {"slug": "یک اسلاگ معتبر وارد کنید (حروف، عدد، خط‌تیره — بدون ؟ !)."}
+            )
+        # uniqueness
+        qs = ContentPage.objects.filter(slug=cleaned)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError({"slug": "این اسلاگ قبلاً استفاده شده است."})
+        attrs["slug"] = cleaned
+        return attrs
 
 
 class ContentPageListSerializer(serializers.ModelSerializer):
     cover_url = serializers.SerializerMethodField()
+    reads = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentPage
         fields = [
-            "id", "title", "slug", "page_type", "excerpt", "cover_url",
-            "show_in_nav", "order", "created_at",
+            "id", "title", "slug", "share_code", "page_type", "excerpt", "cover_url",
+            "show_in_nav", "is_featured", "tags", "order", "created_at", "reads",
         ]
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
+
+    def get_reads(self, obj):
+        reads = self.context.get("blog_reads") or {}
+        return int(reads.get(str(obj.id), 0))
 
 
 class GoldPriceSerializer(serializers.ModelSerializer):

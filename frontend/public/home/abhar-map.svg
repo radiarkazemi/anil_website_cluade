@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" fill="none">
+  <rect width="640" height="420" fill="#12100c"/>
+  <g stroke="#3a3224" stroke-width="1.2" opacity=".9">
+    <path d="M0 60 H640 M0 120 H640 M0 180 H640 M0 240 H640 M0 300 H640 M0 360 H640"/>
+    <path d="M40 0 V420 M100 0 V420 M160 0 V420 M220 0 V420 M280 0 V420 M340 0 V420 M400 0 V420 M460 0 V420 M520 0 V420 M580 0 V420"/>
+  </g>
+  <g stroke="#5a4a2e" stroke-width="1.6" opacity=".75">
+    <path d="M80 40 C160 80, 200 40, 280 90 S420 140, 520 100"/>
+    <path d="M40 200 C120 180, 200 240, 300 220 S480 200, 600 260"/>
+    <path d="M120 320 C220 280, 300 340, 420 300 S560 280, 620 340"/>
+  </g>
+  <g transform="translate(320 175)">
+    <path d="M0-48c-18 0-32 14-32 32 0 28 32 60 32 60s32-32 32-60c0-18-14-32-32-32z" fill="#d4af37"/>
+    <circle cy="-20" r="11" fill="#1a1206"/>
+  </g>
+  <text x="320" y="250" text-anchor="middle" fill="#f0e4c8" font-family="Tahoma,sans-serif" font-size="22" font-weight="700">ابهر</text>
+</svg>

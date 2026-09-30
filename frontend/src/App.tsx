@@ -16,7 +16,7 @@ import { ProductDetail } from './pages/ProductDetail';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
-import { ContentPageView } from './pages/ContentPage';
+import { BlogShareRedirect, ContentPageView } from './pages/ContentPage';
 import { Atelier } from './pages/Atelier';
 import { Account } from './pages/Account';
 import { DemoPayment } from './pages/DemoPayment';
@@ -74,6 +74,13 @@ function AppInner() {
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 
+  // Server SEO shells inject #anil-seo-content; remove it after paint so
+  // off-screen absolute positioning cannot expand RTL mobile layout width.
+  useEffect(() => {
+    document.getElementById('anil-seo-content')?.remove();
+    window.scrollTo({ left: 0, top: window.scrollY });
+  }, [pathname]);
+
   return (
     <>
       {!isPanel && <Header />}
@@ -84,6 +91,7 @@ function AppInner() {
         <Route path="/atelier" element={<Atelier />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<ContentPageView />} />
+        <Route path="/b/:code" element={<BlogShareRedirect />} />
         <Route path="/p/:slug" element={<ContentPageView />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

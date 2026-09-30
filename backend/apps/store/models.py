@@ -214,13 +214,50 @@ class SiteSettings(models.Model):
         default="زیورآلات اصیل با قیمت شفاف و لحظه‌ای.",
         blank=True,
     )
-    contact_phone = models.CharField(max_length=40, default="021-12345678", blank=True)
+    contact_phone = models.CharField(max_length=40, default="", blank=True)
     contact_email = models.CharField(max_length=120, default="info@goldanil.ir", blank=True)
-    contact_address = models.CharField(max_length=300, default="تهران، بازار بزرگ طلا", blank=True)
+    contact_address = models.CharField(max_length=300, default="ابهر، استان زنجان", blank=True)
+
+    # Contact / Abhar band (storefront chrome)
+    contact_kicker = models.CharField(max_length=80, default="درخشش با ما", blank=True)
+    contact_title = models.CharField(max_length=160, default="در شهر ابهر، در کنار شما", blank=True)
+    contact_body = models.TextField(
+        default=(
+            "گالری طلای آنیل در ابهر — مشاوره حضوری، قیمت شفاف بر پایه نرخ روز، "
+            "و همراهی برای انتخاب درست."
+        ),
+        blank=True,
+    )
+    contact_cta_label = models.CharField(max_length=80, default="تماس با ما", blank=True)
+    contact_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    # Paste Google Maps embed URL (or leave blank to auto-build from map_query / address)
+    map_embed_url = models.TextField(blank=True, default="")
+    map_query = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="عبارت جستجوی نقشه؛ خالی = آدرس تماس",
+    )
+
+    footer_copyright = models.CharField(
+        max_length=200,
+        default="تمامی حقوق برای گالری طلای آنیل محفوظ است.",
+        blank=True,
+    )
+    footer_about_heading = models.CharField(max_length=80, default="گالری طلای آنیل", blank=True)
+
+    # Flexible CMS copy for blog/products/home/footer columns — see cms_defaults.default_cms()
+    cms = models.JSONField(default=dict, blank=True)
+
+    # Optional uploaded images for promo / moments (URL fallbacks live in cms.*.image_path)
+    products_promo_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    moments_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    collection_image = models.ImageField(upload_to="site/", blank=True, null=True)
+    editorial_image = models.ImageField(upload_to="site/", blank=True, null=True)
 
     top_banner = models.CharField(
         max_length=300,
-        default="ارسال امن و بیمه‌شده به سراسر کشور · ضمانت اصالت و بازخرید · مشاوره‌ی رایگان تخصصی",
+        default="قیمت‌گذاری لحظه‌ای بر پایه‌ی نرخ روز طلا · مشاوره حضوری در گالری آنیل، ابهر",
     )
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -235,7 +272,17 @@ class SiteSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         if not obj.section_order:
-            obj.section_order = ["hero", "rates", "categories", "featured", "trust"]
+            obj.section_order = [
+                "hero",
+                "rates",
+                "featured",
+                "categories",
+                "collection",
+                "calculator",
+                "trust",
+                "editorial",
+                "contact",
+            ]
             obj.save(update_fields=["section_order"])
         return obj
 
@@ -273,12 +320,26 @@ class ContentPage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, allow_unicode=True)
+    share_code = models.CharField(
+        max_length=12,
+        blank=True,
+        unique=True,
+        help_text="کد کوتاه اشتراک‌گذاری — /b/<code>",
+    )
     page_type = models.CharField(max_length=10, choices=PageType.choices, default=PageType.PAGE)
     excerpt = models.CharField(max_length=300, blank=True)
     body = models.TextField(help_text="متن صفحه — هر خط یک پاراگراف")
     cover = models.ImageField(upload_to="pages/", blank=True, null=True)
     is_published = models.BooleanField(default=True, db_index=True)
     show_in_nav = models.BooleanField(default=True)
+    # Blog magazine: pin as the top feature banner on /blog
+    is_featured = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="اگر بلاگ باشد، به‌عنوان بنر اول مجله نمایش داده می‌شود",
+    )
+    # e.g. ["آموزش و راهنما", "بازار و قیمت طلا"]
+    tags = models.JSONField(default=list, blank=True)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -291,7 +352,29 @@ class ContentPage(models.Model):
     def __str__(self):
         return self.title
 
+    def ensure_share_code(self):
+        if self.share_code:
+            return
+        import secrets
+        import string
+
+        alphabet = string.ascii_lowercase + string.digits
+        for _ in range(20):
+            code = "".join(secrets.choice(alphabet) for _ in range(8))
+            if not ContentPage.objects.filter(share_code=code).exists():
+                self.share_code = code
+                return
+        self.share_code = uuid.uuid4().hex[:10]
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title, allow_unicode=True)
+        creating = self._state.adding
+        if creating or not self.share_code:
+            self.ensure_share_code()
+        # Only one featured blog at a time
+        if self.is_featured and self.page_type == self.PageType.BLOG:
+            ContentPage.objects.filter(
+                page_type=self.PageType.BLOG, is_featured=True
+            ).exclude(pk=self.pk).update(is_featured=False)
         super().save(*args, **kwargs)

@@ -103,6 +103,9 @@ class SiteVisitLogView(APIView):
             product_id=request.data.get("product_id"),
             screen=request.data.get("screen"),
             language=request.data.get("language"),
+            content_page_id=request.data.get("content_page_id"),
+            page_type=request.data.get("page_type"),
+            share_code=request.data.get("share_code"),
         )
         return Response({"detail": "ok"})
 
