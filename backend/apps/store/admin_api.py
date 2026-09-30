@@ -721,27 +721,56 @@ class AdminContentPageViewSet(viewsets.ModelViewSet):
 
         return ContentPageSerializer
 
+    def _as_plain_dict(self, data):
+        """QueryDict mangles list values — always normalize to a plain dict."""
+        if data is None:
+            return {}
+        if hasattr(data, "lists"):
+            out = {}
+            for key, values in data.lists():
+                out[key] = values[0] if len(values) == 1 else values
+            return out
+        if hasattr(data, "copy") and not isinstance(data, dict):
+            try:
+                return {k: data.get(k) for k in data.keys()}
+            except Exception:
+                pass
+        return dict(data)
+
     def _coerce_payload(self, data):
         import json
 
-        mutable = data.copy() if hasattr(data, "copy") else dict(data)
+        mutable = self._as_plain_dict(data)
         for flag in ("is_published", "show_in_nav", "is_featured"):
             if flag in mutable:
                 val = mutable.get(flag)
                 mutable[flag] = str(val).lower() in ("1", "true", "yes", "on")
-        if "tags" in mutable and isinstance(mutable.get("tags"), str):
+        if "tags" in mutable:
             raw = mutable.get("tags")
-            try:
-                mutable["tags"] = json.loads(raw)
-            except Exception:
-                mutable["tags"] = [p.strip() for p in str(raw).split(",") if p.strip()]
+            if isinstance(raw, list):
+                # Nested list from QueryDict.setlist quirks
+                if len(raw) == 1 and isinstance(raw[0], list):
+                    mutable["tags"] = raw[0]
+                else:
+                    mutable["tags"] = raw
+            elif isinstance(raw, str):
+                text = raw.strip()
+                parsed = None
+                if text:
+                    try:
+                        parsed = json.loads(text)
+                    except Exception:
+                        try:
+                            # Accept Python-ish single quotes from bad clients
+                            parsed = json.loads(text.replace("'", '"'))
+                        except Exception:
+                            parsed = [p.strip() for p in text.replace("،", ",").split(",") if p.strip()]
+                mutable["tags"] = parsed if isinstance(parsed, list) else []
+            elif raw in (None, ""):
+                mutable["tags"] = []
         clear_cover = False
         if "clear_cover" in mutable:
-            clear_cover = str(mutable.get("clear_cover")).lower() in ("1", "true", "yes", "on")
-            try:
-                mutable.pop("clear_cover")
-            except Exception:
-                pass
+            clear_cover = str(mutable.pop("clear_cover", "")).lower() in ("1", "true", "yes", "on")
         return mutable, clear_cover
 
     def _apply_clear_cover(self, obj):

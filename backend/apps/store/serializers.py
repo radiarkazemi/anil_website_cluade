@@ -255,21 +255,27 @@ class ContentPageSerializer(serializers.ModelSerializer):
         return _abs_url(self.context.get("request"), obj.cover)
 
     def validate_tags(self, value):
+        import json
+
         if value in (None, ""):
             return []
         if isinstance(value, str):
-            import json
-
+            text = value.strip()
             try:
-                value = json.loads(value)
+                value = json.loads(text) if text else []
             except Exception:
-                value = [p.strip() for p in value.split(",") if p.strip()]
+                value = [p.strip() for p in text.replace("،", ",").split(",") if p.strip()]
+        # QueryDict can nest a single list: [["a", "b"]]
+        if isinstance(value, list) and len(value) == 1 and isinstance(value[0], list):
+            value = value[0]
         if not isinstance(value, list):
             raise serializers.ValidationError("برچسب‌ها باید لیست باشند.")
         out = []
         for item in value:
-            s = str(item).strip()
-            if s and s not in out:
+            if isinstance(item, (list, dict)):
+                continue
+            s = str(item).strip().strip("[]\"'")
+            if s and s not in out and "JSON" not in s:
                 out.append(s[:60])
         return out[:8]
 

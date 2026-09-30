@@ -139,10 +139,31 @@ export function AdminPages() {
       fd.append('is_published', String(form.is_published !== false));
       fd.append('show_in_nav', String(!!form.show_in_nav));
       fd.append('is_featured', String(!!form.is_featured));
-      fd.append('tags', JSON.stringify(form.tags || []));
       fd.append('order', String(Number(form.order || 0)));
+      // Send tags as repeated fields + JSON for robust multipart parsing
+      const tags = (form.tags || []).map((t) => String(t).trim()).filter(Boolean);
+      fd.append('tags', JSON.stringify(tags));
       if (form._coverFile) fd.append('cover', form._coverFile);
       else if (form.id && form._clearCover) fd.append('clear_cover', 'true');
+
+      // Prefer JSON when no file upload — avoids multipart JSONField quirks
+      if (!form._coverFile) {
+        const payload: Record<string, unknown> = {
+          title: form.title || '',
+          slug: cleanSlug,
+          page_type: form.page_type || 'page',
+          excerpt: form.excerpt || '',
+          body: form.body || '',
+          is_published: form.is_published !== false,
+          show_in_nav: !!form.show_in_nav,
+          is_featured: !!form.is_featured,
+          tags,
+          order: Number(form.order || 0),
+        };
+        if (form.id && form._clearCover) payload.clear_cover = true;
+        if (form.id) return api.adminUpdatePage(form.id, payload);
+        return api.adminCreatePage(payload);
+      }
 
       if (form.id) {
         return api.adminUpdatePage(form.id, fd);
