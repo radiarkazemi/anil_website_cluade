@@ -706,6 +706,7 @@ class AdminHeroAlbumReorderView(APIView):
 
 class AdminContentPageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
     lookup_field = "id"
     search_fields = ["title", "slug", "excerpt"]
     filterset_fields = ["page_type", "is_published", "show_in_nav"]
@@ -719,6 +720,56 @@ class AdminContentPageViewSet(viewsets.ModelViewSet):
         from apps.store.serializers import ContentPageSerializer
 
         return ContentPageSerializer
+
+    def _coerce_payload(self, data):
+        mutable = data.copy() if hasattr(data, "copy") else dict(data)
+        for flag in ("is_published", "show_in_nav"):
+            if flag in mutable:
+                val = mutable.get(flag)
+                mutable[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        clear_cover = False
+        if "clear_cover" in mutable:
+            clear_cover = str(mutable.get("clear_cover")).lower() in ("1", "true", "yes", "on")
+            try:
+                mutable.pop("clear_cover")
+            except Exception:
+                pass
+        return mutable, clear_cover
+
+    def _apply_clear_cover(self, obj):
+        if obj.cover:
+            obj.cover.delete(save=False)
+        obj.cover = None
+        obj.save(update_fields=["cover", "updated_at"])
+        return Response(self.get_serializer(obj).data)
+
+    def create(self, request, *args, **kwargs):
+        data, _clear = self._coerce_payload(request.data)
+        ser = self.get_serializer(data=data)
+        ser.is_valid(raise_exception=True)
+        self.perform_create(ser)
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data, clear_cover = self._coerce_payload(request.data)
+        ser = self.get_serializer(instance, data=data, partial=True)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        if clear_cover:
+            return self._apply_clear_cover(self.get_object())
+        return Response(ser.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        data, clear_cover = self._coerce_payload(request.data)
+        ser = self.get_serializer(instance, data=data, partial=partial)
+        ser.is_valid(raise_exception=True)
+        self.perform_update(ser)
+        if clear_cover:
+            return self._apply_clear_cover(self.get_object())
+        return Response(ser.data)
 
 
 class AdminCategoryImageUploadView(APIView):

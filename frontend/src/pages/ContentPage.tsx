@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
+import { ContentBody } from '../components/ContentBody';
+import { mediaUrl } from '../utils/mediaUrl';
 
 export function ContentPageView() {
   const { slug = '' } = useParams();
@@ -22,7 +24,7 @@ export function ContentPageView() {
     );
   }
 
-  const paragraphs = (data.body || '').split(/\n+/).filter(Boolean);
+  const cover = mediaUrl(data.cover_url || '');
 
   return (
     <article className="container section-pad content-page">
@@ -31,15 +33,13 @@ export function ContentPageView() {
         <h1 className="section-title tight">{data.title}</h1>
         {data.excerpt && <p className="content-excerpt">{data.excerpt}</p>}
       </div>
-      {data.cover_url && (
+      {cover && (
         <div className="content-cover">
-          <img src={data.cover_url} alt={data.title} />
+          <img src={cover} alt={data.title} />
         </div>
       )}
       <div className="content-body">
-        {paragraphs.map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
+        <ContentBody body={data.body || ''} />
       </div>
       <div className="content-page-foot">
         <Link to={data.page_type === 'blog' ? '/blog' : '/'} className="outline-btn">
