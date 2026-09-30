@@ -3179,6 +3179,8 @@ body.nav-open { overflow: hidden; }
   align-items: center;
   gap: 8px;
   margin: 4px 0 2px;
+  width: 100%;
+  min-width: 0;
 }
 .blog-reads-label {
   display: inline-flex;
@@ -3268,6 +3270,22 @@ body.nav-open { overflow: hidden; }
   min-height: 28px;
   padding: 0 10px;
   font-size: 12px;
+}
+.handoff-article .section-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.handoff-article .content-excerpt {
+  max-width: none;
+}
+.handoff-article .share-bar,
+.handoff-article .blog-share-bar,
+.handoff-article .blog-share-foot {
+  max-width: 100%;
+  min-width: 0;
+}
+.handoff-article .share-bar-url {
+  min-width: 0;
 }
 .blog-grid {
   display: grid;
@@ -8026,18 +8044,21 @@ body.nav-open { overflow: hidden; }
   .handoff-blog-card,
   .handoff-blog-card.is-featured,
   .handoff-blog-grid .handoff-blog-card {
-    grid-template-columns: 1.15fr 0.95fr;
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 36%);
+    align-items: stretch;
   }
   .handoff-blog-cover,
   .handoff-blog-card.is-featured .handoff-blog-cover,
   .handoff-blog-grid .handoff-blog-cover {
-    aspect-ratio: 1 / 1;
-    min-height: 0;
+    aspect-ratio: auto;
+    align-self: stretch;
+    min-height: 148px;
     order: 1;
   }
   .handoff-blog-body,
   .handoff-blog-grid .handoff-blog-body {
     order: 0;
+    min-width: 0;
   }
   .handoff-blog-grid { grid-template-columns: 1fr; }
   .handoff-products-smart { grid-template-columns: 1fr; }
@@ -8727,6 +8748,9 @@ html, body {
   }
 
   /* Blog mobile — horizontal cards matching handoff */
+  .handoff-blog {
+    overflow-x: clip;
+  }
   .handoff-blog-hero {
     min-height: 200px;
   }
@@ -8756,41 +8780,141 @@ html, body {
   .handoff-blog-card,
   .handoff-blog-card.is-featured,
   .handoff-blog-grid .handoff-blog-card {
-    grid-template-columns: 1.2fr 1fr !important;
+    /* body gets more width; cover stays compact square-ish column */
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 36%) !important;
     min-height: 0 !important;
+    align-items: stretch;
   }
   .handoff-blog-card .handoff-blog-body,
   .handoff-blog-grid .handoff-blog-body {
     order: 0 !important;
-    padding: 12px 14px !important;
-    gap: 8px;
+    padding: 12px 12px 14px !important;
+    gap: 7px;
+    min-width: 0;
+    width: 100%;
   }
   .handoff-blog-card .handoff-blog-cover,
   .handoff-blog-grid .handoff-blog-cover {
     order: 1 !important;
-    aspect-ratio: 1 / 1 !important;
-    min-height: 0 !important;
+    /* stretch with body so CTA/meta are never clipped by square aspect */
+    aspect-ratio: auto !important;
+    align-self: stretch !important;
+    min-height: 148px !important;
+    height: auto !important;
   }
   .handoff-blog-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+  .handoff-blog-topic {
+    font-size: 10.5px;
+    padding: 3px 8px;
+  }
   .handoff-blog-title,
   .handoff-blog-card.is-featured .handoff-blog-title,
   .handoff-blog-grid .handoff-blog-title {
-    font-size: 14.5px !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .handoff-blog-excerpt,
   .handoff-blog-grid .handoff-blog-excerpt {
     -webkit-line-clamp: 2 !important;
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     min-height: 0 !important;
-    line-height: 1.7 !important;
+    line-height: 1.65 !important;
+  }
+  .handoff-blog-meta {
+    gap: 6px;
+    margin: 2px 0 0;
+  }
+  .handoff-blog-meta .blog-reads-label {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .handoff-blog-share {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: 11px;
   }
   .handoff-blog-cta {
     min-height: 34px !important;
     padding: 0 12px !important;
     font-size: 12px !important;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+
+  /* Blog article mobile */
+  .handoff-article.content-page {
+    max-width: 100%;
+    padding-bottom: 28px;
+    overflow-x: clip;
+  }
+  .handoff-article .content-page-head {
+    margin-bottom: 18px;
+  }
+  .handoff-article .section-title {
+    font-size: clamp(22px, 6.4vw, 28px);
+    line-height: 1.45;
+  }
+  .handoff-article .content-excerpt {
+    font-size: 14px;
+    line-height: 1.85;
+    margin-top: 10px;
+  }
+  .handoff-article-meta {
+    gap: 6px 8px;
+    font-size: 12px;
+    margin-top: 12px;
+  }
+  .handoff-article .blog-reads-label {
+    font-size: 10.5px;
+  }
+  .handoff-article .content-cover {
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+  .handoff-article .content-cover img {
+    max-height: 220px;
+  }
+  .handoff-article .share-bar {
+    margin-top: 14px;
+    padding-top: 12px;
+    gap: 8px;
+  }
+  .handoff-article .share-bar-label {
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+  .handoff-article .share-bar-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .handoff-article .share-chip {
+    min-height: 40px;
+    width: 100%;
+    padding: 0 10px;
+    font-size: 12.5px;
+  }
+  .handoff-article .blog-share-foot {
+    padding-block: 4px 8px;
+  }
+  .handoff-article .content-page-foot {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .handoff-article .content-page-foot .outline-btn,
+  .handoff-article .content-page-foot .gold-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 
   /* Products mobile */
@@ -8990,7 +9114,34 @@ html, body {
   .handoff-blog-card,
   .handoff-blog-card.is-featured,
   .handoff-blog-grid .handoff-blog-card {
-    grid-template-columns: 1.15fr 0.95fr !important;
+    grid-template-columns: 1fr !important;
+  }
+  .handoff-blog-card .handoff-blog-cover,
+  .handoff-blog-grid .handoff-blog-cover {
+    order: 0 !important;
+    aspect-ratio: 16 / 10 !important;
+    min-height: 0 !important;
+    max-height: 180px;
+  }
+  .handoff-blog-card .handoff-blog-body,
+  .handoff-blog-grid .handoff-blog-body {
+    order: 1 !important;
+    padding: 14px 14px 16px !important;
+  }
+  .handoff-blog-title,
+  .handoff-blog-card.is-featured .handoff-blog-title,
+  .handoff-blog-grid .handoff-blog-title {
+    font-size: 16px !important;
+    -webkit-line-clamp: 3;
+  }
+  .handoff-blog-excerpt,
+  .handoff-blog-grid .handoff-blog-excerpt {
+    -webkit-line-clamp: 2 !important;
+    font-size: 12.5px !important;
+  }
+  .handoff-blog-cta {
+    width: 100%;
+    justify-content: center;
   }
   .handoff-pc-cat { font-size: 10px; }
   .handoff-pd-secondary {
