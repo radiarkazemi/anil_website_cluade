@@ -128,6 +128,9 @@ def log_site_visit(
     product_id: str | None = None,
     screen: str | None = None,
     language: str | None = None,
+    content_page_id: str | None = None,
+    page_type: str | None = None,
+    share_code: str | None = None,
 ) -> None:
     """Record a storefront page view for traffic analytics."""
     db = get_db()
@@ -152,6 +155,12 @@ def log_site_visit(
         "product_id": product_id,
         "ts": datetime.now(timezone.utc),
     }
+    if content_page_id:
+        doc["content_page_id"] = str(content_page_id)[:64]
+    if page_type:
+        doc["page_type"] = str(page_type)[:20]
+    if share_code:
+        doc["share_code"] = str(share_code)[:24]
     db.page_views.insert_one(doc)
 
 
@@ -493,6 +502,72 @@ def iter_traffic_rows(
         if isinstance(row.get("ts"), datetime):
             row["ts"] = row["ts"].isoformat()
     return rows
+
+
+def get_blog_read_counts(
+    pages: list[dict[str, Any]],
+) -> dict[str, int]:
+    """Aggregate read counts for blog posts.
+
+    ``pages`` items: ``{"id": str, "slug": str | None, "share_code": str | None}``.
+    Returns ``{content_page_id: views}``.
+    """
+    empty = {str(p.get("id")): 0 for p in pages if p.get("id")}
+    if not pages:
+        return {}
+    db = get_db()
+    if db is None:
+        return empty
+
+    id_list = [str(p["id"]) for p in pages if p.get("id")]
+    slug_paths: dict[str, str] = {}
+    code_paths: dict[str, str] = {}
+    for p in pages:
+        pid = str(p.get("id") or "")
+        if not pid:
+            continue
+        slug = (p.get("slug") or "").strip()
+        if slug and slug != "بلاگ":
+            slug_paths[_normalize_path(f"/blog/{slug}")] = pid
+        code = (p.get("share_code") or "").strip()
+        if code:
+            code_paths[_normalize_path(f"/b/{code}")] = pid
+            code_paths[code] = pid
+
+    path_values = list(slug_paths.keys()) + [p for p in code_paths if p.startswith("/")]
+    or_clauses: list[dict[str, Any]] = []
+    if id_list:
+        or_clauses.append({"content_page_id": {"$in": id_list}})
+    if path_values:
+        or_clauses.append({"path": {"$in": path_values}})
+    codes = [c for c in code_paths if not c.startswith("/")]
+    if codes:
+        or_clauses.append({"share_code": {"$in": codes}})
+    if not or_clauses:
+        return empty
+
+    match = {"device": {"$ne": "bot"}, "$or": or_clauses}
+    counts = {pid: 0 for pid in id_list}
+
+    for row in db.page_views.find(
+        match,
+        {"_id": 0, "content_page_id": 1, "path": 1, "share_code": 1},
+    ):
+        pid = None
+        cid = row.get("content_page_id")
+        if cid and str(cid) in counts:
+            pid = str(cid)
+        if not pid:
+            path = _normalize_path(row.get("path") or "")
+            pid = slug_paths.get(path) or code_paths.get(path)
+        if not pid:
+            sc = (row.get("share_code") or "").strip()
+            if sc:
+                pid = code_paths.get(sc)
+        if pid and pid in counts:
+            counts[pid] += 1
+
+    return counts
 
 
 def log_audit(action: str, user_id: str | None = None, detail: dict | None = None) -> None:

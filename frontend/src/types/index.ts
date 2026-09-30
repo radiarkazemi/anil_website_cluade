@@ -202,6 +202,8 @@ export interface ContentPage {
   is_featured?: boolean;
   /** Topic chips shown on magazine cards, e.g. ["آموزش و راهنما", "بازار و قیمت طلا"] */
   tags?: string[];
+  /** Aggregated public read/view count from analytics */
+  reads?: number;
   order: number;
   created_at: string;
   updated_at?: string;

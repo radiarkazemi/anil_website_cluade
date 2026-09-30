@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { api } from '../api/endpoints';
+import { CopyShortLinkButton } from '../components/ShareBar';
 import { SecondaryPageChrome } from '../components/SiteChrome';
 import { usePageSeo } from '../hooks/usePageSeo';
 import type { ContentPage } from '../types';
+import { faNum } from '../utils/format';
 import { mediaUrl } from '../utils/mediaUrl';
 
 function blogTopics(post: ContentPage): string[] {
@@ -47,6 +49,12 @@ function BlogCard({
           <Link to={to}>{post.title}</Link>
         </h2>
         {post.excerpt ? <p className="handoff-blog-excerpt">{post.excerpt}</p> : null}
+        <div className="handoff-blog-meta">
+          <span className="blog-reads-label">{faNum(post.reads || 0)} بازدید</span>
+          {post.share_code ? (
+            <CopyShortLinkButton shareCode={post.share_code} label="اشتراک" className="handoff-blog-share" />
+          ) : null}
+        </div>
         <Link to={to} className="handoff-blog-cta">
           {ctaLabel}
           <span aria-hidden className="handoff-blog-cta-chev">‹</span>
