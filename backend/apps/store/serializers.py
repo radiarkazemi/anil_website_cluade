@@ -235,6 +235,8 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
 class ContentPageSerializer(serializers.ModelSerializer):
     cover_url = serializers.SerializerMethodField()
+    # Accept pasted titles with ؟/! then clean in validate — avoid hard SlugField reject
+    slug = serializers.CharField(required=False, allow_blank=True, max_length=200)
 
     class Meta:
         model = ContentPage
@@ -250,6 +252,27 @@ class ContentPageSerializer(serializers.ModelSerializer):
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
+
+    def validate(self, attrs):
+        from django.utils.text import slugify
+
+        title = attrs.get("title") or getattr(self.instance, "title", "") or ""
+        raw = attrs.get("slug", None)
+        if raw is None and self.instance is not None:
+            raw = self.instance.slug
+        cleaned = slugify((raw or title or "").strip(), allow_unicode=True)
+        if not cleaned:
+            raise serializers.ValidationError(
+                {"slug": "یک اسلاگ معتبر وارد کنید (حروف، عدد، خط‌تیره — بدون ؟ !)."}
+            )
+        # uniqueness
+        qs = ContentPage.objects.filter(slug=cleaned)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError({"slug": "این اسلاگ قبلاً استفاده شده است."})
+        attrs["slug"] = cleaned
+        return attrs
 
 
 class ContentPageListSerializer(serializers.ModelSerializer):

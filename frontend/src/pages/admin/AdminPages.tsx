@@ -41,11 +41,13 @@ function unwrapList(data: unknown): ContentPage[] {
   return [];
 }
 
+/** Unicode letters/numbers + `_`/`-` only — strips ؟ ? ! and other punctuation. */
 function slugifyFa(title: string): string {
   return title
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\w\u0600-\u06FF-]+/g, '')
+    .replace(/[؟?!.,،؛:…"«»()\[\]{}<>\/\\'"`~@#$%^&*+=|]+/g, '')
+    .replace(/[^\p{L}\p{N}_-]+/gu, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 180);
@@ -119,8 +121,9 @@ export function AdminPages() {
     mutationFn: async () => {
       if (!form) throw new Error('no form');
       const fd = new FormData();
+      const cleanSlug = slugifyFa(form.slug || form.title || '');
       fd.append('title', form.title || '');
-      fd.append('slug', form.slug || '');
+      fd.append('slug', cleanSlug);
       fd.append('page_type', form.page_type || 'page');
       fd.append('excerpt', form.excerpt || '');
       fd.append('body', form.body || '');
@@ -267,8 +270,17 @@ export function AdminPages() {
                       setSlugTouched(true);
                       setForm({ ...form, slug: e.target.value });
                     }}
-                    placeholder="slug-example"
+                    onBlur={() => {
+                      const cleaned = slugifyFa(form.slug || '');
+                      if (cleaned !== (form.slug || '')) {
+                        setForm({ ...form, slug: cleaned });
+                      }
+                    }}
+                    placeholder="مثال-عنوان-بلاگ"
                   />
+                  <small className="admin-field-hint">
+                    فقط حروف، عدد، خط‌تیره — بدون ؟ ! و علائم
+                  </small>
                 </label>
                 <label>
                   <span>نوع</span>
