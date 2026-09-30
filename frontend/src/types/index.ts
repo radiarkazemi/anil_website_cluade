@@ -198,6 +198,10 @@ export interface ContentPage {
   cover_url?: string | null;
   is_published?: boolean;
   show_in_nav: boolean;
+  /** Pin as the top feature banner on /blog */
+  is_featured?: boolean;
+  /** Topic chips shown on magazine cards, e.g. ["آموزش و راهنما", "بازار و قیمت طلا"] */
+  tags?: string[];
   order: number;
   created_at: string;
   updated_at?: string;

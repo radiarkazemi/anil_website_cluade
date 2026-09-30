@@ -332,6 +332,14 @@ class ContentPage(models.Model):
     cover = models.ImageField(upload_to="pages/", blank=True, null=True)
     is_published = models.BooleanField(default=True, db_index=True)
     show_in_nav = models.BooleanField(default=True)
+    # Blog magazine: pin as the top feature banner on /blog
+    is_featured = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="اگر بلاگ باشد، به‌عنوان بنر اول مجله نمایش داده می‌شود",
+    )
+    # e.g. ["آموزش و راهنما", "بازار و قیمت طلا"]
+    tags = models.JSONField(default=list, blank=True)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -364,4 +372,9 @@ class ContentPage(models.Model):
         creating = self._state.adding
         if creating or not self.share_code:
             self.ensure_share_code()
+        # Only one featured blog at a time
+        if self.is_featured and self.page_type == self.PageType.BLOG:
+            ContentPage.objects.filter(
+                page_type=self.PageType.BLOG, is_featured=True
+            ).exclude(pk=self.pk).update(is_featured=False)
         super().save(*args, **kwargs)

@@ -722,11 +722,19 @@ class AdminContentPageViewSet(viewsets.ModelViewSet):
         return ContentPageSerializer
 
     def _coerce_payload(self, data):
+        import json
+
         mutable = data.copy() if hasattr(data, "copy") else dict(data)
-        for flag in ("is_published", "show_in_nav"):
+        for flag in ("is_published", "show_in_nav", "is_featured"):
             if flag in mutable:
                 val = mutable.get(flag)
                 mutable[flag] = str(val).lower() in ("1", "true", "yes", "on")
+        if "tags" in mutable and isinstance(mutable.get("tags"), str):
+            raw = mutable.get("tags")
+            try:
+                mutable["tags"] = json.loads(raw)
+            except Exception:
+                mutable["tags"] = [p.strip() for p in str(raw).split(",") if p.strip()]
         clear_cover = False
         if "clear_cover" in mutable:
             clear_cover = str(mutable.get("clear_cover")).lower() in ("1", "true", "yes", "on")

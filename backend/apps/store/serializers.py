@@ -242,7 +242,8 @@ class ContentPageSerializer(serializers.ModelSerializer):
         model = ContentPage
         fields = [
             "id", "title", "slug", "share_code", "page_type", "excerpt", "body",
-            "cover", "cover_url", "is_published", "show_in_nav", "order",
+            "cover", "cover_url", "is_published", "show_in_nav",
+            "is_featured", "tags", "order",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "share_code", "created_at", "updated_at"]
@@ -252,6 +253,25 @@ class ContentPageSerializer(serializers.ModelSerializer):
 
     def get_cover_url(self, obj):
         return _abs_url(self.context.get("request"), obj.cover)
+
+    def validate_tags(self, value):
+        if value in (None, ""):
+            return []
+        if isinstance(value, str):
+            import json
+
+            try:
+                value = json.loads(value)
+            except Exception:
+                value = [p.strip() for p in value.split(",") if p.strip()]
+        if not isinstance(value, list):
+            raise serializers.ValidationError("برچسب‌ها باید لیست باشند.")
+        out = []
+        for item in value:
+            s = str(item).strip()
+            if s and s not in out:
+                out.append(s[:60])
+        return out[:8]
 
     def validate(self, attrs):
         from django.utils.text import slugify
@@ -282,7 +302,7 @@ class ContentPageListSerializer(serializers.ModelSerializer):
         model = ContentPage
         fields = [
             "id", "title", "slug", "share_code", "page_type", "excerpt", "cover_url",
-            "show_in_nav", "order", "created_at",
+            "show_in_nav", "is_featured", "tags", "order", "created_at",
         ]
 
     def get_cover_url(self, obj):

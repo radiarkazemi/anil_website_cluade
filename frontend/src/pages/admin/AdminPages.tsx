@@ -23,9 +23,18 @@ const emptyBlog: FormState = {
   body: '',
   is_published: true,
   show_in_nav: false,
+  is_featured: false,
+  tags: [],
   order: 0,
   _coverFile: null,
 };
+
+const SUGGESTED_TAGS = [
+  'آموزش و راهنما',
+  'بازار و قیمت طلا',
+  'آگاهی و تشخیص',
+  'سبک زندگی',
+];
 
 const emptyPage: FormState = {
   ...emptyBlog,
@@ -129,6 +138,8 @@ export function AdminPages() {
       fd.append('body', form.body || '');
       fd.append('is_published', String(form.is_published !== false));
       fd.append('show_in_nav', String(!!form.show_in_nav));
+      fd.append('is_featured', String(!!form.is_featured));
+      fd.append('tags', JSON.stringify(form.tags || []));
       fd.append('order', String(Number(form.order || 0)));
       if (form._coverFile) fd.append('cover', form._coverFile);
       else if (form.id && form._clearCover) fd.append('clear_cover', 'true');
@@ -453,6 +464,47 @@ export function AdminPages() {
                 />
               </label>
 
+              {form.page_type === 'blog' ? (
+                <div className="admin-blog-tags" style={{ marginTop: 16 }}>
+                  <span style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>برچسب‌های مجله</span>
+                  <input
+                    className="input"
+                    value={(form.tags || []).join('، ')}
+                    onChange={(e) => {
+                      const tags = e.target.value
+                        .split(/[,،]/)
+                        .map((t) => t.trim())
+                        .filter(Boolean);
+                      setForm({ ...form, tags });
+                    }}
+                    placeholder="آموزش و راهنما، بازار و قیمت طلا"
+                  />
+                  <small className="admin-field-hint">با ویرگول جدا کنید — روی بنر و کارت‌ها دیده می‌شوند</small>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                    {SUGGESTED_TAGS.map((tag) => {
+                      const active = (form.tags || []).includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`outline-btn${active ? ' is-active' : ''}`}
+                          style={{ padding: '6px 12px', fontSize: 12 }}
+                          onClick={() => {
+                            const cur = form.tags || [];
+                            setForm({
+                              ...form,
+                              tags: active ? cur.filter((t) => t !== tag) : [...cur, tag],
+                            });
+                          }}
+                        >
+                          {active ? '✓ ' : '+ '}{tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="admin-blog-flags">
                 <label className="layout-toggle">
                   <input
@@ -470,6 +522,16 @@ export function AdminPages() {
                   />
                   نمایش در منوی سایت
                 </label>
+                {form.page_type === 'blog' ? (
+                  <label className="layout-toggle">
+                    <input
+                      type="checkbox"
+                      checked={!!form.is_featured}
+                      onChange={(e) => setForm({ ...form, is_featured: e.target.checked })}
+                    />
+                    بنر اول مجله (بالای صفحه بلاگ)
+                  </label>
+                ) : null}
               </div>
             </div>
           </div>

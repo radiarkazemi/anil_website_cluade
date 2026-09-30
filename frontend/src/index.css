@@ -7663,6 +7663,12 @@ body.nav-open { overflow: hidden; }
   gap: 10px;
   padding: 22px 22px 24px;
 }
+.handoff-blog-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
 .handoff-blog-topic {
   display: inline-flex;
   align-items: center;
