@@ -5,7 +5,7 @@ import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
 import { useToast } from '../store/toastStore';
-import { calcPrice, faNum, faPrice } from '../utils/format';
+import { calcPrice, faNum, faPrice, faWeight } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import type { Product } from '../types';
 import { IconGoldBox } from './icons';
@@ -214,7 +214,7 @@ export function CartDrawer() {
                   <div className="goldbox-item-body">
                     <div className="goldbox-item-name">{c.product.name}</div>
                     <div className="goldbox-item-meta">
-                      {c.product.category_name} · {c.product.weight_g != null ? `${faNum(Number(c.product.weight_g))} گرم` : 'وزن نامشخص'}
+                      {c.product.category_name} · {c.product.weight_g != null ? `${faWeight(Number(c.product.weight_g))} گرم` : 'وزن نامشخص'}
                     </div>
                     <div className="goldbox-item-row">
                       <div className="pd-qty compact">

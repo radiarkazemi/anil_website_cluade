@@ -23,7 +23,7 @@ import { ContactBand, SiteFooter } from '../components/SiteChrome';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
-import { calcPrice, faNum, faPrice } from '../utils/format';
+import { calcPrice, faNum, faPrice, parseWeightGrams, WEIGHT_DECIMALS } from '../utils/format';
 import { mediaUrl } from '../utils/mediaUrl';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import type { Category, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
@@ -748,15 +748,7 @@ function HomeGoldCalculator({ site }: { site?: SiteSettings | null }) {
   const weightId = useId();
   const karatId = useId();
 
-  const weight = useMemo(() => {
-    const n = Number(
-      String(weightRaw)
-        .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-        .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-        .replace(/[^\d.]/g, ''),
-    );
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  }, [weightRaw]);
+  const weight = useMemo(() => parseWeightGrams(weightRaw), [weightRaw]);
 
   const rate = karat === '24' ? rate24 : rate18;
   // True live gold value only (weight × rate) — no sample fee/profit/tax.
@@ -786,8 +778,22 @@ function HomeGoldCalculator({ site }: { site?: SiteSettings | null }) {
               inputMode="decimal"
               className="handoff-03-calc-control"
               value={weightRaw}
-              onChange={(e) => setWeightRaw(e.target.value)}
+              onChange={(e) => {
+                let s = String(e.target.value)
+                  .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+                  .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+                  .replace(/,/g, '.')
+                  .replace(/[^\d.]/g, '');
+                const firstDot = s.indexOf('.');
+                if (firstDot !== -1) {
+                  s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+                  const [whole, frac = ''] = s.split('.');
+                  s = `${whole}.${frac.slice(0, WEIGHT_DECIMALS)}`;
+                }
+                setWeightRaw(s);
+              }}
               aria-describedby="home-calc-hint"
+              placeholder="مثلاً 4.125"
             />
           </span>
         </label>

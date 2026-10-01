@@ -18,6 +18,7 @@ import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
 import { BlogShareRedirect, ContentPageView } from './pages/ContentPage';
 import { Atelier } from './pages/Atelier';
+import { Tools } from './pages/Tools';
 import { Account } from './pages/Account';
 import { DemoPayment } from './pages/DemoPayment';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -89,6 +90,7 @@ function AppInner() {
         <Route path="/products" element={<Products />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
         <Route path="/atelier" element={<Atelier />} />
+        <Route path="/tools" element={<Tools />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<ContentPageView />} />
         <Route path="/b/:code" element={<BlogShareRedirect />} />
