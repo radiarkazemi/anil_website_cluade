@@ -72,7 +72,14 @@ export function Products() {
   const categories = categoriesData ?? [];
   const products = data?.pages.flatMap((p) => p.results) ?? [];
   const totalCount = data?.pages[0]?.count ?? products.length;
-  const chips = [{ slug: 'all', name: 'همه' }, ...categories.map((c) => ({ slug: c.slug, name: c.name }))];
+  const chips = [
+    { slug: 'all', name: 'همه', image: null as string | null },
+    ...categories.map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      image: mediaUrl(c.image_url || c.image) || null,
+    })),
+  ];
   const title = search.trim()
     ? `نتایج «${search.trim()}»`
     : category === 'all'
@@ -163,14 +170,28 @@ export function Products() {
             <div className="filter-chips" role="listbox" aria-label="دسته‌بندی">
               {chips.map((c) => {
                 const active = category === c.slug;
+                const hasImage = Boolean(c.image);
                 return (
                   <button
                     key={c.slug}
                     type="button"
-                    className={`filter-chip${active ? ' active' : ''}`}
+                    role="option"
+                    aria-selected={active}
+                    className={`filter-chip${active ? ' active' : ''}${hasImage ? ' has-image' : ''}`}
                     onClick={() => setParams((p) => { p.set('category', c.slug); return p; })}
                   >
-                    {c.name}
+                    {hasImage ? (
+                      <img
+                        className="filter-chip-img"
+                        src={c.image!}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width={40}
+                        height={40}
+                      />
+                    ) : null}
+                    <span className="filter-chip-label">{c.name}</span>
                   </button>
                 );
               })}

@@ -16,6 +16,7 @@ import {
   IconHeart,
   IconInsuredShip,
   IconInvoice,
+  IconSearch,
   IconShieldCheck,
   IconShoppingBag,
 } from '../components/icons';
@@ -404,6 +405,45 @@ function HeroCta({
   return <Link to={href.startsWith('/') ? href : `/${href}`} className={className}>{children}</Link>;
 }
 
+function HomeMobileSearch() {
+  const nav = useNavigate();
+  const [q, setQ] = useState('');
+
+  return (
+    <form
+      className="handoff-home-search"
+      role="search"
+      aria-label="جستجوی محصولات"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const v = q.trim();
+        if (v) nav(`/products?search=${encodeURIComponent(v)}`);
+        else nav('/products');
+      }}
+    >
+      <span className="handoff-home-search-ico" aria-hidden>
+        <IconSearch size={16} />
+      </span>
+      <label className="sr-only" htmlFor="handoff-home-search-input">
+        جستجو در محصولات، دسته‌ها و مقالات
+      </label>
+      <input
+        id="handoff-home-search-input"
+        type="search"
+        name="q"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="جستجو در محصولات، دسته‌ها و مقالات ..."
+        enterKeyHint="search"
+        autoComplete="off"
+      />
+      <button type="submit" className="sr-only">
+        جستجو
+      </button>
+    </form>
+  );
+}
+
 function HeroSection({ site }: { site?: SiteSettings }) {
   const title = (site?.hero_title || 'طلا،\nآن‌گونه که باید بدرخشد').split('\n');
   const slides = useHeroSlides(site);
@@ -418,6 +458,7 @@ function HeroSection({ site }: { site?: SiteSettings }) {
 
   return (
     <section className="home-hero-bleed home-hero-handoff">
+      <HomeMobileSearch />
       <div
         className="m-hero"
         onTouchStart={() => setPaused(true)}
