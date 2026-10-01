@@ -388,6 +388,34 @@ export function ProductDetail() {
           </div>
         </section>
 
+        <section className="handoff-pd-accordions" aria-label="راهنمای خرید">
+          <details className="handoff-pd-acc">
+            <summary>دریافت سفارش</summary>
+            <p>
+              سفارش‌ها پس از تأیید از گالری آنیل در ابهر به‌صورت حضوری تحویل داده می‌شوند.
+              زمان مراجعه پس از ثبت سفارش هماهنگ می‌شود.
+            </p>
+          </details>
+          <details className="handoff-pd-acc">
+            <summary>پرداخت</summary>
+            <p>
+              مبلغ بر پایه نرخ لحظه‌ای طلا محاسبه می‌شود. پرداخت آزمایشی در محیط فعلی برای تکمیل مسیر سفارش فعال است.
+            </p>
+          </details>
+          <details className="handoff-pd-acc">
+            <summary>نگهداری طلا</summary>
+            <p>
+              زیورآلات را دور از مواد شوینده و عطر نگهداری کنید و برای برق انداختن از پارچه نرم مخصوص طلا استفاده کنید.
+            </p>
+          </details>
+          <details className="handoff-pd-acc">
+            <summary>سوالات متداول</summary>
+            <p>
+              وزن و اجرت هر قطعه در صفحه محصول نمایش داده می‌شود. برای مشاوره انتخاب می‌توانید از مشاور هوشمند یا تماس با گالری استفاده کنید.
+            </p>
+          </details>
+        </section>
+
         {related && related.length > 0 && (
           <div className="pd-related handoff-pd-related">
             <div className="handoff-pd-related-head">
