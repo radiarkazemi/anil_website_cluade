@@ -1,0 +1,25 @@
+{
+  "name": "گالری طلا آنیل",
+  "short_name": "آنیل",
+  "description": "زیورآلات طلا با قیمت‌گذاری لحظه‌ای — گالری آنیل، ابهر",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090909",
+  "theme_color": "#090909",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/logo-mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

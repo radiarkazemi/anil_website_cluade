@@ -5,6 +5,8 @@ import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
+import { MobileTabBar } from './components/MobileTabBar';
+import { OfflineBanner, PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
 import { useSiteAnalytics } from './hooks/useSiteAnalytics';
@@ -13,11 +15,13 @@ import { useStore } from './store/useStore';
 import { Home } from './pages/Home';
 import { Products } from './pages/Products';
 import { ProductDetail } from './pages/ProductDetail';
+import { Favorites } from './pages/Favorites';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
-import { ContentPageView } from './pages/ContentPage';
+import { BlogShareRedirect, ContentPageView } from './pages/ContentPage';
 import { Atelier } from './pages/Atelier';
+import { Tools } from './pages/Tools';
 import { Account } from './pages/Account';
 import { DemoPayment } from './pages/DemoPayment';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -74,6 +78,13 @@ function AppInner() {
   const { pathname } = useLocation();
   const isPanel = pathname.startsWith('/panel');
 
+  // Server SEO shells inject #anil-seo-content; remove it after paint so
+  // off-screen absolute positioning cannot expand RTL mobile layout width.
+  useEffect(() => {
+    document.getElementById('anil-seo-content')?.remove();
+    window.scrollTo({ left: 0, top: window.scrollY });
+  }, [pathname]);
+
   return (
     <>
       {!isPanel && <Header />}
@@ -81,9 +92,12 @@ function AppInner() {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
+        <Route path="/favorites" element={<Favorites />} />
         <Route path="/atelier" element={<Atelier />} />
+        <Route path="/tools" element={<Tools />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<ContentPageView />} />
+        <Route path="/b/:code" element={<BlogShareRedirect />} />
         <Route path="/p/:slug" element={<ContentPageView />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -104,8 +118,11 @@ function AppInner() {
         </Route>
       </Routes>
       {!isPanel && <CartDrawer />}
+      {!isPanel && <MobileTabBar />}
       {!isPanel && <MobileBuyBar />}
       {!isPanel && <GoldConsultant />}
+      {!isPanel && <PwaInstallPrompt />}
+      {!isPanel && <OfflineBanner />}
       <Toast />
     </>
   );

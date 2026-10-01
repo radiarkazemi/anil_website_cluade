@@ -44,37 +44,45 @@ export function Login() {
   };
 
   return (
-    <div className="auth-shell">
-      <form onSubmit={handleLogin} className="auth-card">
-        <h1 className="auth-title">ورود مشتریان</h1>
-        <p className="auth-sub">با شماره موبایل وارد فروشگاه شوید.</p>
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="موبایل (09…)"
-          className="input"
-          dir="ltr"
-          style={{ marginBottom: 14 }}
-          autoComplete="username"
-        />
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="رمز عبور"
-          className="input"
-          type="password"
-          style={{ marginBottom: 14 }}
-          autoComplete="current-password"
-        />
-        {error && <div style={{ color: 'var(--down)', fontSize: 13, marginBottom: 14 }}>{error}</div>}
-        <button type="submit" className="gold-btn" disabled={busy} style={{ width: '100%', marginBottom: 16 }}>
-          {busy ? 'در حال ورود…' : 'ورود به فروشگاه'}
+    <div className="auth-shell handoff-auth">
+      <form onSubmit={handleLogin} className="auth-card handoff-auth-card">
+        <h1 className="auth-title">ورود به حساب</h1>
+        <p className="auth-sub">برای ادامه، شماره همراه و رمز عبور خود را وارد کنید.</p>
+        <label className="handoff-auth-label">
+          <span>شماره همراه</span>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="۰۹۱۲۱۲۳۴۵۶۷"
+            className="input"
+            dir="ltr"
+            autoComplete="username"
+            inputMode="tel"
+          />
+        </label>
+        <label className="handoff-auth-label">
+          <span>رمز عبور</span>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="رمز عبور"
+            className="input"
+            type="password"
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <div className="handoff-auth-error">{error}</div>}
+        <button type="submit" className="gold-btn handoff-auth-cta" disabled={busy}>
+          {busy ? 'در حال ورود…' : 'ورود به حساب'}
+          <span aria-hidden>‹</span>
         </button>
-        <div style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-dim)' }}>
+        <p className="handoff-auth-terms">
+          با ورود یا ثبت‌نام در آنیل،{' '}
+          <Link to="/p/حریم-خصوصی">قوانین و حریم خصوصی</Link> را می‌پذیرید.
+        </p>
+        <div className="handoff-auth-switch">
           حساب ندارید؟{' '}
-          <Link to="/register" style={{ color: 'var(--gold-light)', fontWeight: 600 }}>
-            ثبت‌نام
-          </Link>
+          <Link to="/register">ثبت‌نام</Link>
         </div>
       </form>
     </div>

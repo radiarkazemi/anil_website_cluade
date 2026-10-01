@@ -2,24 +2,56 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
-import { faPrice } from '../utils/format';
+import { calcPrice, faNum, faPrice } from '../utils/format';
 import { useStore } from '../store/useStore';
+import { IconSearch } from './icons';
 
 type Props = {
   className?: string;
   /** Close mobile menu after submit */
   onSubmitExtra?: () => void;
   autoFocus?: boolean;
+  placeholder?: string;
 };
 
-/** Global product search — live suggestions while typing. */
-export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) {
+const RECENT_KEY = 'anil-recent-searches';
+const MAX_RECENT = 8;
+
+function readRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const list = raw ? (JSON.parse(raw) as string[]) : [];
+    return Array.isArray(list) ? list.filter((x) => typeof x === 'string' && x.trim()).slice(0, MAX_RECENT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecent(term: string) {
+  const t = term.trim();
+  if (!t) return;
+  const next = [t, ...readRecent().filter((x) => x !== t)].slice(0, MAX_RECENT);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Global product search — live suggestions, recent queries, category shortcuts. */
+export function SiteSearch({
+  className = '',
+  onSubmitExtra,
+  autoFocus,
+  placeholder = 'جستجو در گالری…',
+}: Props) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const urlQ = params.get('search') || '';
   const [q, setQ] = useState(urlQ);
   const [debounced, setDebounced] = useState(urlQ);
   const [open, setOpen] = useState(false);
+  const [recent, setRecent] = useState<string[]>([]);
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const gp = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
@@ -28,6 +60,10 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
     setQ(urlQ);
     setDebounced(urlQ);
   }, [urlQ]);
+
+  useEffect(() => {
+    setRecent(readRecent());
+  }, [open]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(q.trim()), 220);
@@ -43,8 +79,15 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
     staleTime: 20_000,
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories-search'],
+    queryFn: () => api.categories().then((r) => r.data),
+    staleTime: 120_000,
+    enabled: open,
+  });
+
   const results = data ?? [];
-  const showPanel = open && q.trim().length >= 2;
+  const showPanel = open;
 
   useEffect(() => {
     if (!showPanel) return;
@@ -57,6 +100,8 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
 
   const goSearch = (value?: string) => {
     const termNext = (value ?? q).trim();
+    if (termNext) writeRecent(termNext);
+    setRecent(readRecent());
     const next = new URLSearchParams(params);
     if (termNext) next.set('search', termNext);
     else next.delete('search');
@@ -71,8 +116,19 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
     goSearch();
   };
 
+  const clearRecent = () => {
+    try {
+      localStorage.removeItem(RECENT_KEY);
+    } catch {
+      /* ignore */
+    }
+    setRecent([]);
+  };
+
+  const suggestedCats = categories.slice(0, 6);
+
   return (
-    <div className={`site-search-wrap${className.includes('compact') ? ' is-compact' : ''} ${className}`.trim()} ref={rootRef}>
+    <div className={`site-search-wrap handoff-search${className.includes('compact') ? ' is-compact' : ''} ${className}`.trim()} ref={rootRef}>
       <form className={`site-search${className.includes('compact') ? ' compact' : ''}`} onSubmit={submit} role="search">
         <label className="sr-only" htmlFor={inputId}>جستجوی محصول</label>
         <input
@@ -81,7 +137,7 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
           type="text"
           name="anil-product-search"
           enterKeyHint="search"
-          placeholder="جستجو در گالری…"
+          placeholder={placeholder}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -92,61 +148,111 @@ export function SiteSearch({ className = '', onSubmitExtra, autoFocus }: Props) 
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={showPanel}
         />
+        {q ? (
+          <button
+            type="button"
+            className="site-search-clear"
+            aria-label="پاک کردن"
+            onClick={() => {
+              setQ('');
+              setOpen(true);
+            }}
+          >
+            ✕
+          </button>
+        ) : null}
         <button type="submit" className="site-search-btn" aria-label="جستجو">
-          جستجو
+          <IconSearch size={18} />
         </button>
       </form>
 
-      {showPanel && (
-        <div className="site-search-panel" role="listbox" aria-label="نتایج جستجو">
-          {isFetching && !results.length ? (
-            <div className="site-search-empty">در حال جستجو…</div>
-          ) : results.length === 0 ? (
-            <div className="site-search-empty">نتیجه‌ای پیدا نشد</div>
-          ) : (
-            <ul className="site-search-results">
-              {results.map((p) => (
-                <li key={p.id}>
+      {showPanel ? (
+        <div className="site-search-panel handoff-search-panel" role="listbox" aria-label="پیشنهادهای جستجو">
+          {recent.length ? (
+            <div className="handoff-search-recent">
+              <div className="handoff-search-recent-head">
+                <strong>جستجوهای اخیر</strong>
+                <button type="button" className="text-link" onClick={clearRecent}>
+                  پاک کردن همه
+                </button>
+              </div>
+              <div className="handoff-search-recent-pills">
+                {recent.map((r) => (
+                  <button key={r} type="button" className="handoff-search-pill" onClick={() => goSearch(r)}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {suggestedCats.length ? (
+            <div className="handoff-search-cats">
+              <strong>دسته‌های پیشنهادی</strong>
+              <div className="handoff-search-cat-row">
+                {suggestedCats.map((c) => (
                   <Link
-                    to={`/products/${p.slug}`}
-                    className="site-search-hit"
+                    key={c.id}
+                    to={`/products?category=${encodeURIComponent(c.slug)}`}
+                    className="handoff-search-cat"
                     onClick={() => {
                       setOpen(false);
                       onSubmitExtra?.();
                     }}
                   >
-                    <span className="site-search-hit-media">
-                      {p.primary_image ? (
-                        <img src={p.primary_image} alt="" />
-                      ) : (
-                        <em>{p.category_name || 'طلا'}</em>
-                      )}
-                    </span>
-                    <span className="site-search-hit-copy">
-                      <strong>{p.name}</strong>
-                      <small>{p.category_name}</small>
-                      {p.price != null && gp > 0 && (
-                        <em>{faPrice(Number(p.price))} تومان</em>
-                      )}
-                    </span>
+                    {c.image_url ? <img src={c.image_url} alt="" /> : <span>{c.name.slice(0, 1)}</span>}
+                    <em>{c.name}</em>
                   </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            type="button"
-            className="site-search-all"
-            onClick={() => goSearch()}
-          >
-            مشاهده‌ی همه‌ی نتایج «{q.trim()}»
-          </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {term.length >= 2 ? (
+            <div className="handoff-search-results">
+              <div className="handoff-search-results-head">
+                نتایج جستجو برای «{term}»
+                {isFetching ? <span>…</span> : null}
+              </div>
+              {results.length ? (
+                <ul className="site-search-list">
+                  {results.map((p) => {
+                    const hasWeight =
+                      p.has_weight !== false && p.weight_g != null && Number(p.weight_g) > 0;
+                    const total = hasWeight
+                      ? calcPrice(Number(p.weight_g), gp, Number(p.fee_ratio), p.stone_value).total
+                      : null;
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          to={`/products/${p.slug}`}
+                          onClick={() => {
+                            writeRecent(term);
+                            setOpen(false);
+                            onSubmitExtra?.();
+                          }}
+                        >
+                          <span className="site-search-name">{p.name}</span>
+                          <span className="site-search-meta">
+                            {total != null ? `${faPrice(total)} تومان` : 'استعلام قیمت'}
+                            {p.category_name ? ` · ${p.category_name}` : ''}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : !isFetching ? (
+                <p className="handoff-search-empty">نتیجه‌ای پیدا نشد.</p>
+              ) : null}
+              <button type="button" className="outline-btn handoff-search-all" onClick={() => goSearch(term)}>
+                مشاهده همه نتایج ({faNum(results.length)}+)
+              </button>
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from '../api/endpoints';
+import { ThemePicker } from '../components/ThemePicker';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { faNum, faPrice } from '../utils/format';
@@ -195,29 +196,72 @@ export function Account() {
 
   const ready = isProfileReady(user);
 
+  const completed = orders.filter((o: Order) => o.status === 'delivered' || o.status === 'paid').length;
+  const shipping = orders.filter((o: Order) => o.status === 'shipped' || o.status === 'processing').length;
+  const cancelled = orders.filter((o: Order) => o.status === 'cancelled' || o.status === 'refunded').length;
+  const lastOrder = orders[0] as Order | undefined;
+
   return (
-    <div className="container account-page">
-      <div className="account-head">
+    <div className="container account-page handoff-account">
+      <div className="account-head handoff-account-profile">
+        <div className="handoff-account-avatar" aria-hidden>
+          {(user?.full_name || 'آ').trim().slice(0, 1)}
+        </div>
         <div>
           <div className="section-eyebrow">حساب کاربری آنیل</div>
           <h1 className="section-title tight">{user?.full_name || 'حساب من'}</h1>
-          <p className="content-excerpt">{user?.phone}</p>
+          <p className="content-excerpt" dir="ltr">{user?.phone}</p>
           {!ready && (
             <p className="profile-gate-banner">{profileGapMessage(user)}</p>
           )}
-          {ready && <p className="profile-ready-banner">هویت تأیید شد — می‌توانید به گلد باکس اضافه کنید.</p>}
+          {ready && <p className="profile-ready-banner">هویت تأیید شد — می‌توانید خرید کنید.</p>}
         </div>
-        <button
-          type="button"
-          className="outline-btn"
-          onClick={() => {
-            if (tokens.refresh) api.logout(tokens.refresh, 'client').catch(() => {});
-            logout();
-          }}
-        >
-          خروج
-        </button>
       </div>
+
+      <div className="handoff-account-stats" aria-label="خلاصه سفارش‌ها">
+        <div className="handoff-account-stat">
+          <strong>{faNum(completed)}</strong>
+          <span>تکمیل‌شده</span>
+        </div>
+        <div className="handoff-account-stat">
+          <strong>{faNum(shipping)}</strong>
+          <span>در حال ارسال</span>
+        </div>
+        <div className="handoff-account-stat">
+          <strong>{faNum(cancelled)}</strong>
+          <span>لغوشده</span>
+        </div>
+      </div>
+
+      <nav className="handoff-account-nav" aria-label="میانبر حساب">
+        <button type="button" onClick={() => switchTab('orders')}>سفارش‌ها</button>
+        <Link to="/favorites">علاقه‌مندی‌ها</Link>
+        <button type="button" onClick={() => switchTab('profile')}>تنظیمات و پروفایل</button>
+        <Link to="/p/راهنمای-خرید">پشتیبانی و راهنما</Link>
+      </nav>
+
+      {lastOrder ? (
+        <section className="handoff-account-last" aria-labelledby="last-order-title">
+          <div className="handoff-account-last-head">
+            <h2 id="last-order-title">آخرین سفارش</h2>
+            <button type="button" className="text-link" onClick={() => switchTab('orders')}>
+              مشاهده همه
+            </button>
+          </div>
+          <article className="order-card">
+            <div className="order-card-top">
+              <div>
+                <div className="order-no">{lastOrder.order_number}</div>
+                <div className="order-date">{new Date(lastOrder.created_at).toLocaleDateString('fa-IR')}</div>
+              </div>
+              <span className={`status-badge status-${lastOrder.status}`}>
+                {STATUS_FA[lastOrder.status] || lastOrder.status}
+              </span>
+            </div>
+            <div className="order-total">{faPrice(lastOrder.total)} تومان</div>
+          </article>
+        </section>
+      ) : null}
 
       <div className="account-tabs">
         <button type="button" className={tab === 'orders' ? 'active' : ''} onClick={() => switchTab('orders')}>
@@ -417,8 +461,25 @@ export function Account() {
           <button type="button" className="gold-btn" style={{ marginTop: 14 }} disabled={saveProfile.isPending} onClick={() => saveProfile.mutate()}>
             ذخیره پروفایل
           </button>
+
+          <section className="handoff-account-theme" aria-labelledby="account-theme-title">
+            <h2 id="account-theme-title">ظاهر و تم</h2>
+            <p>چهار تم سایت را انتخاب کنید؛ انتخاب شما ذخیره می‌شود.</p>
+            <ThemePicker />
+          </section>
         </div>
       )}
+
+      <button
+        type="button"
+        className="outline-btn handoff-account-logout"
+        onClick={() => {
+          if (tokens.refresh) api.logout(tokens.refresh, 'client').catch(() => {});
+          logout();
+        }}
+      >
+        خروج از حساب
+      </button>
     </div>
   );
 }

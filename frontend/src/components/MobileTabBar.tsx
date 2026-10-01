@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useUI } from '../store/uiStore';
+import { useFavorites } from '../store/favoritesStore';
 import { faNum } from '../utils/format';
 
 function IconHome({ active }: { active?: boolean }) {
@@ -18,40 +19,28 @@ function IconHome({ active }: { active?: boolean }) {
   );
 }
 
-function IconShop({ active }: { active?: boolean }) {
+function IconGrid({ active }: { active?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 8.5h10l-.7 9.2a1.8 1.8 0 0 1-1.8 1.6H9.5a1.8 1.8 0 0 1-1.8-1.6L7 8.5Z"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.7}
-        strokeLinejoin="round"
-        fill={active ? 'currentColor' : 'none'}
-        fillOpacity={active ? 0.12 : 0}
-      />
-      <path
-        d="M9.2 8.5V7.2a2.8 2.8 0 0 1 5.6 0v1.3"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.7}
-        strokeLinecap="round"
-      />
+      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.7} fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.14 : 0} />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.7} fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.14 : 0} />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.7} fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.14 : 0} />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.7} fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.14 : 0} />
     </svg>
   );
 }
 
-function IconBag({ active }: { active?: boolean }) {
+function IconHeart({ active }: { active?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M6.2 8.2h11.6l-.9 10.1a1.8 1.8 0 0 1-1.8 1.5H8.9a1.8 1.8 0 0 1-1.8-1.5L6.2 8.2Z"
+        d="M12 20.2s-6.8-4.2-8.4-8.1C2.4 9.2 3.7 6.6 6.5 6.2c1.7-.2 3.2.7 3.9 2 .7-1.3 2.2-2.2 3.9-2 2.8.4 4.1 3 3 5.9C18.8 16 12 20.2 12 20.2Z"
         stroke="currentColor"
         strokeWidth={active ? 2 : 1.7}
         strokeLinejoin="round"
         fill={active ? 'currentColor' : 'none'}
-        fillOpacity={active ? 0.12 : 0}
+        fillOpacity={active ? 0.16 : 0}
       />
-      <path d="M9 8.2V6.8a3 3 0 0 1 6 0v1.4" stroke="currentColor" strokeWidth={active ? 2 : 1.7} strokeLinecap="round" />
-      <path d="M4.8 8.2h14.4" stroke="currentColor" strokeWidth={active ? 2 : 1.7} strokeLinecap="round" />
     </svg>
   );
 }
@@ -78,11 +67,18 @@ function IconUser({ active }: { active?: boolean }) {
   );
 }
 
-/** Phone-only bottom navigation — standard 4-tab commerce pattern. */
+/**
+ * Mobile bottom tabs — handoff order (RTL visual from right):
+ * Home · Products · Favourites · Account. Cart stays in the header.
+ */
 export function MobileTabBar() {
-  const cartCount = useStore((s) => s.cartCount());
+  const { pathname } = useLocation();
+  const cartOpen = useUI((s) => s.cartOpen);
+  const favCount = useFavorites((s) => s.ids.length);
   const user = useStore((s) => s.user);
-  const openCart = useUI((s) => s.openCart);
+
+  const isPdp = pathname.startsWith('/products/') && pathname !== '/products';
+  if (isPdp || cartOpen) return null;
 
   return (
     <nav className="mobile-tabbar" aria-label="منوی پایین">
@@ -97,18 +93,24 @@ export function MobileTabBar() {
       <NavLink to="/products" className={({ isActive }) => `mobile-tab${isActive ? ' active' : ''}`}>
         {({ isActive }) => (
           <>
-            <span className="mobile-tab-ico"><IconShop active={isActive} /></span>
-            <span>فروشگاه</span>
+            <span className="mobile-tab-ico"><IconGrid active={isActive} /></span>
+            <span>محصولات</span>
           </>
         )}
       </NavLink>
-      <button type="button" className="mobile-tab" onClick={() => openCart()}>
-        <span className="mobile-tab-ico">
-          <IconBag />
-          {cartCount > 0 && <span className="mobile-tab-badge">{cartCount > 9 ? '۹+' : faNum(cartCount)}</span>}
-        </span>
-        <span>سبد</span>
-      </button>
+      <NavLink to="/favorites" className={({ isActive }) => `mobile-tab${isActive ? ' active' : ''}`}>
+        {({ isActive }) => (
+          <>
+            <span className="mobile-tab-ico">
+              <IconHeart active={isActive} />
+              {favCount > 0 && (
+                <span className="mobile-tab-badge">{favCount > 9 ? '۹+' : faNum(favCount)}</span>
+              )}
+            </span>
+            <span>علاقه‌مندی</span>
+          </>
+        )}
+      </NavLink>
       <NavLink
         to={user ? '/account' : '/login'}
         className={({ isActive }) => `mobile-tab${isActive ? ' active' : ''}`}
@@ -116,7 +118,7 @@ export function MobileTabBar() {
         {({ isActive }) => (
           <>
             <span className="mobile-tab-ico"><IconUser active={isActive} /></span>
-            <span>{user ? 'حساب' : 'ورود'}</span>
+            <span>حساب</span>
           </>
         )}
       </NavLink>
