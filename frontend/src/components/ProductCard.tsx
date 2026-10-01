@@ -4,7 +4,7 @@ import type { Product } from '../types';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
-import { calcPrice, faNum, faPrice } from '../utils/format';
+import { calcPrice, faNum, faPrice, faWeight } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 import { IconConsult, IconHeart, IconShoppingBag } from './icons';
 import { mediaUrl } from '../utils/mediaUrl';
@@ -94,7 +94,7 @@ export function ProductCard({
         <div className="handoff-pc-meta">
           {hasWeight ? (
             <>
-              وزن تقریبی: {faNum(w)} گرم <span aria-hidden>|</span> عیار {faNum(karat)}
+              وزن تقریبی: {faWeight(w)} گرم <span aria-hidden>|</span> عیار {faNum(karat)}
             </>
           ) : (
             <>وزن و قیمت پس از تأیید <span aria-hidden>|</span> عیار {faNum(karat)}</>

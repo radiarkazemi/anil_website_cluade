@@ -1,6 +1,14 @@
 import { useId, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { faNum, faPrice } from '../utils/format';
+import {
+  faNum,
+  faPrice,
+  faWeight,
+  formatWeightInput,
+  parseWeightGrams,
+  roundWeightG,
+  WEIGHT_DECIMALS,
+} from '../utils/format';
 
 /** Internal assay factors — never shown in UI. */
 const BASE_ASSAY = 750;
@@ -28,30 +36,20 @@ const TRADE_MODES = [
   },
 ] as const;
 
-function parseWeight(raw: string): number {
-  const n = Number(
-    String(raw)
-      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-      .replace(/,/g, '.')
-      .replace(/[^\d.]/g, ''),
-  );
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
 function tradeAmount(weightG: number, rate18: number, assay: number): number {
   if (weightG <= 0 || rate18 <= 0) return 0;
   return Math.round(weightG * rate18 * (assay / BASE_ASSAY));
 }
 
-const WEIGHT_PRESETS = [1, 2, 5, 10, 20] as const;
+const WEIGHT_PRESETS = [0.5, 1, 2.5, 5, 10, 20] as const;
+const NUDGE = 0.001;
 
 export function GoldTradeCalculator() {
   const liveRate = useStore((s) => s.goldPrice?.price_18k_per_gram ?? 0);
   const [weightRaw, setWeightRaw] = useState('5');
   const [active, setActive] = useState<(typeof TRADE_MODES)[number]['key']>('sell');
   const weightId = useId();
-  const weight = parseWeight(weightRaw);
+  const weight = parseWeightGrams(weightRaw);
 
   const rows = useMemo(
     () =>
@@ -64,8 +62,25 @@ export function GoldTradeCalculator() {
   );
 
   const nudge = (delta: number) => {
-    const next = Math.max(0.1, Math.round((weight + delta) * 10) / 10);
-    setWeightRaw(String(next));
+    const base = weight > 0 ? weight : 0;
+    const next = roundWeightG(Math.max(NUDGE, base + delta), WEIGHT_DECIMALS);
+    setWeightRaw(formatWeightInput(next));
+  };
+
+  const onWeightChange = (raw: string) => {
+    // Allow typing intermediate values like "1." / "0.00" while capping decimals.
+    let s = String(raw)
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .replace(/,/g, '.')
+      .replace(/[^\d.]/g, '');
+    const firstDot = s.indexOf('.');
+    if (firstDot !== -1) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+      const [whole, frac = ''] = s.split('.');
+      s = `${whole}.${frac.slice(0, WEIGHT_DECIMALS)}`;
+    }
+    setWeightRaw(s);
   };
 
   return (
@@ -94,24 +109,26 @@ export function GoldTradeCalculator() {
             <span>گرم</span>
           </label>
           <div className="tools-calc-weight">
-            <button type="button" className="tools-calc-step" onClick={() => nudge(-0.5)} aria-label="کاهش وزن">
+            <button type="button" className="tools-calc-step" onClick={() => nudge(-NUDGE)} aria-label="کاهش وزن">
               −
             </button>
             <input
               id={weightId}
               className="tools-calc-input"
+              type="text"
               inputMode="decimal"
               dir="ltr"
               value={weightRaw}
-              onChange={(e) => setWeightRaw(e.target.value)}
+              onChange={(e) => onWeightChange(e.target.value)}
               aria-describedby="tools-calc-weight-hint"
+              placeholder="مثلاً 4.125"
             />
-            <button type="button" className="tools-calc-step" onClick={() => nudge(0.5)} aria-label="افزایش وزن">
+            <button type="button" className="tools-calc-step" onClick={() => nudge(NUDGE)} aria-label="افزایش وزن">
               +
             </button>
           </div>
           <p id="tools-calc-weight-hint" className="tools-calc-hint">
-            وزن خالص طلای مدنظر را به گرم وارد کنید
+            وزن خالص تا سه رقم اعشار (مثلاً ۴٫۱۲۵ گرم)
           </p>
           <div className="tools-calc-presets" role="group" aria-label="وزن‌های پیشنهادی">
             {WEIGHT_PRESETS.map((w) => (
@@ -119,9 +136,9 @@ export function GoldTradeCalculator() {
                 key={w}
                 type="button"
                 className={`tools-calc-chip${weight === w ? ' is-active' : ''}`}
-                onClick={() => setWeightRaw(String(w))}
+                onClick={() => setWeightRaw(formatWeightInput(w))}
               >
-                {faNum(w)} گرم
+                {faWeight(w)} گرم
               </button>
             ))}
           </div>

@@ -2,6 +2,56 @@ export function faNum(n: number | string): string {
   return Number(n).toLocaleString('fa-IR');
 }
 
+/** Max fractional grams supported in storefront calculators. */
+export const WEIGHT_DECIMALS = 3;
+
+/** Round grams to at most `decimals` places (default 3). */
+export function roundWeightG(n: number, decimals = WEIGHT_DECIMALS): number {
+  if (!Number.isFinite(n)) return 0;
+  const f = 10 ** decimals;
+  return Math.round(n * f) / f;
+}
+
+/**
+ * Parse a weight (grams) string with Persian/Arabic digits.
+ * Keeps up to 3 decimal places; returns 0 when empty/invalid.
+ */
+export function parseWeightGrams(raw: string, maxDecimals = WEIGHT_DECIMALS): number {
+  let s = String(raw ?? '')
+    .trim()
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/,/g, '.')
+    .replace(/[^\d.]/g, '');
+  if (!s) return 0;
+  const firstDot = s.indexOf('.');
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    const [whole, frac = ''] = s.split('.');
+    s = `${whole}.${frac.slice(0, maxDecimals)}`;
+  }
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return roundWeightG(n, maxDecimals);
+}
+
+/** Format grams for UI — up to 3 decimals, trim trailing zeros. */
+export function faWeight(n: number | string, maxDecimals = WEIGHT_DECIMALS): string {
+  const v = typeof n === 'string' ? Number(n) : n;
+  if (!Number.isFinite(v)) return '۰';
+  return roundWeightG(v, maxDecimals).toLocaleString('fa-IR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDecimals,
+  });
+}
+
+/** Serialize grams for controlled inputs (latin digits, up to 3 decimals). */
+export function formatWeightInput(n: number, maxDecimals = WEIGHT_DECIMALS): string {
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const rounded = roundWeightG(n, maxDecimals);
+  return String(rounded);
+}
+
 /** Persian calendar date, e.g. ۲۹ شهریور ۱۴۰۴ */
 export function faDate(iso?: string | null): string {
   if (!iso) return '';

@@ -9,7 +9,7 @@ import { IconHeart, IconShoppingBag } from '../components/icons';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
-import { calcPrice, faFeePct, faNum, faPrice } from '../utils/format';
+import { calcPrice, faFeePct, faNum, faPrice, faWeight } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
 function formatGoldStamp(iso?: string | null): string {
@@ -254,7 +254,7 @@ export function ProductDetail() {
                   {breakdownOpen ? (
                     <div className="pd-breakdown-body">
                       <div className="pd-breakdown-row">
-                        <span>ارزش طلا ({faNum(w)} گرم × نرخ روز)</span>
+                        <span>ارزش طلا ({faWeight(w)} گرم × نرخ روز)</span>
                         <span>{faPrice(bd.gold)}</span>
                       </div>
                       <div className="pd-breakdown-row">
@@ -293,7 +293,7 @@ export function ProductDetail() {
                 { v: 'ANIL', l: 'برند', ico: '🛡', up: false },
                 { v: inStock ? 'موجود' : 'ناموجود', l: 'موجودی', ico: '▣', up: inStock },
                 { v: `${faNum(karat)} عیار`, l: 'عیار', ico: '◈', up: false },
-                { v: hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید', l: 'وزن', ico: '⚖', up: false },
+                { v: hasWeight ? `${faWeight(w)} گرم` : 'پس از تأیید', l: 'وزن', ico: '⚖', up: false },
               ].map((s) => (
                 <div key={s.l} className="pd-spec">
                   <div className="pd-spec-ico" aria-hidden>{s.ico}</div>
@@ -374,7 +374,7 @@ export function ProductDetail() {
                 <li><span>نام</span><b>{product.name}</b></li>
                 <li><span>دسته‌بندی</span><b>{product.category_name}</b></li>
                 <li><span>عیار</span><b>{faNum(karat)}</b></li>
-                <li><span>وزن</span><b>{hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید'}</b></li>
+                <li><span>وزن</span><b>{hasWeight ? `${faWeight(w)} گرم` : 'پس از تأیید'}</b></li>
                 {hasWeight ? <li><span>اجرت</span><b>٪{faFeePct(fee)}</b></li> : null}
                 <li><span>وضعیت</span><b>{inStock ? 'موجود' : 'ناموجود'}</b></li>
               </ul>

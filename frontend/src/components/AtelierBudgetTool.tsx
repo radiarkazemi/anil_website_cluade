@@ -3,7 +3,19 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { useStore } from '../store/useStore';
-import { calcPrice, faFeePct, faNum, faPrice, PROFIT_RATIO, TAX_RATIO } from '../utils/format';
+import {
+  calcPrice,
+  faFeePct,
+  faNum,
+  faPrice,
+  faWeight,
+  formatWeightInput,
+  parseWeightGrams,
+  PROFIT_RATIO,
+  roundWeightG,
+  TAX_RATIO,
+  WEIGHT_DECIMALS,
+} from '../utils/format';
 import type { Product } from '../types';
 
 type Mode = 'weight' | 'budget';
@@ -32,13 +44,16 @@ function weightFromBudget(budget: number, rate: number, feeRatio: number): numbe
     f +
     (1 + f) * PROFIT_RATIO +
     (f + (1 + f) * PROFIT_RATIO) * TAX_RATIO;
-  return budget / (rate * mult);
+  return roundWeightG(budget / (rate * mult));
 }
 
 function band(weight: number) {
-  const lo = Math.max(0.3, weight * 0.82);
-  const hi = Math.max(lo + 0.2, weight * 1.18);
-  return { lo: Number(lo.toFixed(2)), hi: Number(hi.toFixed(2)) };
+  const lo = Math.max(0.001, weight * 0.82);
+  const hi = Math.max(lo + 0.05, weight * 1.18);
+  return {
+    lo: roundWeightG(lo),
+    hi: roundWeightG(hi),
+  };
 }
 
 export function AtelierBudgetTool() {
@@ -46,7 +61,8 @@ export function AtelierBudgetTool() {
   const [rateInput, setRateInput] = useState('');
   const [rateTouched, setRateTouched] = useState(false);
   const [mode, setMode] = useState<Mode>('weight');
-  const [weight, setWeight] = useState(4);
+  const [weightRaw, setWeightRaw] = useState('4');
+  const weight = parseWeightGrams(weightRaw);
   const [budgetM, setBudgetM] = useState(80); // million toman
   const [feePct, setFeePct] = useState(12);
   const [shape, setShape] = useState<(typeof SHAPES)[number]['id']>('all');
@@ -209,25 +225,52 @@ export function AtelierBudgetTool() {
             </label>
 
             {mode === 'weight' ? (
-              <label className="atelier-field" htmlFor={weightId}>
-                <span className="atelier-field-label">
+              <div className="atelier-field">
+                <label className="atelier-field-label" htmlFor={weightId}>
                   وزن هدف
-                  <strong>{faNum(Number(weight.toFixed(1)))} گرم</strong>
-                </span>
+                  <strong>{weight > 0 ? `${faWeight(weight)} گرم` : '—'}</strong>
+                </label>
                 <input
                   id={weightId}
+                  type="text"
+                  inputMode="decimal"
+                  dir="ltr"
+                  className="atelier-weight-input"
+                  value={weightRaw}
+                  placeholder="مثلاً 4.125"
+                  onChange={(e) => {
+                    let s = String(e.target.value)
+                      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+                      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+                      .replace(/,/g, '.')
+                      .replace(/[^\d.]/g, '');
+                    const firstDot = s.indexOf('.');
+                    if (firstDot !== -1) {
+                      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+                      const [whole, frac = ''] = s.split('.');
+                      s = `${whole}.${frac.slice(0, WEIGHT_DECIMALS)}`;
+                    }
+                    setWeightRaw(s);
+                  }}
+                  aria-describedby="atelier-weight-hint"
+                />
+                <input
                   type="range"
-                  min={1}
+                  min={0.1}
                   max={40}
-                  step={0.5}
-                  value={weight}
-                  onChange={(e) => setWeight(Number(e.target.value))}
+                  step={0.001}
+                  value={weight > 0 ? Math.min(40, Math.max(0.1, weight)) : 4}
+                  onChange={(e) => setWeightRaw(formatWeightInput(Number(e.target.value)))}
+                  aria-label="تنظیم سریع وزن"
                 />
                 <span className="atelier-field-scale">
-                  <em>۱g</em>
+                  <em>۰٫۱g</em>
                   <em>۴۰g</em>
                 </span>
-              </label>
+                <span id="atelier-weight-hint" className="atelier-weight-hint">
+                  تا سه رقم اعشار — برای پیشنهاد دقیق از ویترین
+                </span>
+              </div>
             ) : (
               <label className="atelier-field" htmlFor={budgetId}>
                 <span className="atelier-field-label">
@@ -306,7 +349,7 @@ export function AtelierBudgetTool() {
               <span>{mode === 'budget' ? 'برآورد برای بودجه شما' : 'برآورد قیمت قطعه'}</span>
               <strong>{rate > 0 ? `${faPrice(breakdown.total)} تومان` : '—'}</strong>
               <em>
-                حدود {faNum(Number(estimatedWeight.toFixed(2)))} گرم · اجرت تا {faNum(feePct)}٪
+                حدود {faWeight(estimatedWeight)} گرم · اجرت تا {faNum(feePct)}٪
               </em>
             </div>
 
@@ -371,7 +414,7 @@ export function AtelierBudgetTool() {
                         <strong>{p.name}</strong>
                         <small>
                           {p.category_name}
-                          {w > 0 ? ` · ${faNum(w)} گرم` : ''}
+                          {w > 0 ? ` · ${faWeight(w)} گرم` : ''}
                           {` · اجرت ${faFeePct(p.fee_ratio)}٪`}
                         </small>
                         {total != null && <em>{faPrice(total)} تومان</em>}
