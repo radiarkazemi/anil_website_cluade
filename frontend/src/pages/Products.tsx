@@ -274,9 +274,7 @@ export function Products() {
               <button type="button" className="handoff-products-clear" onClick={clearFilters}>
                 پاک کردن فیلترها
               </button>
-            ) : (
-              <span className="handoff-products-clear is-ghost" aria-hidden>پاک کردن فیلترها</span>
-            )}
+            ) : null}
             <button
               type="button"
               className="gold-btn handoff-products-apply"

@@ -6,6 +6,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
 import { MobileTabBar } from './components/MobileTabBar';
+import { OfflineBanner, PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
 import { useSiteAnalytics } from './hooks/useSiteAnalytics';
@@ -120,6 +121,8 @@ function AppInner() {
       {!isPanel && <MobileTabBar />}
       {!isPanel && <MobileBuyBar />}
       {!isPanel && <GoldConsultant />}
+      {!isPanel && <PwaInstallPrompt />}
+      {!isPanel && <OfflineBanner />}
       <Toast />
     </>
   );

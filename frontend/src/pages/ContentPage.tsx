@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
@@ -9,10 +9,21 @@ import { usePageSeo } from '../hooks/usePageSeo';
 import { faDate, faNum, readingMinutes } from '../utils/format';
 import { mediaUrl } from '../utils/mediaUrl';
 
+function extractHeadings(body?: string | null): string[] {
+  if (!body) return [];
+  const out: string[] = [];
+  for (const line of body.split(/\r?\n/)) {
+    const m = line.trim().match(/^(#{2,3})\s+(.+)$/);
+    if (m) out.push(m[2].replace(/[#*_`]/g, '').trim());
+  }
+  return out.slice(0, 12);
+}
+
 export function ContentPageView() {
   const { slug = '' } = useParams();
   const { pathname } = useLocation();
   const isBlogRoute = pathname.startsWith('/blog/');
+  const [tocOpen, setTocOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['page', slug],
@@ -21,6 +32,7 @@ export function ContentPageView() {
   });
 
   const isBlog = data?.page_type === 'blog' || isBlogRoute;
+  const headings = useMemo(() => extractHeadings(data?.body), [data?.body]);
 
   useEffect(() => {
     if (!data?.title) document.title = 'آنیل';
@@ -146,6 +158,20 @@ export function ContentPageView() {
               <img src={cover} alt={data.title} />
             </div>
           )}
+          {headings.length > 1 ? (
+            <details
+              className="handoff-article-toc"
+              open={tocOpen}
+              onToggle={(e) => setTocOpen((e.target as HTMLDetailsElement).open)}
+            >
+              <summary>فهرست مطالب</summary>
+              <ol>
+                {headings.map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
           <div className="content-body">
             <ContentBody body={data.body || ''} />
           </div>
@@ -153,7 +179,7 @@ export function ContentPageView() {
             <ShareBar title={data.title} excerpt={data.excerpt} path={sharePath} />
           </div>
           <div className="content-page-foot">
-            <Link to="/blog" className="outline-btn">بازگشت به بلاگ</Link>
+            <Link to="/blog" className="outline-btn">بازگشت به مجله</Link>
             <Link to="/products" className="gold-btn">مشاهده گالری</Link>
           </div>
         </article>
