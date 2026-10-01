@@ -113,6 +113,7 @@ export function Header() {
   const secondaryNav = [
     { key: 'guide', to: '/p/راهنمای-خرید', label: 'راهنمای خرید' },
     { key: 'blog', to: '/blog', label: 'بلاگ' },
+    { key: 'tools', to: '/tools', label: 'ابزارها' },
     { key: 'about', to: '/p/درباره-ما', label: 'درباره ما' },
     { key: 'contact', to: '/#contact', label: 'تماس با ما' },
     ...navPages
@@ -156,15 +157,15 @@ export function Header() {
         </div>
         <div className="nav-mega-col nav-mega-featured">
           <p className="nav-mega-heading">کشف کنید</p>
-          <Link to="/atelier" className="nav-mega-card" onClick={closeMenu}>
+          <Link to="/tools" className="nav-mega-card" onClick={closeMenu}>
+            <span className="nav-mega-card-kicker">ابزارها</span>
+            <strong>ماشین‌حساب طلا</strong>
+            <em>فروش، خرید و تعویض — فقط با وارد کردن وزن</em>
+          </Link>
+          <Link to="/atelier" className="nav-mega-card soft" onClick={closeMenu}>
             <span className="nav-mega-card-kicker">آتلیه آنیل</span>
             <strong>از کارگاه تا درخشش</strong>
             <em>داستان ساخت، سفارش اختصاصی و انتخاب هوشمند طلا</em>
-          </Link>
-          <Link to="/products?sort=-weight_g" className="nav-mega-card soft" onClick={closeMenu}>
-            <span className="nav-mega-card-kicker">پیشنهاد روز</span>
-            <strong>قطعات سنگین‌تر</strong>
-            <em>مناسب سرمایه‌گذاری و هدیه ماندگار</em>
           </Link>
         </div>
       </div>
@@ -232,7 +233,7 @@ export function Header() {
                 </div>
               </div>
 
-              {secondaryNav.slice(0, 4).map((item) => (
+              {secondaryNav.slice(0, 5).map((item) => (
                 item.to.startsWith('/#') ? (
                   <a key={item.key} href={item.to}>{item.label}</a>
                 ) : (
@@ -388,7 +389,11 @@ export function Header() {
 
             <NavLink to="/atelier" onClick={closeMenu}>آتلیه آنیل</NavLink>
             {secondaryNav.map((item) => (
-              <NavLink key={item.key} to={item.to} onClick={closeMenu}>{item.label}</NavLink>
+              item.to.startsWith('/#') ? (
+                <a key={item.key} href={item.to} onClick={closeMenu}>{item.label}</a>
+              ) : (
+                <NavLink key={item.key} to={item.to} onClick={closeMenu}>{item.label}</NavLink>
+              )
             ))}
           </div>
           <div className="mobile-nav-actions">
