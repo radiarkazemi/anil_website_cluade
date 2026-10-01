@@ -210,6 +210,18 @@ export function CartDrawer() {
                 ویرایش در پروفایل
               </button>
             </div>
+            <div className="handoff-checkout-fulfillment">
+              <div className="handoff-checkout-fulfillment-title">روش دریافت سفارش</div>
+              <div className="handoff-checkout-fulfillment-card is-selected">
+                <strong>دریافت حضوری</strong>
+                <p>تحویل از گالری آنیل در ابهر پس از تأیید سفارش</p>
+              </div>
+              <ol className="handoff-checkout-pickup-steps">
+                <li>زمان مراجعه هماهنگ می‌شود</li>
+                <li>پس از تأیید سفارش اطلاع‌رسانی می‌شود</li>
+                <li>سفارش را از شعبه دریافت می‌کنید</li>
+              </ol>
+            </div>
             <div className="handoff-cart-summary">
               <div className="handoff-cart-summary-title">خلاصه سفارش</div>
               <div className="handoff-cart-summary-row">

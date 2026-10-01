@@ -10700,3 +10700,161 @@ html, body {
   border-radius: 10px;
   background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
+
+/* Search sheet (board 02) */
+.handoff-search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px !important;
+}
+.handoff-search-recent-head,
+.handoff-search-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.handoff-search-recent-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.handoff-search-recent-pills::-webkit-scrollbar { display: none; }
+.handoff-search-pill {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-gold);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.handoff-search-cats strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.handoff-search-cat-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.handoff-search-cat-row::-webkit-scrollbar { display: none; }
+.handoff-search-cat {
+  flex: 0 0 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 11.5px;
+}
+.handoff-search-cat img,
+.handoff-search-cat span {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid var(--border-gold);
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--gold);
+  font-weight: 800;
+}
+.handoff-search-cat em {
+  font-style: normal;
+  text-align: center;
+  line-height: 1.3;
+}
+.site-search-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.site-search-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface);
+}
+.site-search-name { font-weight: 700; font-size: 13.5px; }
+.site-search-meta { font-size: 12px; color: var(--text-muted); }
+.handoff-search-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+.handoff-search-all {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 8px;
+}
+.site-search-clear {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.handoff-checkout-fulfillment {
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface);
+  margin-bottom: 12px;
+}
+.handoff-checkout-fulfillment-title {
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: var(--gold-light);
+}
+.handoff-checkout-fulfillment-card {
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.handoff-checkout-fulfillment-card.is-selected {
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+}
+.handoff-checkout-fulfillment-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.handoff-checkout-fulfillment-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.handoff-checkout-pickup-steps {
+  margin: 0;
+  padding-inline-start: 18px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
