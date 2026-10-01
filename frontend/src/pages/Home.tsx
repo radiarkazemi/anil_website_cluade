@@ -462,8 +462,15 @@ function HeroSection({ site }: { site?: SiteSettings }) {
             ))}
           </h1>
           <p className="hero-lead">{subtitle}</p>
-          <div className="hero-actions">
-            <HeroCta to={primaryUrl} className="gold-btn hero-cta-primary">{primaryLabel}</HeroCta>
+          <div className="hero-actions m-hero-actions">
+            <HeroCta to={primaryUrl} className="gold-btn hero-cta-primary">
+              {primaryLabel}
+              <span className="hero-cta-chev" aria-hidden>‹</span>
+            </HeroCta>
+            <HeroCta to={secondaryUrl} className="outline-btn hero-cta-secondary">
+              <span className="hero-cta-ico" aria-hidden><IconChart size={16} /></span>
+              {secondaryLabel}
+            </HeroCta>
           </div>
         </div>
       </div>

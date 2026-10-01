@@ -9980,3 +9980,27 @@ html, body {
   }
   .mobile-buybar.mobile-pdp-bar { display: none !important; }
 }
+
+@media (max-width: 900px) {
+  .m-hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .m-hero-actions .gold-btn,
+  .m-hero-actions .outline-btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+  .handoff-02-cats-grid .cat-tile-copy {
+    padding: 8px 10px 12px;
+  }
+  .handoff-02-cats-grid .cat-tile-title {
+    font-size: 14px;
+  }
+  .handoff-02-cats-grid .cat-tile-link {
+    display: none;
+  }
+}
