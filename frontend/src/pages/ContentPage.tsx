@@ -117,8 +117,7 @@ export function ContentPageView() {
       <SecondaryPageChrome>
         <article className="container section-pad content-page handoff-article">
           <div className="content-page-head">
-            <Link to="/blog" className="handoff-article-back">← بازگشت به بلاگ</Link>
-            <div className="section-eyebrow">بلاگ آنیل</div>
+            <Link to="/blog" className="handoff-article-back">بازگشت به مجله</Link>
             {topics.length > 0 && (
               <div className="handoff-blog-topics handoff-article-topics">
                 {topics.map((topic) => (
@@ -164,9 +163,10 @@ export function ContentPageView() {
 
   return (
     <SecondaryPageChrome>
-      <article className="container section-pad content-page">
+      <article className="container section-pad content-page handoff-support-page">
         <div className="content-page-head">
-          <div className="section-eyebrow">راهنما</div>
+          <Link to="/" className="handoff-article-back">بازگشت</Link>
+          <div className="section-eyebrow">راهنما و پشتیبانی</div>
           <h1 className="section-title tight">{data.title}</h1>
           {data.excerpt && <p className="content-excerpt">{data.excerpt}</p>}
         </div>

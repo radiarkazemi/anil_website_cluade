@@ -204,7 +204,21 @@ export function Products() {
             </label>
           </div>
 
+          {filtersOpen ? (
+            <button
+              type="button"
+              className="handoff-products-filter-backdrop"
+              aria-label="بستن فیلترها"
+              onClick={() => setFiltersOpen(false)}
+            />
+          ) : null}
           <div className={`handoff-products-row2${filtersOpen ? ' is-open' : ''}`}>
+            <div className="handoff-products-sheet-head">
+              <strong>فیلترها</strong>
+              <button type="button" className="text-link" onClick={() => setFiltersOpen(false)}>
+                بستن
+              </button>
+            </div>
             <label className="handoff-products-dd">
               <span>عیار</span>
               <select aria-label="عیار" defaultValue="" title="فعلاً همه محصولات ۱۸ عیار هستند">
@@ -263,6 +277,13 @@ export function Products() {
             ) : (
               <span className="handoff-products-clear is-ghost" aria-hidden>پاک کردن فیلترها</span>
             )}
+            <button
+              type="button"
+              className="gold-btn handoff-products-apply"
+              onClick={() => setFiltersOpen(false)}
+            >
+              اعمال فیلترها
+            </button>
           </div>
         </div>
 
