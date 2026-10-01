@@ -9,6 +9,7 @@ import { IconHeart, IconShoppingBag } from '../components/icons';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
+import { useFavorites } from '../store/favoritesStore';
 import { calcPrice, faFeePct, faNum, faPrice, faWeight } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
 
@@ -44,7 +45,8 @@ export function ProductDetail() {
   const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
-  const [loved, setLoved] = useState(false);
+  const toggleFav = useFavorites((s) => s.toggle);
+  const favIds = useFavorites((s) => s.ids);
   const [breakdownOpen, setBreakdownOpen] = useState(true);
   const [tab, setTab] = useState<'desc' | 'specs'>('desc');
   const relatedRail = useRef<HTMLDivElement>(null);
@@ -54,6 +56,7 @@ export function ProductDetail() {
     queryFn: () => api.product(slug!).then((r) => r.data),
     enabled: !!slug,
   });
+  const loved = Boolean(product?.id && favIds.includes(product.id));
 
   const { data: related } = useQuery({
     queryKey: ['products', product?.category_slug, 'related-rail'],
@@ -85,7 +88,6 @@ export function ProductDetail() {
   }, [product?.id, product?.slug]);
 
   useEffect(() => {
-    setLoved(false);
     setTab('desc');
   }, [slug]);
 
@@ -318,10 +320,14 @@ export function ProductDetail() {
                 type="button"
                 className={`outline-btn${loved ? ' is-on' : ''}`}
                 aria-pressed={loved}
-                onClick={() => setLoved((v) => !v)}
+                onClick={() => {
+                  if (!product) return;
+                  const on = toggleFav(product.id);
+                  toast(on ? 'به علاقه‌مندی‌ها افزوده شد' : 'از علاقه‌مندی‌ها حذف شد');
+                }}
               >
                 <IconHeart size={16} filled={loved} />
-                افزودن به علاقه‌مندی‌ها
+                {loved ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
               </button>
               <button type="button" className="outline-btn" onClick={share}>
                 اشتراک‌گذاری

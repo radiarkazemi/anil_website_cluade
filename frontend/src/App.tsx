@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { CartDrawer } from './components/CartDrawer';
 import { Toast } from './components/Toast';
 import { MobileBuyBar } from './components/MobileBuyBar';
+import { MobileTabBar } from './components/MobileTabBar';
 import { GoldConsultant } from './components/GoldConsultant';
 import { useGoldPrice } from './hooks/useGoldPrice';
 import { useSiteAnalytics } from './hooks/useSiteAnalytics';
@@ -13,6 +14,7 @@ import { useStore } from './store/useStore';
 import { Home } from './pages/Home';
 import { Products } from './pages/Products';
 import { ProductDetail } from './pages/ProductDetail';
+import { Favorites } from './pages/Favorites';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Blog } from './pages/Blog';
@@ -89,6 +91,7 @@ function AppInner() {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
+        <Route path="/favorites" element={<Favorites />} />
         <Route path="/atelier" element={<Atelier />} />
         <Route path="/tools" element={<Tools />} />
         <Route path="/blog" element={<Blog />} />
@@ -114,6 +117,7 @@ function AppInner() {
         </Route>
       </Routes>
       {!isPanel && <CartDrawer />}
+      {!isPanel && <MobileTabBar />}
       {!isPanel && <MobileBuyBar />}
       {!isPanel && <GoldConsultant />}
       <Toast />

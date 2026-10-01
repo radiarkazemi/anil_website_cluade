@@ -2,178 +2,186 @@
 
 /* Shared tokens (not colors — themes set the palette below) */
 :root {
-  --radius: 16px;
-  --radius-sm: 12px;
+  --radius: 12px;
+  --radius-sm: 10px;
   --radius-pill: 999px;
   --max-w: 1280px;
   --px: clamp(18px, 4vw, 32px);
   --font-ui: 'Estedad', Tahoma, 'Segoe UI', sans-serif;
   --font-display: 'Estedad', Tahoma, sans-serif;
   --font-brand: 'Cormorant Garamond', Georgia, serif;
+  --tabbar-h: 64px;
+  --buybar-h: 64px;
 }
 
+/* شب طلایی — mobile handoff tokens */
 [data-theme='dark'] {
-  --bg: #060606;
+  --bg: #090909;
   --bg-soft: #0c0a07;
-  --surface: #0a0906;
-  --surface-2: #100e0a;
-  --surface-3: #16120c;
+  --surface: #17150f;
+  --surface-2: #17150f;
+  --surface-3: #1f1b14;
   --warm: #1a1206;
-  --gold: #d4af37;
-  --gold-light: #e8c976;
+  --gold: #e2bd60;
+  --gold-light: #f0d08a;
   --gold-deep: #c9a24b;
-  --gold-grad: linear-gradient(135deg, #f4d98b, #d4af37);
-  --text: #f5ede2;
-  --text-muted: #a49a8b;
-  --text-dim: #8a7f6a;
+  --gold-grad: linear-gradient(135deg, #f0d08a, #e2bd60);
+  --text: #f6f1e8;
+  --text-muted: #bcb3a2;
+  --text-dim: #9a917f;
   --up: #37d391;
   --down: #e0655f;
   --border: rgba(255,255,255,.07);
-  --border-gold: rgba(212,175,55,.18);
+  --border-gold: rgba(226,189,96,.28);
   --shadow: 0 16px 40px rgba(0,0,0,.45);
-  --header-bg: rgba(6,6,6,.88);
+  --header-bg: rgba(9,9,9,.92);
   --overlay: rgba(0,0,0,.62);
   --input-bg: rgba(255,255,255,.03);
-  --card-bg: linear-gradient(180deg, #100e0a, #0a0906);
+  --card-bg: #17150f;
   --sidebar-bg: #0b0906;
   --table-stripe: rgba(255,255,255,.02);
-  --rate-board-bg: #100e0a;
-  --rate-board-text: #f5ede2;
+  --rate-board-bg: #17150f;
+  --rate-board-text: #f6f1e8;
   --rate-chip-bg: rgba(255,255,255,.04);
-  --rate-chip-border: rgba(212,175,55,.22);
+  --rate-chip-border: rgba(226,189,96,.28);
   --hero-wash:
-    radial-gradient(ellipse 100% 85% at 12% 0%, rgba(212,175,55,.42), transparent 58%),
-    radial-gradient(ellipse 70% 60% at 95% 10%, rgba(244,217,139,.22), transparent 52%),
-    radial-gradient(ellipse 55% 45% at 70% 95%, rgba(140,90,25,.35), transparent 58%),
-    linear-gradient(165deg, #1a140c 0%, #0c0906 48%, #080604 100%);
+    radial-gradient(ellipse 100% 85% at 12% 0%, rgba(226,189,96,.38), transparent 58%),
+    radial-gradient(ellipse 70% 60% at 95% 10%, rgba(240,208,138,.18), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 70% 95%, rgba(140,90,25,.32), transparent 58%),
+    linear-gradient(165deg, #1a140c 0%, #0c0906 48%, #090909 100%);
   --header-atmosphere:
-    linear-gradient(180deg, rgba(212,175,55,.12), transparent 70%),
-    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(212,175,55,.14), transparent 55%);
-  --header-rail: rgba(212,175,55,.55);
+    linear-gradient(180deg, rgba(226,189,96,.12), transparent 70%),
+    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(226,189,96,.12), transparent 55%);
+  --header-rail: rgba(226,189,96,.55);
   --search-shell: rgba(255,255,255,.03);
+  --action-text: #211905;
 }
 
+/* عاج روشن */
 [data-theme='light'] {
-  --bg: #f7f2e9;
+  --bg: #f7f3eb;
   --bg-soft: #fbf8f2;
   --surface: #ffffff;
   --surface-2: #f5efe4;
   --surface-3: #ebe3d4;
   --warm: #2a1c0c;
-  --gold: #a07a1c;
+  --gold: #79561b;
   --gold-light: #8a6414;
   --gold-deep: #6f5010;
-  --gold-grad: linear-gradient(135deg, #d4af37, #9a7418);
-  --text: #1a1208;
-  --text-muted: #4a3b28;
+  --gold-grad: linear-gradient(135deg, #a07a1c, #79561b);
+  --text: #242018;
+  --text-muted: #655d50;
   --text-dim: #5c4b34;
   --up: #187a52;
   --down: #b53a35;
   --border: rgba(42,28,10,.14);
-  --border-gold: rgba(122,90,16,.32);
+  --border-gold: rgba(121,86,27,.32);
   --shadow: 0 12px 28px rgba(50,35,10,.1);
-  --header-bg: rgba(251,247,240,.94);
+  --header-bg: rgba(247,243,235,.94);
   --overlay: rgba(30,20,8,.45);
   --input-bg: #ffffff;
   --card-bg: #ffffff;
   --sidebar-bg: #fbf7f0;
   --table-stripe: rgba(122,90,16,.05);
   --rate-board-bg: linear-gradient(180deg, #fff9ef 0%, #f3e8d4 100%);
-  --rate-board-text: #1a1208;
+  --rate-board-text: #242018;
   --rate-chip-bg: rgba(255,255,255,.88);
-  --rate-chip-border: rgba(122,90,16,.22);
+  --rate-chip-border: rgba(121,86,27,.22);
   --hero-wash:
-    radial-gradient(ellipse 100% 90% at 0% -15%, rgba(212,175,55,.55), transparent 58%),
+    radial-gradient(ellipse 100% 90% at 0% -15%, rgba(212,175,55,.45), transparent 58%),
     radial-gradient(ellipse 75% 65% at 100% -5%, rgba(255,252,245,.98), transparent 52%),
-    radial-gradient(ellipse 70% 60% at 55% 105%, rgba(180,135,45,.34), transparent 58%),
+    radial-gradient(ellipse 70% 60% at 55% 105%, rgba(180,135,45,.3), transparent 58%),
     linear-gradient(150deg, #fff4d8 0%, #e8d19e 40%, #d4b978 100%);
   --header-atmosphere:
-    linear-gradient(180deg, rgba(255,250,238,.95), rgba(247,242,233,.7)),
+    linear-gradient(180deg, rgba(255,250,238,.95), rgba(247,243,235,.7)),
     radial-gradient(ellipse 70% 140% at 0% 0%, rgba(212,175,55,.2), transparent 55%);
-  --header-rail: rgba(160,122,28,.45);
+  --header-rail: rgba(121,86,27,.45);
   --search-shell: rgba(255,255,255,.72);
+  --action-text: #ffffff;
 }
 
-/* Charcoal + champagne */
+/* نوآر */
 [data-theme='noir'] {
-  --bg: #0e1116;
+  --bg: #0a0b0d;
   --bg-soft: #141820;
-  --surface: #151a22;
-  --surface-2: #1b212c;
+  --surface: #16181c;
+  --surface-2: #16181c;
   --surface-3: #232a38;
   --warm: #1a1d26;
-  --gold: #c6b48a;
+  --gold: #ced2d8;
   --gold-light: #e2d3b0;
   --gold-deep: #9a8a64;
-  --gold-grad: linear-gradient(135deg, #e8d9b5, #b6a47a);
-  --text: #eef1f6;
-  --text-muted: #9aa3b2;
+  --gold-grad: linear-gradient(135deg, #e8d9b5, #ced2d8);
+  --text: #f0f1f3;
+  --text-muted: #a9adb5;
   --text-dim: #7d8798;
   --up: #4ecf9a;
   --down: #e0706a;
   --border: rgba(255,255,255,.08);
-  --border-gold: rgba(198,180,138,.28);
+  --border-gold: rgba(206,210,216,.28);
   --shadow: 0 18px 42px rgba(0,0,0,.5);
-  --header-bg: rgba(14,17,22,.9);
+  --header-bg: rgba(10,11,13,.92);
   --overlay: rgba(6,8,12,.66);
   --input-bg: rgba(255,255,255,.04);
-  --card-bg: linear-gradient(180deg, #1b212c, #141820);
+  --card-bg: #16181c;
   --sidebar-bg: #10141b;
   --table-stripe: rgba(255,255,255,.03);
-  --rate-board-bg: #171c26;
-  --rate-board-text: #eef1f6;
+  --rate-board-bg: #16181c;
+  --rate-board-text: #f0f1f3;
   --rate-chip-bg: rgba(255,255,255,.05);
-  --rate-chip-border: rgba(198,180,138,.26);
+  --rate-chip-border: rgba(206,210,216,.26);
   --hero-wash:
-    radial-gradient(ellipse 85% 65% at 10% 15%, rgba(198,180,138,.18), transparent 55%),
+    radial-gradient(ellipse 85% 65% at 10% 15%, rgba(206,210,216,.14), transparent 55%),
     radial-gradient(ellipse 55% 45% at 95% 5%, rgba(120,140,180,.12), transparent 50%),
-    linear-gradient(170deg, #151a22 0%, #0e1116 55%, #0c0f14 100%);
+    linear-gradient(170deg, #151a22 0%, #0a0b0d 55%, #0c0f14 100%);
   --header-atmosphere:
-    linear-gradient(180deg, rgba(198,180,138,.08), transparent 72%),
+    linear-gradient(180deg, rgba(206,210,216,.08), transparent 72%),
     radial-gradient(ellipse 70% 120% at 100% 0%, rgba(120,140,180,.1), transparent 50%);
-  --header-rail: rgba(198,180,138,.5);
+  --header-rail: rgba(206,210,216,.5);
   --search-shell: rgba(255,255,255,.04);
+  --action-text: #101216;
 }
 
-/* Deep rose + warm gold */
+/* رزگلد */
 [data-theme='rose'] {
-  --bg: #1a1012;
+  --bg: #180f13;
   --bg-soft: #221416;
-  --surface: #26171a;
-  --surface-2: #2f1c20;
+  --surface: #25191f;
+  --surface-2: #25191f;
   --surface-3: #3a2428;
   --warm: #3a1e22;
-  --gold: #d4a574;
-  --gold-light: #e8c49a;
+  --gold: #e6b5a6;
+  --gold-light: #f0cfc4;
   --gold-deep: #b88455;
-  --gold-grad: linear-gradient(135deg, #e8c49a, #c99662);
-  --text: #f7ebe6;
-  --text-muted: #c4a69c;
+  --gold-grad: linear-gradient(135deg, #f0cfc4, #e6b5a6);
+  --text: #fff0eb;
+  --text-muted: #c7aaa9;
   --text-dim: #a8887e;
   --up: #5dcf9a;
   --down: #e07a72;
   --border: rgba(255,220,210,.1);
-  --border-gold: rgba(212,165,116,.3);
+  --border-gold: rgba(230,181,166,.3);
   --shadow: 0 16px 40px rgba(20,8,10,.5);
-  --header-bg: rgba(26,16,18,.9);
+  --header-bg: rgba(24,15,19,.92);
   --overlay: rgba(20,8,10,.64);
   --input-bg: rgba(255,255,255,.04);
-  --card-bg: linear-gradient(180deg, #2f1c20, #221416);
+  --card-bg: #25191f;
   --sidebar-bg: #1c1214;
   --table-stripe: rgba(255,220,210,.03);
-  --rate-board-bg: #2a181c;
-  --rate-board-text: #f7ebe6;
+  --rate-board-bg: #25191f;
+  --rate-board-text: #fff0eb;
   --rate-chip-bg: rgba(255,255,255,.05);
-  --rate-chip-border: rgba(212,165,116,.28);
+  --rate-chip-border: rgba(230,181,166,.28);
   --hero-wash:
-    radial-gradient(ellipse 90% 70% at 8% 12%, rgba(212,165,116,.2), transparent 55%),
+    radial-gradient(ellipse 90% 70% at 8% 12%, rgba(230,181,166,.18), transparent 55%),
     radial-gradient(ellipse 55% 45% at 92% 15%, rgba(180,90,100,.14), transparent 52%),
-    linear-gradient(170deg, #241618 0%, #1a1012 55%, #160e10 100%);
+    linear-gradient(170deg, #241618 0%, #180f13 55%, #160e10 100%);
   --header-atmosphere:
-    linear-gradient(180deg, rgba(212,165,116,.1), transparent 70%),
+    linear-gradient(180deg, rgba(230,181,166,.1), transparent 70%),
     radial-gradient(ellipse 70% 120% at 0% 0%, rgba(180,90,100,.1), transparent 55%);
-  --header-rail: rgba(212,165,116,.5);
+  --header-rail: rgba(230,181,166,.5);
   --search-shell: rgba(255,255,255,.04);
+  --action-text: #28151a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2413,7 +2421,7 @@ body.nav-open { overflow: hidden; }
 .m-hero { display: none; }
 .mobile-ticker { display: none; }
 .cart-ico-mobile { display: none; }
-.mobile-tabbar { display: none !important; }
+.mobile-tabbar { display: none; }
 .mobile-gold-bar { display: none !important; }
 .live-gold-mini { display: none !important; }
 .home-hero-bleed { display: block; position: relative; isolation: isolate; }
@@ -2425,12 +2433,16 @@ body.nav-open { overflow: hidden; }
    ═══════════════════════════════════════════════════ */
 @media (max-width: 900px) {
   :root {
-    --px: 28px;
-    --section-gap: 36px;
+    --px: 16px;
+    --section-gap: 28px;
+    --radius: 12px;
+    --radius-sm: 10px;
+    --tabbar-h: 64px;
+    --buybar-h: 72px;
   }
 
   body {
-    padding-bottom: calc(var(--buybar-h, 64px) + env(safe-area-inset-bottom, 0));
+    padding-bottom: calc(var(--tabbar-h, 64px) + 16px + env(safe-area-inset-bottom, 0));
   }
 
   .container {
@@ -2940,11 +2952,69 @@ body.nav-open { overflow: hidden; }
     gap: 4px;
   }
 
-  :root { --buybar-h: 64px; }
-  body {
-    padding-bottom: calc(var(--buybar-h) + env(safe-area-inset-bottom, 0));
+  /* Bottom tab bar — handoff foundation */
+  .mobile-tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 140;
+    min-height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0));
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0));
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(18px);
+    border-top: 1px solid var(--border-gold);
+    box-shadow: 0 -8px 28px rgba(0,0,0,.18);
   }
-  .mobile-buybar {
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 4px 2px;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .mobile-tab.active {
+    color: var(--gold);
+  }
+  .mobile-tab-ico {
+    position: relative;
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-tab-badge {
+    position: absolute;
+    top: -6px;
+    inset-inline-start: 14px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: var(--action-text, #211905);
+    font-size: 9px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* PDP sticky purchase bar (replaces tab bar) */
+  .mobile-buybar.mobile-pdp-bar {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -2954,58 +3024,71 @@ body.nav-open { overflow: hidden; }
     bottom: 0;
     z-index: 140;
     padding: 10px max(var(--px), 16px) calc(10px + env(safe-area-inset-bottom, 0));
-    background: var(--header-bg);
-    backdrop-filter: blur(16px);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(18px);
     border-top: 1px solid var(--border-gold);
-    box-shadow: 0 -8px 28px rgba(0,0,0,.12);
+    box-shadow: 0 -8px 28px rgba(0,0,0,.18);
   }
-  .mobile-buybar-cta {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 46px;
-    border-radius: 14px;
-    font-weight: 800;
-    font-size: 14.5px;
-    color: #1a1206;
-    background: var(--gold-grad);
-    box-shadow: 0 8px 20px rgba(212,175,55,.25);
-  }
-  .mobile-buybar-cart {
-    position: relative;
+  .mobile-pdp-fav {
     width: 46px;
     height: 46px;
-    border-radius: 14px;
+    border-radius: 12px;
     border: 1px solid var(--border-gold);
     background: var(--surface);
-    color: var(--gold-light);
+    color: var(--gold);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .mobile-buybar-badge {
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 999px;
-    background: var(--gold);
-    color: #1a1206;
-    font-size: 10px;
+  .mobile-pdp-fav.is-on { color: var(--gold-light); background: color-mix(in srgb, var(--gold) 14%, transparent); }
+  .mobile-pdp-price {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .mobile-pdp-price strong {
+    font-size: 15px;
     font-weight: 800;
+    color: var(--gold-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mobile-pdp-price strong.is-pending { font-size: 13px; color: var(--text-muted); }
+  .mobile-pdp-price span { font-size: 11px; color: var(--text-muted); }
+  .mobile-buybar-cta {
+    flex: 1.1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    min-height: 48px;
+    max-width: 52%;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 13.5px;
+    color: var(--action-text, #211905);
+    background: var(--gold-grad);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--gold) 28%, transparent);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .mobile-buybar-cta:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  body:has(.mobile-pdp-bar) {
+    padding-bottom: calc(var(--buybar-h) + 16px + env(safe-area-inset-bottom, 0));
   }
   .site-toast {
-    bottom: calc(14px + var(--buybar-h) + env(safe-area-inset-bottom, 0));
+    bottom: calc(14px + var(--tabbar-h) + env(safe-area-inset-bottom, 0));
   }
   .goldbox-panel {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0) + var(--buybar-h));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 12px);
   }
 
   .filter-row {
@@ -6912,19 +6995,33 @@ body.nav-open { overflow: hidden; }
     min-width: 0 !important;
   }
 
-  /* Featured / categories: swipeable cards on phone */
-  .handoff-02-rail.product-rail,
-  .handoff-02-cats.cat-rail {
-    display: flex !important;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
+  /* Featured: 2-column grid on phone (handoff board 01) */
+  .handoff-02-rail.product-rail.handoff-02-grid-mobile {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    overflow: visible;
+    scroll-snap-type: none;
   }
-  .handoff-02-rail .product-rail-item {
-    flex: 0 0 min(210px, 72vw);
+  .handoff-02-grid-mobile .product-rail-item {
+    flex: none;
+    min-width: 0;
+    width: auto;
   }
-  .handoff-02-cat.cat-tile {
-    flex: 0 0 min(180px, 58vw);
+  .handoff-02-featured .rail-nav { display: none; }
+
+  /* Categories: 2×3 grid on phone */
+  .handoff-02-cats.cat-rail.handoff-02-cats-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .handoff-02-cats-grid .handoff-02-cat.cat-tile {
+    flex: none;
+    width: auto;
+    min-width: 0;
   }
 }
 
@@ -9659,4 +9756,227 @@ html, body {
   .tools-calc-row:hover {
     transform: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════
+   Mobile design handoff — blog / favorites / home blog
+   ═══════════════════════════════════════════════════ */
+.handoff-blog-hero-compact .handoff-blog-hero-bg { display: none; }
+.handoff-blog-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 16px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.handoff-blog-filters::-webkit-scrollbar { display: none; }
+.handoff-blog-filter {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-gold);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.handoff-blog-filter.is-active {
+  background: var(--gold);
+  color: var(--action-text, #211905);
+  border-color: transparent;
+}
+.handoff-blog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.handoff-blog-stack .handoff-blog-card {
+  display: flex;
+  flex-direction: column;
+}
+.handoff-blog-stack .handoff-blog-cover {
+  order: -1;
+  aspect-ratio: 16 / 10;
+  border-radius: 12px 12px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+.handoff-blog-cover-tag {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--action-text, #211905);
+  font-size: 11px;
+  font-weight: 700;
+}
+.handoff-blog-date,
+.handoff-blog-read {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.handoff-blog-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  margin: 20px 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-gold);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.handoff-favorites {
+  padding-block: 24px 40px;
+}
+.handoff-favorites-head {
+  margin-bottom: 20px;
+}
+.handoff-favorites-head h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.handoff-favorites-head p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.handoff-favorites-empty {
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.handoff-favorites-empty p {
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+.handoff-favorites-empty .gold-btn {
+  display: inline-flex;
+  min-height: 48px;
+  padding-inline: 22px;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-blog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.home-blog-card {
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.home-blog-cover {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.home-blog-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.home-blog-fallback {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-family: var(--font-brand);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+.home-blog-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.home-blog-tag {
+  align-self: flex-start;
+  font-size: 11px;
+  color: var(--gold);
+  border: 1px solid var(--border-gold);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.home-blog-body h3 {
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+.home-blog-body h3 a {
+  color: var(--text);
+  text-decoration: none;
+}
+.home-blog-body p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .handoff-blog-hero {
+    padding-block: 20px 8px;
+    min-height: 0;
+  }
+  .handoff-blog-hero-title {
+    font-size: 26px;
+    text-align: center;
+  }
+  .handoff-blog-hero-sub {
+    text-align: center;
+    font-size: 14px;
+  }
+  .handoff-blog-hero-lead { display: none; }
+  .handoff-blog-stack .handoff-blog-body {
+    padding: 14px 14px 16px;
+  }
+  .handoff-blog-stack .handoff-blog-topics { display: none; }
+  .handoff-pd-primary {
+    /* Sticky bar owns the primary action on phone */
+    display: none !important;
+  }
+  .products-page .handoff-pc-cta {
+    font-size: 13px;
+  }
+  .home-blog-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 901px) {
+  .home-blog-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mobile-buybar.mobile-pdp-bar { display: none !important; }
 }

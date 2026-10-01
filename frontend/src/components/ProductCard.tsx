@@ -1,12 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 import type { Product } from '../types';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
+import { useFavorites } from '../store/favoritesStore';
 import { calcPrice, faNum, faPrice, faWeight } from '../utils/format';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
-import { IconConsult, IconHeart, IconShoppingBag } from './icons';
+import { IconHeart, IconShoppingBag } from './icons';
 import { mediaUrl } from '../utils/mediaUrl';
 
 type Variant = 'catalog' | 'related';
@@ -25,7 +25,8 @@ export function ProductCard({
   const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
-  const [loved, setLoved] = useState(false);
+  const loved = useFavorites((s) => s.has(product.id));
+  const toggleFav = useFavorites((s) => s.toggle);
 
   const hasWeight =
     product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
@@ -81,7 +82,10 @@ export function ProductCard({
           className={`handoff-pc-fav${loved ? ' is-on' : ''}`}
           aria-label={loved ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
           aria-pressed={loved}
-          onClick={() => setLoved((v) => !v)}
+          onClick={() => {
+            const on = toggleFav(product.id);
+            toast(on ? 'به علاقه‌مندی‌ها افزوده شد' : 'از علاقه‌مندی‌ها حذف شد');
+          }}
         >
           <IconHeart size={15} filled={loved} />
         </button>
@@ -119,15 +123,10 @@ export function ProductCard({
               مشاهده محصول
             </Link>
           </div>
-        ) : canBuy ? (
-          <button type="button" className="handoff-pc-cta" onClick={tryAdd}>
-            <IconShoppingBag size={16} />
-            افزودن به سبد خرید
-          </button>
         ) : (
-          <Link to={`/products/${product.slug}`} className="handoff-pc-cta is-inquire">
-            <IconConsult size={16} />
-            استعلام قیمت
+          <Link to={`/products/${product.slug}`} className="handoff-pc-cta">
+            <IconShoppingBag size={16} />
+            مشاهده
           </Link>
         )}
       </div>

@@ -23,10 +23,11 @@ import { ContactBand, SiteFooter } from '../components/SiteChrome';
 import { useStore } from '../store/useStore';
 import { useToast } from '../store/toastStore';
 import { useUI } from '../store/uiStore';
+import { useFavorites } from '../store/favoritesStore';
 import { calcPrice, faNum, faPrice, parseWeightGrams, WEIGHT_DECIMALS } from '../utils/format';
 import { mediaUrl } from '../utils/mediaUrl';
 import { isProfileReady, profileCompletePath, profileGapMessage } from '../utils/profileGate';
-import type { Category, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
+import type { Category, ContentPage, GoldPrice, HeroAlbumSlide, MarketRow, Product, SiteSettings } from '../types';
 
 /** Heavy WebGL — only imported after the user opts in (never during first paint). */
 const loadHeroRing3D = () =>
@@ -60,6 +61,7 @@ const DEFAULT_SECTION_ORDER = [
   'calculator',
   'trust',
   'editorial',
+  'blog',
   'contact',
 ];
 
@@ -510,13 +512,16 @@ function FeaturedHandoffCard({ product }: { product: Product }) {
   const openCart = useUI((s) => s.openCart);
   const toast = useToast((s) => s.show);
   const nav = useNavigate();
-  const [loved, setLoved] = useState(false);
+  const loved = useFavorites((s) => s.has(product.id));
+  const toggleFav = useFavorites((s) => s.toggle);
 
   const hasWeight =
     product.has_weight !== false && product.weight_g != null && Number(product.weight_g) > 0;
   const w = hasWeight ? Number(product.weight_g) : 0;
   const fee = Number(product.fee_ratio);
-  const total = hasWeight ? calcPrice(w, gp, fee, product.stone_value).total : null;
+  const priced = hasWeight ? calcPrice(w, gp, fee, product.stone_value) : null;
+  const total = priced?.total ?? null;
+  const feeAmount = priced?.fee ?? null;
   const karat = product.karat || 18;
 
   const tryAdd = () => {
@@ -561,14 +566,22 @@ function FeaturedHandoffCard({ product }: { product: Product }) {
           className={`fh-card-fav${loved ? ' is-on' : ''}`}
           aria-label={loved ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
           aria-pressed={loved}
-          onClick={() => setLoved((v) => !v)}
+          onClick={() => {
+            const on = toggleFav(product.id);
+            toast(on ? 'به علاقه‌مندی‌ها افزوده شد' : 'از علاقه‌مندی‌ها حذف شد');
+          }}
         >
           <IconHeart size={16} filled={loved} />
         </button>
       </div>
       <div className="fh-card-body">
         <Link to={`/products/${product.slug}`} className="fh-card-name">{product.name}</Link>
-        <div className="fh-card-meta">طلای {faNum(karat)} عیار</div>
+        <div className="fh-card-meta">
+          وزن: {hasWeight ? `${faNum(w)} گرم` : 'پس از تأیید'} · عیار {faNum(karat)}
+        </div>
+        <div className="fh-card-meta">
+          اجرت: {feeAmount != null ? `${faPrice(feeAmount)} تومان` : '—'}
+        </div>
         <div className="fh-card-price">{total != null ? faPrice(total) : '—'}</div>
         <div className="fh-card-unit">{total != null ? 'تومان' : 'قیمت پس از تأیید وزن'}</div>
         <div className="fh-card-actions">
@@ -581,7 +594,7 @@ function FeaturedHandoffCard({ product }: { product: Product }) {
           >
             <IconShoppingBag size={16} />
           </button>
-          <Link to={`/products/${product.slug}`} className="fh-card-view">مشاهده محصول</Link>
+          <Link to={`/products/${product.slug}`} className="fh-card-view">مشاهده جزئیات</Link>
         </div>
       </div>
     </article>
@@ -605,14 +618,14 @@ function FeaturedRail({
   };
 
   if (!products.length) return null;
-  const row = products.slice(0, 5);
+  const row = products.slice(0, 4);
 
   return (
     <section className="container section-pad home-featured handoff-02-featured">
       <div className="section-row handoff-02-head">
         <div className="handoff-02-head-main">
           <div>
-            <h2 className="section-title tight">{home?.featured_title || 'محصولات منتخب'}</h2>
+            <h2 className="section-title tight">{home?.featured_title || 'منتخب محصولات'}</h2>
             <p className="section-sub">{home?.featured_subtitle || 'جدیدترین و محبوب‌ترین زیورآلات آنیل'}</p>
           </div>
           <div className="rail-nav" role="group" aria-label="جابه‌جایی محصولات">
@@ -629,7 +642,7 @@ function FeaturedRail({
           <span aria-hidden>‹</span>
         </Link>
       </div>
-      <div className="product-rail handoff-02-rail" ref={scroller}>
+      <div className="product-rail handoff-02-rail handoff-02-grid-mobile" ref={scroller}>
         {row.map((p) => (
           <div key={p.id} className="product-rail-item">
             <FeaturedHandoffCard product={p} />
@@ -655,7 +668,7 @@ function CategoriesSection({
     const ai = CATEGORY_ORDER.findIndex((re) => re.test(`${a.name} ${a.slug}`));
     const bi = CATEGORY_ORDER.findIndex((re) => re.test(`${b.name} ${b.slug}`));
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  }).slice(0, 5);
+  }).slice(0, 6);
 
   return (
     <section className="container section-pad home-categories handoff-02-categories">
@@ -665,10 +678,10 @@ function CategoriesSection({
           <p className="section-sub">{home?.categories_subtitle || 'دسته‌بندی مورد علاقه خود را انتخاب کنید'}</p>
         </div>
         <Link to="/products" className="outline-btn section-all-btn handoff-02-all">
-          {home?.categories_all || 'مشاهده همه دسته‌ها'}
+          {home?.categories_all || 'مشاهده همه'}
         </Link>
       </div>
-      <div className="cat-rail handoff-02-cats" aria-label="دسته‌بندی‌ها">
+      <div className="cat-rail handoff-02-cats handoff-02-cats-grid" aria-label="دسته‌بندی‌ها">
         {ordered.map((c) => {
           const art = categoryArt(c);
           return (
@@ -902,6 +915,45 @@ function EditorialStrip({ site }: { site?: SiteSettings | null }) {
   );
 }
 
+function LatestBlogStrip({ posts }: { posts: ContentPage[] }) {
+  const list = posts.filter((p) => p.slug !== 'بلاگ').slice(0, 2);
+  if (!list.length) return null;
+  return (
+    <section className="container section-pad home-blog-strip" aria-labelledby="home-blog-title">
+      <div className="section-row handoff-02-head">
+        <div>
+          <h2 id="home-blog-title" className="section-title tight">آخرین مطالب مجله</h2>
+          <p className="section-sub">راهنمای خرید و نکات طلا از مجله آنیل</p>
+        </div>
+        <Link to="/blog" className="outline-btn section-all-btn handoff-02-all">
+          مشاهده همه
+          <span aria-hidden>‹</span>
+        </Link>
+      </div>
+      <div className="home-blog-grid">
+        {list.map((p) => (
+          <article key={p.id} className="home-blog-card">
+            <Link to={`/blog/${p.slug}`} className="home-blog-cover" tabIndex={-1}>
+              {p.cover_url ? (
+                <img src={mediaUrl(p.cover_url)} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span className="home-blog-fallback">ANIL</span>
+              )}
+            </Link>
+            <div className="home-blog-body">
+              {p.tags?.[0] ? <span className="home-blog-tag">{p.tags[0]}</span> : null}
+              <h3>
+                <Link to={`/blog/${p.slug}`}>{p.title}</Link>
+              </h3>
+              {p.excerpt ? <p>{p.excerpt}</p> : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function Home() {
   const goldPrice = useStore((s) => s.goldPrice);
   const { data: site } = useQuery({
@@ -917,13 +969,18 @@ export function Home() {
     queryKey: ['products'],
     queryFn: () => api.products({ page_size: '12', ordering: '-created_at' }).then((r) => r.data.results),
   });
+  const { data: blogPosts = [] } = useQuery({
+    queryKey: ['blog-pages-home'],
+    queryFn: () => api.pages({ type: 'blog' }).then((r) => r.data),
+    staleTime: 60_000,
+  });
 
   const categories = categoriesData ?? [];
   const products = productsData ?? [];
   const featured = useMemo(() => {
     const flagged = products.filter((p) => p.is_featured && p.primary_image);
     const rest = products.filter((p) => !flagged.some((f) => f.id === p.id) && p.primary_image);
-    return [...flagged, ...rest].slice(0, 5);
+    return [...flagged, ...rest].slice(0, 4);
   }, [products]);
 
   const order = useMemo(() => {
@@ -987,6 +1044,7 @@ export function Home() {
         <WhyAnil key="trust" heading={site?.trust_heading} site={site} />
       ) : null,
     editorial: <EditorialStrip key="editorial" site={site} />,
+    blog: <LatestBlogStrip key="blog" posts={blogPosts} />,
     contact: <ContactBand key="contact" site={site} title="بازدید و تماس" />,
   };
 
